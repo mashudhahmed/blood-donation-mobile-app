@@ -1,14 +1,21 @@
-import { Controller, Post, Body } from '@nestjs/common';
+import { Controller, Post, Body, UseGuards, Req } from '@nestjs/common';
 import { BloodRequestService } from './blood-request.service';
-import { BloodRequestDto } from './dto/blood-request.dto';
+import { CreateBloodRequestDto } from './dto/create-blood-request.dto';
+import { FirebaseAuthGuard } from '../common/guards/firebase-auth.guard';
 
 @Controller('blood-request')
 export class BloodRequestController {
-
   constructor(private readonly service: BloodRequestService) {}
 
-  @Post('notify')
-  notifyDonors(@Body() dto: BloodRequestDto) {
-    return this.service.notifyEligibleDonors(dto);
+  @UseGuards(FirebaseAuthGuard)
+  @Post()
+  async create(
+    @Body() dto: CreateBloodRequestDto,
+    @Req() req,
+  ) {
+    return this.service.createRequest({
+      ...dto,
+      requestedBy: req.user.uid,
+    });
   }
 }

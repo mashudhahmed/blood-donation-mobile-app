@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
-import { BloodRequestModule } from './blood-request/blood-request.module';
+import { NotificationsModule } from './notifications/notifications.module';
 
 @Module({
-  imports: [BloodRequestModule],
+  imports: [NotificationsModule],
 })
 export class AppModule {}

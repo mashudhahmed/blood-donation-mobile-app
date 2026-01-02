@@ -6,9 +6,8 @@ export class NotificationsService {
   constructor(private firebaseService: FirebaseService) {}
 
   async sendNotification(tokens: string[], title: string, body: string) {
-    // First check if Firebase is ready
+
     if (!this.firebaseService.isFirebaseReady()) {
-      console.warn('⚠️ Firebase not initialized - returning mock response');
       return {
         success: false,
         message: 'Firebase not configured',
@@ -28,14 +27,12 @@ export class NotificationsService {
       };
     }
 
-    // Remove duplicates and invalid tokens
-    const validTokens = tokens.filter(token => token && token.trim().length > 0);
-    const uniqueTokens = [...new Set(validTokens)];
+    const uniqueTokens = [...new Set(tokens.filter(t => t?.trim()))];
 
     if (uniqueTokens.length === 0) {
       return {
         success: false,
-        message: 'No valid tokens provided',
+        message: 'No valid tokens',
         sent: 0,
         failed: 0,
         totalTokens: 0,
@@ -44,26 +41,31 @@ export class NotificationsService {
 
     try {
       const messaging = this.firebaseService.getMessaging();
-      
+
       const message = {
-        notification: { title, body },
+        notification: {
+          title,
+          body,
+        },
+        android: {
+          priority: "high" as "high", // 🔥 CRITICAL FIX
+        },
         tokens: uniqueTokens,
       };
 
       const response = await messaging.sendEachForMulticast(message);
-      
+
       return {
         success: true,
         sent: response.successCount,
         failed: response.failureCount,
         totalTokens: uniqueTokens.length,
       };
-    } catch (error) {
-      console.error('❌ Error sending notification:', error.message);
+
+    } catch (error: any) {
       return {
         success: false,
         error: error.message,
-        code: error.code,
         sent: 0,
         failed: uniqueTokens.length,
         totalTokens: uniqueTokens.length,

@@ -20,13 +20,11 @@ export class BloodRequestService {
     const tokens = donors.map(d => d.fcmToken).filter(Boolean);
 
     if (tokens.length > 0) {
-      await this.firebaseService.sendMulticast({
+      await this.firebaseService.sendToMultipleDevices(
         tokens,
-        notification: {
-          title: 'Urgent Blood Needed',
-          body: `${request.bloodGroup} blood required in ${request.district}`,
-        },
-      });
+        'Urgent Blood Needed',
+        `${request.bloodGroup} blood required in ${request.district}`
+      );
     }
 
     this.logger.log(

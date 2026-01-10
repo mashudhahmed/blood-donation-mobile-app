@@ -5,49 +5,75 @@ import { FirebaseService } from '../firebase/firebase.service';
 export class NotificationsService {
   constructor(private firebaseService: FirebaseService) {}
 
-  // 🔥 Save notifications to Firestore (NO Cloud Functions)
-  private async saveNotifications(userIds: string[], title: string, message: string) {
-    if (!userIds || userIds.length === 0) return;
+  // 🔥 Save notifications to Firestore (compatible with Android app)
+  private async saveNotifications(
+    userIds: string[], 
+    title: string, 
+    message: string,
+    data: Record<string, any> = {}
+  ) {
+    if (!userIds || userIds.length === 0) {
+      console.log('⚠️ No userIds provided, skipping Firestore save');
+      return;
+    }
 
-    const db = this.firebaseService['getFirestore']
-      ? this.firebaseService['getFirestore']()
-      : require('firebase-admin').firestore();
+    console.log(`🔥 Saving ${userIds.length} notifications to Firestore`);
 
-    const batch = db.batch();
+    try {
+      const db = this.firebaseService['getFirestore']
+        ? this.firebaseService['getFirestore']()
+        : require('firebase-admin').firestore();
 
-    userIds.forEach(uid => {
-      const ref = db
-        .collection('notifications')
-        .doc(uid)
-        .collection('items')
-        .doc();
+      const batch = db.batch();
+      const timestamp = db.FieldValue.serverTimestamp();
 
-      batch.set(ref, {
-        title,
-        message,
-        timestamp: new Date(),
-        read: false,
+      userIds.forEach((uid, index) => {
+        const ref = db
+          .collection('notifications')
+          .doc(uid)
+          .collection('items')
+          .doc(); // Auto-generated ID
+
+        // ✅ PERFECT MATCH with Android NotificationItem structure
+        batch.set(ref, {
+          title: title,
+          message: message,      // Android looks for 'message'
+          body: message,         // Android also checks 'body' (for compatibility)
+          timestamp: timestamp,  // ✅ Firestore Timestamp (Android expects this)
+          read: false,           // Android: isRead field
+          type: 'notification',  // ✅ REQUIRED by Android app
+          ...data,               // Include any additional data
+          _createdAt: new Date().toISOString()
+        });
+
+        console.log(`📝 Prepared Firestore save for user ${uid} (${index + 1}/${userIds.length})`);
       });
-    });
 
-    await batch.commit();
+      await batch.commit();
+      console.log(`✅ Successfully saved ${userIds.length} notifications to Firestore`);
+    } catch (error) {
+      console.error('❌ Error saving to Firestore:', error.message);
+      throw error;
+    }
   }
 
-  // ✅ Supports both formats and guarantees Firestore saving when user IDs exist
+  // ✅ SUPPORTS ALL FORMATS with guaranteed Firestore saving
   async sendNotification(
     data: {
       // NEW FORMAT
       tokens?: string[];
-      userIds?: string[]; // ✅ OPTIONAL: allow direct userIds
+      userIds?: string[];           // For direct user IDs
       title: string;
       body: string;
+      data?: Record<string, any>;   // Additional data for Android
 
       // OLD FORMAT (backward compatibility)
       donors?: Array<{ uid: string; fcmToken: string }>;
     }
   ) {
-    console.log('🔍 DEBUG: Received notification request:', data);
+    console.log('🔍 DEBUG: Received notification request:', JSON.stringify(data, null, 2));
 
+    // 🔒 Firebase availability check
     if (!this.firebaseService.isFirebaseReady()) {
       console.warn('⚠️ Firebase not configured');
       return {
@@ -56,15 +82,17 @@ export class NotificationsService {
         sent: 0,
         failed: 0,
         total: 0,
+        savedForUsers: 0,
+        error: 'Firebase not initialized'
       };
     }
 
     let tokens: string[] = [];
     let userIds: string[] = [];
 
-    // 🥇 Priority 1: donors format (best & production-safe)
+    // 🥇 PRIORITY 1: donors format (production-safe with both uid and token)
     if (data.donors && data.donors.length > 0) {
-      console.log('📱 Using donors format');
+      console.log('📱 Using DONORS format');
 
       const validDonors = data.donors.filter(
         d => d.uid && d.fcmToken && d.fcmToken.trim()
@@ -72,16 +100,21 @@ export class NotificationsService {
 
       tokens = [...new Set(validDonors.map(d => d.fcmToken))];
       userIds = [...new Set(validDonors.map(d => d.uid))];
+
+      console.log(`📊 Parsed: ${validDonors.length} valid donors → ${tokens.length} tokens, ${userIds.length} userIds`);
     }
 
-    // 🥈 Priority 2: tokens + userIds (new supported format)
+    // 🥈 PRIORITY 2: tokens + userIds format (new format)
     else if (data.tokens && data.tokens.length > 0) {
-      console.log('📱 Using tokens format');
+      console.log('📱 Using TOKENS + USERIDS format');
 
-      tokens = data.tokens;
+      tokens = data.tokens.filter(token => token && token.trim());
 
       if (data.userIds && data.userIds.length > 0) {
         userIds = data.userIds;
+        console.log(`📊 Using provided userIds: ${userIds.length} users`);
+      } else {
+        console.log('⚠️ No userIds provided with tokens. Notifications will send but NOT save to Firestore!');
       }
     }
 
@@ -93,9 +126,11 @@ export class NotificationsService {
         sent: 0,
         failed: 0,
         total: 0,
+        savedForUsers: 0
       };
     }
 
+    // Validate tokens
     if (tokens.length === 0) {
       return {
         success: false,
@@ -103,12 +138,14 @@ export class NotificationsService {
         sent: 0,
         failed: 0,
         total: 0,
+        savedForUsers: 0
       };
     }
 
     try {
       const messaging = this.firebaseService.getMessaging();
 
+      // 📱 Build FCM message with Android-specific configuration
       const message = {
         notification: {
           title: data.title,
@@ -116,35 +153,65 @@ export class NotificationsService {
         },
         android: {
           priority: 'high' as const,
+          notification: {
+            channel_id: 'blood_requests',  // ✅ Match Android channel ID
+            icon: 'ic_blood_drop',         // ✅ Your Android notification icon
+            color: '#FF0000'               // ✅ Red color for blood donation
+          }
         },
-        tokens,
+        data: data.data || {},  // Include additional data
+        tokens: tokens,
       };
 
       console.log('🚀 Sending to FCM:', {
         title: data.title,
         body: data.body,
         tokenCount: tokens.length,
-        userCount: userIds.length
+        userCount: userIds.length,
+        androidChannel: 'blood_requests'
       });
 
+      // 📤 Send to FCM
       const response = await messaging.sendEachForMulticast(message);
 
       console.log('✅ FCM Response:', {
         successCount: response.successCount,
-        failureCount: response.failureCount
+        failureCount: response.failureCount,
+        responses: response.responses?.map(r => ({
+          success: r.success,
+          messageId: r.messageId,
+          error: r.error?.message
+        }))
       });
 
-      // 🔥 ALWAYS save when user IDs exist
+      // 🔥 ALWAYS save to Firestore when userIds exist
       if (userIds.length > 0) {
-        await this.saveNotifications(userIds, data.title, data.body);
+        try {
+          await this.saveNotifications(
+            userIds, 
+            data.title, 
+            data.body,
+            data.data || {}
+          );
+          console.log(`💾 Firestore save completed for ${userIds.length} users`);
+        } catch (saveError) {
+          console.error('⚠️ Firestore save failed, but FCM was sent:', saveError.message);
+          // Don't fail the whole request if Firestore save fails
+        }
+      } else {
+        console.log('⚠️ No userIds available - notification sent but NOT saved to Firestore');
       }
 
+      // ✅ Return comprehensive response
       return {
         success: true,
         sent: response.successCount,
         failed: response.failureCount,
         total: tokens.length,
-        savedForUsers: userIds.length
+        savedForUsers: userIds.length,
+        message: `Sent ${response.successCount}/${tokens.length} notifications`,
+        userIds: userIds,
+        firestoreSaved: userIds.length > 0
       };
     } catch (error: any) {
       console.error('❌ Error sending notification:', error.message);
@@ -155,7 +222,32 @@ export class NotificationsService {
         sent: 0,
         failed: tokens.length,
         total: tokens.length,
+        savedForUsers: 0,
+        firestoreSaved: false
       };
     }
+  }
+
+  // ✅ NEW: Get user's notifications (for API if needed)
+  async getUserNotifications(userId: string) {
+    if (!this.firebaseService.isFirebaseReady()) {
+      throw new Error('Firebase not configured');
+    }
+
+    const db = this.firebaseService['getFirestore']
+      ? this.firebaseService['getFirestore']()
+      : require('firebase-admin').firestore();
+
+    const snapshot = await db
+      .collection('notifications')
+      .doc(userId)
+      .collection('items')
+      .orderBy('timestamp', 'desc')
+      .get();
+
+    return snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
   }
 }

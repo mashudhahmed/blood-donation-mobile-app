@@ -1,8 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { FirebaseService } from '../firebase/firebase.service';
+import * as admin from 'firebase-admin';
 
-@Injectable()
-export class NotificationsService {
+@Injectable() // ✅ MUST have @Injectable() decorator
+export class NotificationsService { // ✅ MUST be 'export class' (not default)
   constructor(private firebaseService: FirebaseService) {}
 
   // 🔥 Save notifications to Firestore (compatible with Android app)
@@ -20,29 +21,27 @@ export class NotificationsService {
     console.log(`🔥 Saving ${userIds.length} notifications to Firestore`);
 
     try {
-      const db = this.firebaseService['getFirestore']
-        ? this.firebaseService['getFirestore']()
-        : require('firebase-admin').firestore();
-
+      // ✅ FIXED: Use the proper getFirestore() method
+      const db = this.firebaseService.getFirestore();
+      
       const batch = db.batch();
-      const timestamp = db.FieldValue.serverTimestamp();
+      const timestamp = admin.firestore.FieldValue.serverTimestamp();
 
       userIds.forEach((uid, index) => {
         const ref = db
           .collection('notifications')
           .doc(uid)
           .collection('items')
-          .doc(); // Auto-generated ID
+          .doc();
 
-        // ✅ PERFECT MATCH with Android NotificationItem structure
         batch.set(ref, {
           title: title,
-          message: message,      // Android looks for 'message'
-          body: message,         // Android also checks 'body' (for compatibility)
-          timestamp: timestamp,  // ✅ Firestore Timestamp (Android expects this)
-          read: false,           // Android: isRead field
-          type: 'notification',  // ✅ REQUIRED by Android app
-          ...data,               // Include any additional data
+          message: message,
+          body: message,
+          timestamp: timestamp,
+          read: false,
+          type: 'notification',
+          ...data,
           _createdAt: new Date().toISOString()
         });
 
@@ -60,14 +59,11 @@ export class NotificationsService {
   // ✅ SUPPORTS ALL FORMATS with guaranteed Firestore saving
   async sendNotification(
     data: {
-      // NEW FORMAT
       tokens?: string[];
-      userIds?: string[];           // For direct user IDs
+      userIds?: string[];
       title: string;
       body: string;
-      data?: Record<string, any>;   // Additional data for Android
-
-      // OLD FORMAT (backward compatibility)
+      data?: Record<string, any>;
       donors?: Array<{ uid: string; fcmToken: string }>;
     }
   ) {
@@ -90,35 +86,25 @@ export class NotificationsService {
     let tokens: string[] = [];
     let userIds: string[] = [];
 
-    // 🥇 PRIORITY 1: donors format (production-safe with both uid and token)
+    // 🥇 PRIORITY 1: donors format
     if (data.donors && data.donors.length > 0) {
       console.log('📱 Using DONORS format');
-
-      const validDonors = data.donors.filter(
-        d => d.uid && d.fcmToken && d.fcmToken.trim()
-      );
-
+      const validDonors = data.donors.filter(d => d.uid && d.fcmToken && d.fcmToken.trim());
       tokens = [...new Set(validDonors.map(d => d.fcmToken))];
       userIds = [...new Set(validDonors.map(d => d.uid))];
-
       console.log(`📊 Parsed: ${validDonors.length} valid donors → ${tokens.length} tokens, ${userIds.length} userIds`);
     }
-
-    // 🥈 PRIORITY 2: tokens + userIds format (new format)
+    // 🥈 PRIORITY 2: tokens + userIds format
     else if (data.tokens && data.tokens.length > 0) {
       console.log('📱 Using TOKENS + USERIDS format');
-
       tokens = data.tokens.filter(token => token && token.trim());
-
       if (data.userIds && data.userIds.length > 0) {
         userIds = data.userIds;
         console.log(`📊 Using provided userIds: ${userIds.length} users`);
       } else {
         console.log('⚠️ No userIds provided with tokens. Notifications will send but NOT save to Firestore!');
       }
-    }
-
-    else {
+    } else {
       console.log('❌ No valid data provided');
       return {
         success: false,
@@ -130,7 +116,6 @@ export class NotificationsService {
       };
     }
 
-    // Validate tokens
     if (tokens.length === 0) {
       return {
         success: false,
@@ -145,21 +130,17 @@ export class NotificationsService {
     try {
       const messaging = this.firebaseService.getMessaging();
 
-      // 📱 Build FCM message with Android-specific configuration
-      const message = {
-        notification: {
-          title: data.title,
-          body: data.body,
-        },
+      const fcmMessage = {
+        notification: { title: data.title, body: data.body },
         android: {
           priority: 'high' as const,
           notification: {
-            channel_id: 'blood_requests',  // ✅ Match Android channel ID
-            icon: 'ic_blood_drop',         // ✅ Your Android notification icon
-            color: '#FF0000'               // ✅ Red color for blood donation
+            channel_id: 'blood_requests',
+            icon: 'ic_blood_drop',
+            color: '#FF0000'
           }
         },
-        data: data.data || {},  // Include additional data
+        data: data.data || {},
         tokens: tokens,
       };
 
@@ -167,42 +148,28 @@ export class NotificationsService {
         title: data.title,
         body: data.body,
         tokenCount: tokens.length,
-        userCount: userIds.length,
-        androidChannel: 'blood_requests'
+        userCount: userIds.length
       });
 
-      // 📤 Send to FCM
-      const response = await messaging.sendEachForMulticast(message);
+      const response = await messaging.sendEachForMulticast(fcmMessage);
 
       console.log('✅ FCM Response:', {
         successCount: response.successCount,
-        failureCount: response.failureCount,
-        responses: response.responses?.map(r => ({
-          success: r.success,
-          messageId: r.messageId,
-          error: r.error?.message
-        }))
+        failureCount: response.failureCount
       });
 
-      // 🔥 ALWAYS save to Firestore when userIds exist
+      // 🔥 Save to Firestore when userIds exist
       if (userIds.length > 0) {
         try {
-          await this.saveNotifications(
-            userIds, 
-            data.title, 
-            data.body,
-            data.data || {}
-          );
+          await this.saveNotifications(userIds, data.title, data.body, data.data || {});
           console.log(`💾 Firestore save completed for ${userIds.length} users`);
         } catch (saveError) {
           console.error('⚠️ Firestore save failed, but FCM was sent:', saveError.message);
-          // Don't fail the whole request if Firestore save fails
         }
       } else {
         console.log('⚠️ No userIds available - notification sent but NOT saved to Firestore');
       }
 
-      // ✅ Return comprehensive response
       return {
         success: true,
         sent: response.successCount,
@@ -228,16 +195,13 @@ export class NotificationsService {
     }
   }
 
-  // ✅ NEW: Get user's notifications (for API if needed)
+  // ✅ Get user's notifications
   async getUserNotifications(userId: string) {
     if (!this.firebaseService.isFirebaseReady()) {
       throw new Error('Firebase not configured');
     }
 
-    const db = this.firebaseService['getFirestore']
-      ? this.firebaseService['getFirestore']()
-      : require('firebase-admin').firestore();
-
+    const db = this.firebaseService.getFirestore();
     const snapshot = await db
       .collection('notifications')
       .doc(userId)
@@ -251,3 +215,4 @@ export class NotificationsService {
     }));
   }
 }
+// ✅ MUST END WITH THE CLASS CLOSING BRACE - NO EXTRA EXPORTS NEEDED

@@ -4,6 +4,7 @@ import * as admin from 'firebase-admin';
 @Injectable()
 export class FirebaseService implements OnModuleInit {
   private messaging: admin.messaging.Messaging | null = null;
+  private firestore: admin.firestore.Firestore | null = null;
   private isInitialized = false;
 
   onModuleInit() {
@@ -16,46 +17,38 @@ export class FirebaseService implements OnModuleInit {
       
       // OPTION 1: Try to get from single JSON variable (most reliable)
       const serviceAccountJson = process.env.FIREBASE_SERVICE_ACCOUNT;
-      let projectId: string | undefined;
-      let clientEmail: string | undefined;
-      let privateKey: string | undefined;
+      let serviceAccount: any = null;
 
       if (serviceAccountJson) {
         console.log('🔍 DEBUG: Found FIREBASE_SERVICE_ACCOUNT JSON');
         try {
-          const serviceAccount = JSON.parse(serviceAccountJson);
-          projectId = serviceAccount.projectId;
-          clientEmail = serviceAccount.clientEmail;
-          privateKey = serviceAccount.privateKey;
+          serviceAccount = JSON.parse(serviceAccountJson);
+          console.log('✅ Parsed service account for project:', serviceAccount.project_id);
         } catch (parseError) {
           console.error('❌ ERROR: Failed to parse FIREBASE_SERVICE_ACCOUNT JSON:', parseError.message);
+          console.error('❌ Raw JSON start:', serviceAccountJson.substring(0, 100) + '...');
         }
       }
 
       // OPTION 2: If not in JSON, try separate environment variables
-      if (!projectId || !clientEmail || !privateKey) {
+      if (!serviceAccount) {
         console.log('🔍 DEBUG: Trying separate environment variables...');
-        projectId = process.env.FIREBASE_PROJECT_ID;
-        clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
-        privateKey = process.env.FIREBASE_PRIVATE_KEY;
-      }
+        const projectId = process.env.FIREBASE_PROJECT_ID;
+        const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
+        const privateKey = process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n');
 
-      // OPTION 3: If still not found, try legacy variable names
-      if (!projectId || !clientEmail || !privateKey) {
-        console.log('🔍 DEBUG: Trying legacy variable names...');
-        projectId = process.env.GOOGLE_PROJECT_ID || process.env.PROJECT_ID;
-        clientEmail = process.env.GOOGLE_CLIENT_EMAIL || process.env.CLIENT_EMAIL;
-        privateKey = process.env.GOOGLE_PRIVATE_KEY || process.env.PRIVATE_KEY;
+        if (projectId && clientEmail && privateKey) {
+          serviceAccount = {
+            projectId,
+            clientEmail,
+            privateKey
+          };
+          console.log('✅ Using separate environment variables');
+        }
       }
-
-      // Debug log what we found
-      console.log('🔍 DEBUG: Environment variables found:');
-      console.log('  - projectId:', projectId ? '✓' : '✗');
-      console.log('  - clientEmail:', clientEmail ? '✓' : '✗');
-      console.log('  - privateKey:', privateKey ? '✓' : '✗');
 
       // If still missing, show detailed error
-      if (!projectId || !clientEmail || !privateKey) {
+      if (!serviceAccount) {
         console.warn('⚠️ Firebase environment variables are missing. Notifications will not work.');
         console.log('🔍 DEBUG: Missing variables:');
         console.log('  - FIREBASE_PROJECT_ID:', process.env.FIREBASE_PROJECT_ID ? 'EXISTS' : 'NOT SET');
@@ -66,27 +59,33 @@ export class FirebaseService implements OnModuleInit {
         return;
       }
 
-      // Clean up private key (replace escaped newlines with actual newlines)
-      const cleanPrivateKey = privateKey.replace(/\\n/g, '\n');
-      
       // Check if already initialized
       if (admin.apps.length === 0) {
         console.log('🔍 DEBUG: Initializing Firebase Admin SDK...');
+        
+        // Initialize with either format
         admin.initializeApp({
-          credential: admin.credential.cert({
-            projectId: projectId,
-            clientEmail: clientEmail,
-            privateKey: cleanPrivateKey,
-          }),
+          credential: admin.credential.cert(serviceAccount),
+          projectId: serviceAccount.project_id || serviceAccount.projectId,
+          databaseURL: `https://${serviceAccount.project_id || serviceAccount.projectId}.firebaseio.com`
         });
+        
         console.log('✅ Firebase Admin initialized successfully');
       } else {
         console.log('ℹ️ Firebase already initialized');
       }
 
+      // ✅ INITIALIZE BOTH SERVICES
       this.messaging = admin.messaging();
+      this.firestore = admin.firestore();
+      
+      // Configure Firestore settings
+      this.firestore.settings({
+        ignoreUndefinedProperties: true,
+      });
+      
       this.isInitialized = true;
-      console.log('✅ Firebase messaging service ready');
+      console.log('✅ Firebase services ready: Messaging ✅ Firestore ✅');
       
     } catch (error) {
       console.error('❌ Error initializing Firebase:', error.message);
@@ -96,6 +95,7 @@ export class FirebaseService implements OnModuleInit {
     }
   }
 
+  // 🔥 GET MESSAGING SERVICE
   getMessaging() {
     if (!this.isInitialized || !this.messaging) {
       throw new Error('Firebase not initialized. Check your Firebase credentials.');
@@ -103,21 +103,61 @@ export class FirebaseService implements OnModuleInit {
     return this.messaging;
   }
 
-  isFirebaseReady(): boolean {
-    return this.isInitialized && this.messaging !== null;
+  // 🔥 NEW: GET FIRESTORE SERVICE (Required by NotificationsService)
+  getFirestore() {
+    if (!this.isInitialized || !this.firestore) {
+      throw new Error('Firestore not initialized. Check your Firebase credentials.');
+    }
+    return this.firestore;
   }
 
-  // Helper method to test Firebase connection
-  async testFirebaseConnection(): Promise<boolean> {
-    if (!this.isInitialized || !this.messaging) {
-      return false;
+  // 🔥 CHECK IF FIREBASE IS READY
+  isFirebaseReady(): boolean {
+    return this.isInitialized && this.messaging !== null && this.firestore !== null;
+  }
+
+  // 🔥 GET FIREBASE ADMIN APP (Optional)
+  getAdminApp() {
+    if (!this.isInitialized) {
+      throw new Error('Firebase not initialized.');
     }
+    return admin.app();
+  }
+
+  // 🔥 TEST FIRESTORE CONNECTION
+  async testFirestoreConnection(): Promise<boolean> {
+    if (!this.firestore) return false;
     
     try {
-      // Try to get app name as a simple test
+      const testRef = this.firestore.collection('_test').doc('connection');
+      await testRef.set({ test: new Date().toISOString() });
+      await testRef.delete();
+      console.log('✅ Firestore connection test passed');
+      return true;
+    } catch (error) {
+      console.error('❌ Firestore connection test failed:', error.message);
+      return false;
+    }
+  }
+
+  // 🔥 TEST FIREBASE CONNECTION
+  async testFirebaseConnection(): Promise<boolean> {
+    if (!this.isInitialized) return false;
+    
+    try {
       const app = admin.app();
       console.log('✅ Firebase connection test passed. App:', app.name);
-      return true;
+      
+      // Test both services
+      const messagingTest = !!this.messaging;
+      const firestoreTest = !!this.firestore;
+      
+      console.log('✅ Services check:', {
+        messaging: messagingTest ? '✅' : '❌',
+        firestore: firestoreTest ? '✅' : '❌'
+      });
+      
+      return messagingTest && firestoreTest;
     } catch (error) {
       console.error('❌ Firebase connection test failed:', error.message);
       return false;

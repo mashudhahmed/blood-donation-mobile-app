@@ -1,27 +1,23 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
-import 'dotenv/config';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-
-  // Enable CORS for Android app
+  
+  // Enable CORS for all devices (Android, iOS, Web)
   app.enableCors({
-    origin: '*',
-    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
-    allowedHeaders: 'Content-Type, Authorization',
-    credentials: false,
+    origin: '*', // Allow any device
+    methods: 'GET,POST',
+    allowedHeaders: 'Content-Type',
   });
-
+  
   // Set global prefix
   app.setGlobalPrefix('api');
-
-  // ✅ IMPORTANT: Use Render's port and bind to 0.0.0.0
+  
+  // For Render: use provided PORT and bind to 0.0.0.0
   const port = process.env.PORT || 3000;
   await app.listen(port, '0.0.0.0');
-
-  console.log(`🚀 Notification server running on port ${port}`);
-  console.log(`📱 Send notifications to: /api/notifications/send`);
+  
+  console.log(`🚀 Blood Donation API running on port ${port}`);
 }
-
 bootstrap();

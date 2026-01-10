@@ -1,218 +1,256 @@
 import { Injectable } from '@nestjs/common';
 import { FirebaseService } from '../firebase/firebase.service';
+import { DonorMatchingService } from '../matching/donor-matching.service';
 import * as admin from 'firebase-admin';
 
-@Injectable() // ✅ MUST have @Injectable() decorator
-export class NotificationsService { // ✅ MUST be 'export class' (not default)
-  constructor(private firebaseService: FirebaseService) {}
+interface BloodRequest {
+  patientName: string;
+  hospital: string;
+  bloodGroup: string;
+  units: number;
+  district: string;
+  contactPhone: string;
+  urgency?: 'normal' | 'urgent' | 'critical';
+  notes?: string;
+}
 
-  // 🔥 Save notifications to Firestore (compatible with Android app)
-  private async saveNotifications(
-    userIds: string[], 
-    title: string, 
-    message: string,
-    data: Record<string, any> = {}
-  ) {
-    if (!userIds || userIds.length === 0) {
-      console.log('⚠️ No userIds provided, skipping Firestore save');
-      return;
-    }
+@Injectable()
+export class NotificationsService {
+  constructor(
+    private firebaseService: FirebaseService,
+    private donorMatchingService: DonorMatchingService // ✅ Added injection
+  ) {}
 
-    console.log(`🔥 Saving ${userIds.length} notifications to Firestore`);
-
+  // 1. Create blood request and notify ELIGIBLE donors
+  async createBloodRequest(request: BloodRequest & { requesterId: string }) {
     try {
-      // ✅ FIXED: Use the proper getFirestore() method
-      const db = this.firebaseService.getFirestore();
+      const firestore = this.firebaseService.getFirestore();
       
-      const batch = db.batch();
-      const timestamp = admin.firestore.FieldValue.serverTimestamp();
+      // Save request to Firestore
+      const requestRef = firestore.collection('bloodRequests').doc();
+      const requestId = requestRef.id;
+      
+      const requestData = {
+        ...request,
+        id: requestId,
+        status: 'pending',
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      };
+      
+      await requestRef.set(requestData);
 
-      userIds.forEach((uid, index) => {
-        const ref = db
-          .collection('notifications')
-          .doc(uid)
-          .collection('items')
-          .doc();
-
-        batch.set(ref, {
-          title: title,
-          message: message,
-          body: message,
-          timestamp: timestamp,
-          read: false,
-          type: 'notification',
-          ...data,
-          _createdAt: new Date().toISOString()
-        });
-
-        console.log(`📝 Prepared Firestore save for user ${uid} (${index + 1}/${userIds.length})`);
+      // ✅ Use DonorMatchingService to find ELIGIBLE donors (90+ days, compatible blood, available)
+      const eligibleDonors = await this.donorMatchingService.findEligibleDonors({
+        bloodGroup: request.bloodGroup,
+        district: request.district,
+        urgency: request.urgency || 'normal'
       });
 
-      await batch.commit();
-      console.log(`✅ Successfully saved ${userIds.length} notifications to Firestore`);
-    } catch (error) {
-      console.error('❌ Error saving to Firestore:', error.message);
-      throw error;
-    }
-  }
+      console.log(`📊 Found ${eligibleDonors.length} eligible donors for ${request.bloodGroup} in ${request.district}`);
 
-  // ✅ SUPPORTS ALL FORMATS with guaranteed Firestore saving
-  async sendNotification(
-    data: {
-      tokens?: string[];
-      userIds?: string[];
-      title: string;
-      body: string;
-      data?: Record<string, any>;
-      donors?: Array<{ uid: string; fcmToken: string }>;
-    }
-  ) {
-    console.log('🔍 DEBUG: Received notification request:', JSON.stringify(data, null, 2));
-
-    // 🔒 Firebase availability check
-    if (!this.firebaseService.isFirebaseReady()) {
-      console.warn('⚠️ Firebase not configured');
-      return {
-        success: false,
-        message: 'Firebase not configured',
-        sent: 0,
-        failed: 0,
-        total: 0,
-        savedForUsers: 0,
-        error: 'Firebase not initialized'
-      };
-    }
-
-    let tokens: string[] = [];
-    let userIds: string[] = [];
-
-    // 🥇 PRIORITY 1: donors format
-    if (data.donors && data.donors.length > 0) {
-      console.log('📱 Using DONORS format');
-      const validDonors = data.donors.filter(d => d.uid && d.fcmToken && d.fcmToken.trim());
-      tokens = [...new Set(validDonors.map(d => d.fcmToken))];
-      userIds = [...new Set(validDonors.map(d => d.uid))];
-      console.log(`📊 Parsed: ${validDonors.length} valid donors → ${tokens.length} tokens, ${userIds.length} userIds`);
-    }
-    // 🥈 PRIORITY 2: tokens + userIds format
-    else if (data.tokens && data.tokens.length > 0) {
-      console.log('📱 Using TOKENS + USERIDS format');
-      tokens = data.tokens.filter(token => token && token.trim());
-      if (data.userIds && data.userIds.length > 0) {
-        userIds = data.userIds;
-        console.log(`📊 Using provided userIds: ${userIds.length} users`);
-      } else {
-        console.log('⚠️ No userIds provided with tokens. Notifications will send but NOT save to Firestore!');
-      }
-    } else {
-      console.log('❌ No valid data provided');
-      return {
-        success: false,
-        message: 'No valid data provided',
-        sent: 0,
-        failed: 0,
-        total: 0,
-        savedForUsers: 0
-      };
-    }
-
-    if (tokens.length === 0) {
-      return {
-        success: false,
-        message: 'No valid tokens found',
-        sent: 0,
-        failed: 0,
-        total: 0,
-        savedForUsers: 0
-      };
-    }
-
-    try {
-      const messaging = this.firebaseService.getMessaging();
-
-      const fcmMessage = {
-        notification: { title: data.title, body: data.body },
-        android: {
-          priority: 'high' as const,
-          notification: {
-            channel_id: 'blood_requests',
-            icon: 'ic_blood_drop',
-            color: '#FF0000'
-          }
-        },
-        data: data.data || {},
-        tokens: tokens,
-      };
-
-      console.log('🚀 Sending to FCM:', {
-        title: data.title,
-        body: data.body,
-        tokenCount: tokens.length,
-        userCount: userIds.length
-      });
-
-      const response = await messaging.sendEachForMulticast(fcmMessage);
-
-      console.log('✅ FCM Response:', {
-        successCount: response.successCount,
-        failureCount: response.failureCount
-      });
-
-      // 🔥 Save to Firestore when userIds exist
-      if (userIds.length > 0) {
-        try {
-          await this.saveNotifications(userIds, data.title, data.body, data.data || {});
-          console.log(`💾 Firestore save completed for ${userIds.length} users`);
-        } catch (saveError) {
-          console.error('⚠️ Firestore save failed, but FCM was sent:', saveError.message);
-        }
-      } else {
-        console.log('⚠️ No userIds available - notification sent but NOT saved to Firestore');
-      }
-
+      // Send notifications AND save to Firestore for each donor
+      const notifiedCount = await this.sendNotificationsAndSave(request, eligibleDonors, requestId);
+      
       return {
         success: true,
-        sent: response.successCount,
-        failed: response.failureCount,
-        total: tokens.length,
-        savedForUsers: userIds.length,
-        message: `Sent ${response.successCount}/${tokens.length} notifications`,
-        userIds: userIds,
-        firestoreSaved: userIds.length > 0
+        requestId,
+        notifiedCount,
+        eligibleDonors: eligibleDonors.length,
+        message: `Blood request created. Notified ${notifiedCount} eligible donors.`
       };
-    } catch (error: any) {
-      console.error('❌ Error sending notification:', error.message);
-      console.error('❌ Error stack:', error.stack);
+      
+    } catch (error) {
+      console.error('❌ Error creating blood request:', error);
       return {
         success: false,
-        error: error.message,
-        sent: 0,
-        failed: tokens.length,
-        total: tokens.length,
-        savedForUsers: 0,
-        firestoreSaved: false
+        message: error.message,
+        error: error.stack
       };
     }
   }
 
-  // ✅ Get user's notifications
-  async getUserNotifications(userId: string) {
-    if (!this.firebaseService.isFirebaseReady()) {
-      throw new Error('Firebase not configured');
+  // ✅ NEW: Send notifications AND save to Firestore for notification history
+  private async sendNotificationsAndSave(
+    request: BloodRequest, 
+    donors: any[], 
+    requestId: string
+  ): Promise<number> {
+    const messaging = this.firebaseService.getMessaging();
+    const firestore = this.firebaseService.getFirestore();
+    
+    // Filter donors with valid FCM tokens
+    const validDonors = donors.filter(donor => 
+      donor.fcmToken && 
+      donor.fcmToken.length > 20 && 
+      donor.fcmToken.includes(':')
+    );
+
+    if (validDonors.length === 0) {
+      console.log('⚠ No donors with valid FCM tokens found');
+      return 0;
     }
 
-    const db = this.firebaseService.getFirestore();
-    const snapshot = await db
-      .collection('notifications')
-      .doc(userId)
-      .collection('items')
-      .orderBy('timestamp', 'desc')
-      .get();
+    const tokens = validDonors.map(donor => donor.fcmToken);
+    
+    // Create notification message
+    const message = {
+      notification: {
+        title: `🩸 ${request.bloodGroup} Blood Needed Urgently`,
+        body: `${request.patientName} needs blood at ${request.hospital}`
+      },
+      data: {
+        type: 'blood_request',
+        requestId,
+        patientName: request.patientName,
+        bloodGroup: request.bloodGroup,
+        hospital: request.hospital,
+        district: request.district,
+        contactPhone: request.contactPhone,
+        urgency: request.urgency || 'normal',
+        units: request.units.toString()
+      },
+      tokens: tokens,
+      android: {
+        priority: "high" as "high",
+        notification: {
+          sound: 'default',
+          channelId: 'blood_requests'
+        }
+      },
+      apns: {
+        payload: {
+          aps: {
+            sound: 'default',
+            badge: 1
+          }
+        }
+      }
+    };
+    
+    try {
+      // Save notification to each donor's Firestore collection FIRST
+      await this.saveNotificationsToDonors(validDonors, request, requestId);
+      
+      // Then send push notifications
+      const response = await messaging.sendEachForMulticast(message);
+      
+      console.log(`📤 Notifications sent: ${response.successCount} successful, ${response.failureCount} failed`);
+      
+      if (response.failureCount > 0) {
+        response.responses.forEach((resp, idx) => {
+          if (!resp.success) {
+            console.error(`❌ Failed to send to token ${tokens[idx].substring(0, 20)}...: ${resp.error?.message}`);
+          }
+        });
+      }
+      
+      return response.successCount;
+    } catch (error) {
+      console.error('❌ Notification error:', error.message);
+      return 0;
+    }
+  }
 
-    return snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    }));
+  // ✅ NEW: Save notification to each donor's Firestore collection
+  private async saveNotificationsToDonors(
+    donors: any[], 
+    request: BloodRequest, 
+    requestId: string
+  ): Promise<void> {
+    const firestore = this.firebaseService.getFirestore();
+    const timestamp = admin.firestore.FieldValue.serverTimestamp();
+    
+    const batch = firestore.batch();
+    
+    donors.forEach(donor => {
+      const notificationRef = firestore
+        .collection('notifications')
+        .doc(donor.uid)
+        .collection('items')
+        .doc(requestId);
+      
+      const notificationData = {
+        id: requestId,
+        title: `🩸 ${request.bloodGroup} Blood Request`,
+        message: `${request.patientName} needs ${request.units} unit(s) of blood at ${request.hospital}`,
+        type: 'blood_request',
+        bloodGroup: request.bloodGroup,
+        hospital: request.hospital,
+        district: request.district,
+        contactPhone: request.contactPhone,
+        patientName: request.patientName,
+        units: request.units,
+        urgency: request.urgency || 'normal',
+        requestId: requestId,
+        read: false,
+        timestamp: timestamp,
+        createdAt: timestamp
+      };
+      
+      batch.set(notificationRef, notificationData);
+    });
+    
+    try {
+      await batch.commit();
+      console.log(`✅ Saved notifications to ${donors.length} donors' Firestore`);
+    } catch (error) {
+      console.error('❌ Error saving notifications to Firestore:', error.message);
+    }
+  }
+
+  // ✅ UPDATED: Get notification stats (now includes matching stats)
+  async getStats() {
+    const firestore = this.firebaseService.getFirestore();
+    
+    const [requestsSnapshot, donorsSnapshot] = await Promise.all([
+      firestore.collection('bloodRequests')
+        .orderBy('createdAt', 'desc')
+        .limit(100)
+        .get(),
+      firestore.collection('donors')
+        .where('isAvailable', '==', true)
+        .get()
+    ]);
+    
+    const requests: any[] = [];
+    requestsSnapshot.forEach(doc => requests.push({ id: doc.id, ...doc.data() }));
+    
+    const availableDonors = donorsSnapshot.size;
+    
+    // Calculate recent requests by urgency
+    const urgentRequests = requests.filter(r => r.urgency === 'urgent' || r.urgency === 'critical').length;
+    const normalRequests = requests.filter(r => r.urgency === 'normal').length;
+    
+    return {
+      totalRequests: requests.length,
+      recentRequests: requests.slice(0, 10),
+      urgentRequests,
+      normalRequests,
+      availableDonors,
+      timestamp: new Date().toISOString()
+    };
+  }
+
+  // ✅ NEW: Get donor matching statistics
+  async getMatchingStats(district: string, bloodGroup: string) {
+    try {
+      const eligibleCount = await this.donorMatchingService.countEligibleDonors(district, bloodGroup);
+      const compatibleDonors = this.donorMatchingService['bloodCompatibility'].getCompatibleDonors(bloodGroup);
+      
+      return {
+        bloodGroup,
+        district,
+        eligibleDonors: eligibleCount,
+        compatibleBloodTypes: compatibleDonors,
+        timestamp: new Date().toISOString()
+      };
+    } catch (error) {
+      return {
+        error: error.message,
+        bloodGroup,
+        district
+      };
+    }
   }
 }
-// ✅ MUST END WITH THE CLASS CLOSING BRACE - NO EXTRA EXPORTS NEEDED

@@ -1,48 +1,68 @@
-import { Controller, Post, Body, Get } from '@nestjs/common';
+import { Controller, Post, Get, Body, Param, Query } from '@nestjs/common';
 import { NotificationsService } from './notifications.service';
+
+interface BloodRequestDto {
+  patientName: string;
+  hospital: string;
+  bloodGroup: string;
+  units: number;
+  district: string;
+  contactPhone: string;
+  urgency?: 'normal' | 'urgent' | 'critical';
+  notes?: string;
+  requesterId: string;
+}
 
 @Controller('notifications')
 export class NotificationsController {
   constructor(private notificationsService: NotificationsService) {}
 
-  @Post('send')
-  async sendNotification(
-    @Body() body: { 
-      // ✅ ALL FORATS SUPPORTED:
-      tokens?: string[];
-      userIds?: string[];           // NEW: For direct user IDs
-      donors?: Array<{ uid: string; fcmToken: string }>;  // OLD: Donor format
-      title: string;
-      body: string;
-      data?: Record<string, any>;   // Optional: Additional data for Android
-    },
-  ) {
-    console.log('🔍 Controller received:', {
-      hasTokens: !!body.tokens,
-      tokenCount: body.tokens?.length || 0,
-      hasUserIds: !!body.userIds,
-      userIdCount: body.userIds?.length || 0,
-      hasDonors: !!body.donors,
-      donorCount: body.donors?.length || 0,
-      title: body.title,
-      body: body.body,
-      hasData: !!body.data
-    });
+  @Post('blood-request')
+  async createBloodRequest(@Body() request: BloodRequestDto) {
+    // Validate required fields
+    if (!request.patientName || !request.hospital || !request.bloodGroup || 
+        !request.district || !request.requesterId) {
+      return {
+        success: false,
+        message: 'Missing required fields: patientName, hospital, bloodGroup, district, requesterId are required'
+      };
+    }
 
-    // ✅ Pass all data to service
-    return this.notificationsService.sendNotification({
-      tokens: body.tokens,
-      userIds: body.userIds,
-      donors: body.donors,
-      title: body.title,
-      body: body.body,
-      data: body.data || {}
-    });
+    // Set default values
+    if (!request.units || request.units < 1) request.units = 1;
+    if (!request.urgency) request.urgency = 'normal';
+    
+    return this.notificationsService.createBloodRequest(request);
   }
 
-  // Optional: Health check endpoint
+  @Get('stats')
+  async getStats() {
+    return this.notificationsService.getStats();
+  }
+
+  // ✅ NEW: Get matching statistics for specific district/blood group
+  @Get('matching-stats')
+  async getMatchingStats(
+    @Query('district') district: string,
+    @Query('bloodGroup') bloodGroup: string
+  ) {
+    if (!district || !bloodGroup) {
+      return {
+        success: false,
+        message: 'Both district and bloodGroup query parameters are required'
+      };
+    }
+    
+    return this.notificationsService.getMatchingStats(district, bloodGroup);
+  }
+
   @Get('health')
   healthCheck() {
-    return { status: 'OK', service: 'Notification Service' };
+    return {
+      status: 'healthy',
+      service: 'blood-donation-notifications',
+      timestamp: new Date().toISOString(),
+      version: '1.0.0'
+    };
   }
 }

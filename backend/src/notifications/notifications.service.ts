@@ -96,7 +96,7 @@ export class NotificationsService {
     // Create notification message
     const message = {
       notification: {
-        title: `🩸 ${request.bloodGroup} Blood Needed Urgently`,
+        title: `${request.bloodGroup} Blood Needed Urgently`,
         body: `${request.patientName} needs blood at ${request.hospital}`
       },
       data: {

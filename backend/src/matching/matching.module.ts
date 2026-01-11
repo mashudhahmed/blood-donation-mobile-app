@@ -9,6 +9,6 @@ import { DonorMatchingService } from './donor-matching.service';
     BloodModule,
   ],
   providers: [DonorMatchingService],
-  exports: [DonorMatchingService], // ✅ ADD THIS LINE FOR EXPORTS
+  exports: [DonorMatchingService], // ✅ THIS MUST BE EXPORTED
 })
 export class MatchingModule {}

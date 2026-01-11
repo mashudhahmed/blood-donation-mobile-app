@@ -1,7 +1,8 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { FirebaseModule } from '../firebase/firebase.module';
-import { MatchingModule } from '../matching/matching.module';
+import { MatchingModule } from '../matching/matching.module'; // NO SPACE
+import { BloodModule } from '../blood/blood.module';
 import { NotificationsService } from './notifications.service';
 import { NotificationsController } from './notifications.controller';
 
@@ -9,10 +10,11 @@ import { NotificationsController } from './notifications.controller';
   imports: [
     ConfigModule,
     FirebaseModule,
-    MatchingModule,
+    MatchingModule, // Fixed import
+    BloodModule,
   ],
   providers: [NotificationsService],
   controllers: [NotificationsController],
-  exports: [NotificationsService], // ✅ Already has exports - GOOD!
+  exports: [NotificationsService],
 })
 export class NotificationsModule {}

@@ -1,23 +1,32 @@
+// main.ts - enhanced version
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
+import { Logger } from '@nestjs/common';
 
 async function bootstrap() {
+  const logger = new Logger('Bootstrap');
   const app = await NestFactory.create(AppModule);
   
-  // Enable CORS for all devices (Android, iOS, Web)
+  // Enable CORS
   app.enableCors({
-    origin: '*', // Allow any device
-    methods: 'GET,POST',
-    allowedHeaders: 'Content-Type',
+    origin: '*',
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+    credentials: true,
   });
   
   // Set global prefix
   app.setGlobalPrefix('api');
   
-  // For Render: use provided PORT and bind to 0.0.0.0
   const port = process.env.PORT || 3000;
   await app.listen(port, '0.0.0.0');
   
-  console.log(`🚀 Blood Donation API running on port ${port}`);
+  logger.log(`🚀 Blood Donation API running on port ${port}`);
+  logger.log(`📡 Environment: ${process.env.NODE_ENV || 'development'}`);
+  logger.log(`🔗 Health check: http://localhost:${port}/api/notifications/health`);
+  
+  // Log Firebase status
+  if (process.env.FIREBASE_SERVICE_ACCOUNT) {
+    logger.log('✅ Firebase credentials detected');
+  }
 }
 bootstrap();

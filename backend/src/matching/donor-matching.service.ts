@@ -30,6 +30,21 @@ export class DonorMatchingService {
     return timeSinceLastDonation >= ninetyDaysInMillis;
   }
 
+  // ✅ IMPROVED: Validate FCM token format
+  private isValidFcmToken(token: string): boolean {
+    if (!token || token.trim().length === 0) return false;
+    
+    // FCM tokens are typically > 100 characters and contain specific patterns
+    const tokenStr = token.toString().trim();
+    
+    // Basic validation
+    return (
+      tokenStr.length > 50 && 
+      !tokenStr.includes(' ') &&
+      (tokenStr.includes(':') || tokenStr.includes('-') || tokenStr.length > 100)
+    );
+  }
+
   // Find eligible donors for a blood request
   async findEligibleDonors(request: {
     bloodGroup: string;  // Required blood type
@@ -51,16 +66,17 @@ export class DonorMatchingService {
         .collection('donors')
         .where('district', '==', request.district)
         .where('bloodGroup', 'in', compatibleBloodTypes)
+        .where('hasFcmToken', '==', true) // ✅ NEW: Only donors with tokens
         .get();
 
       const eligibleDonors: EligibleDonor[] = [];
 
-      // 3. Filter by eligibility (90+ days)
+      // 3. Filter by eligibility
       donorsSnapshot.forEach(doc => {
         const donor = doc.data();
         
-        // Check if donor has FCM token
-        if (!donor.fcmToken || donor.fcmToken.length < 20) {
+        // ✅ IMPROVED: Validate FCM token
+        if (!this.isValidFcmToken(donor.fcmToken)) {
           return;
         }
 
@@ -79,7 +95,7 @@ export class DonorMatchingService {
 
         eligibleDonors.push({
           uid: doc.id,
-          fcmToken: donor.fcmToken,
+          fcmToken: donor.fcmToken.trim(),
           name: donor.name || 'Anonymous Donor',
           bloodGroup: donor.bloodGroup,
           district: donor.district,
@@ -87,10 +103,11 @@ export class DonorMatchingService {
         });
       });
 
+      console.log(`✅ Found ${eligibleDonors.length} eligible donors with valid FCM tokens`);
       return eligibleDonors;
 
     } catch (error) {
-      console.error('Error finding eligible donors:', error);
+      console.error('❌ Error finding eligible donors:', error);
       throw error;
     }
   }

@@ -3,6 +3,6 @@ import { BloodCompatibilityService } from './blood-compatibility.service';
 
 @Module({
   providers: [BloodCompatibilityService],
-  exports: [BloodCompatibilityService]
+  exports: [BloodCompatibilityService] // ✅ Already has exports - GOOD!
 })
 export class BloodModule {}

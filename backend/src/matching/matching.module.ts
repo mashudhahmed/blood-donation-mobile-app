@@ -1,11 +1,14 @@
 import { Module } from '@nestjs/common';
-import { DonorMatchingService } from './donor-matching.service';
 import { FirebaseModule } from '../firebase/firebase.module';
-import { BloodCompatibilityService } from '../blood/blood-compatibility.service';
+import { BloodModule } from '../blood/blood.module';
+import { DonorMatchingService } from './donor-matching.service';
 
 @Module({
-  imports: [FirebaseModule],
-  providers: [DonorMatchingService, BloodCompatibilityService],
-  exports: [DonorMatchingService, BloodCompatibilityService]
+  imports: [
+    FirebaseModule,
+    BloodModule,
+  ],
+  providers: [DonorMatchingService],
+  exports: [DonorMatchingService], // ✅ ADD THIS LINE FOR EXPORTS
 })
 export class MatchingModule {}

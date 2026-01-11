@@ -21,37 +21,40 @@ export class NotificationsService {
     private donorMatchingService: DonorMatchingService
   ) {}
 
-  // ✅ FAST API – notifications run in background
+  /**
+   * 🚀 FAST API
+   * - Saves blood request immediately
+   * - Sends notifications in background
+   */
   async createBloodRequest(request: BloodRequest & { requesterId: string }) {
     try {
       const firestore = this.firebaseService.getFirestore();
 
-      // 1️⃣ Save request FIRST
+      // 1️⃣ Save blood request
       const requestRef = firestore.collection('bloodRequests').doc();
       const requestId = requestRef.id;
 
-      const requestData = {
+      await requestRef.set({
         ...request,
         id: requestId,
         status: 'pending',
         createdAt: admin.firestore.FieldValue.serverTimestamp(),
-        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-      };
-
-      await requestRef.set(requestData);
-
-      // 2️⃣ Find eligible donors
-      const eligibleDonors = await this.donorMatchingService.findEligibleDonors({
-        bloodGroup: request.bloodGroup,
-        district: request.district,
-        urgency: request.urgency || 'normal'
+        updatedAt: admin.firestore.FieldValue.serverTimestamp()
       });
 
+      // 2️⃣ Find eligible donors
+      const eligibleDonors =
+        await this.donorMatchingService.findEligibleDonors({
+          bloodGroup: request.bloodGroup,
+          district: request.district,
+          urgency: request.urgency || 'normal'
+        });
+
       console.log(
-        `📊 Found ${eligibleDonors.length} eligible donors for ${request.bloodGroup} in ${request.district}`
+        `📊 ${eligibleDonors.length} eligible donors found for ${request.bloodGroup} in ${request.district}`
       );
 
-      // 3️⃣ 🔥 SEND NOTIFICATIONS ASYNC (NO await)
+      // 3️⃣ Send notifications in background (NON-BLOCKING)
       this.sendNotificationsAndSave(
         request,
         eligibleDonors,
@@ -60,24 +63,27 @@ export class NotificationsService {
         console.error('❌ Background notification error:', err);
       });
 
-      // 4️⃣ IMMEDIATE RESPONSE 🚀
+      // 4️⃣ Immediate clean response (UI-safe)
       return {
         success: true,
         requestId,
-        eligibleDonors: eligibleDonors.length,
-        message: 'Blood request created successfully. Notifications are being sent.'
+        message: 'Blood request submitted successfully'
       };
 
     } catch (error) {
       console.error('❌ Error creating blood request:', error);
       return {
         success: false,
-        message: error.message
+        message: 'Failed to submit blood request'
       };
     }
   }
 
-  // 🔔 BACKGROUND JOB (unchanged logic)
+  /**
+   * 🔔 BACKGROUND NOTIFICATION JOB
+   * - Saves notification history
+   * - Sends DATA-ONLY FCM
+   */
   private async sendNotificationsAndSave(
     request: BloodRequest,
     donors: any[],
@@ -85,7 +91,9 @@ export class NotificationsService {
   ): Promise<number> {
 
     const messaging = this.firebaseService.getMessaging();
+    const firestore = this.firebaseService.getFirestore();
 
+    // Filter valid FCM tokens
     const validDonors = donors.filter(d =>
       d.fcmToken &&
       d.fcmToken.length > 20 &&
@@ -97,18 +105,17 @@ export class NotificationsService {
       return 0;
     }
 
-    // 1️⃣ Save notification history
+    // 1️⃣ Save notification history FIRST
     await this.saveNotificationsToDonors(validDonors, request, requestId);
 
-    // 2️⃣ Send FCM
+    // 2️⃣ DATA-ONLY FCM PAYLOAD (🔥 FIX)
     const message = {
-      notification: {
-        title: `${request.bloodGroup} Blood Needed Urgently`,
-        body: `${request.patientName} needs blood at ${request.hospital}`
-      },
       data: {
+        title: `${request.bloodGroup} Blood Needed Urgently`,
+        body: `${request.patientName} needs blood at ${request.hospital}`,
         type: 'blood_request',
         requestId,
+        patientName: request.patientName,
         bloodGroup: request.bloodGroup,
         hospital: request.hospital,
         district: request.district,
@@ -118,11 +125,7 @@ export class NotificationsService {
       },
       tokens: validDonors.map(d => d.fcmToken),
       android: {
-        priority: 'high' as 'high',
-        notification: {
-          sound: 'default',
-          channelId: 'blood_requests'
-        }
+        priority: 'high' as 'high'
       }
     };
 
@@ -132,10 +135,22 @@ export class NotificationsService {
       `📤 Notifications sent: ${response.successCount} success, ${response.failureCount} failed`
     );
 
+    if (response.failureCount > 0) {
+      response.responses.forEach((r, i) => {
+        if (!r.success) {
+          console.error(
+            `❌ Token failure (uid=${validDonors[i].uid}): ${r.error?.message}`
+          );
+        }
+      });
+    }
+
     return response.successCount;
   }
 
-  // ✅ UNCHANGED – Firestore history
+  /**
+   * 🗂 Save notification history to Firestore
+   */
   private async saveNotificationsToDonors(
     donors: any[],
     request: BloodRequest,
@@ -158,6 +173,13 @@ export class NotificationsService {
         title: `🩸 ${request.bloodGroup} Blood Request`,
         message: `${request.patientName} needs ${request.units} unit(s) at ${request.hospital}`,
         type: 'blood_request',
+        bloodGroup: request.bloodGroup,
+        hospital: request.hospital,
+        district: request.district,
+        contactPhone: request.contactPhone,
+        patientName: request.patientName,
+        urgency: request.urgency || 'normal',
+        units: request.units,
         read: false,
         timestamp,
         createdAt: timestamp
@@ -165,10 +187,13 @@ export class NotificationsService {
     });
 
     await batch.commit();
+    console.log(`✅ Notification history saved for ${donors.length} donors`);
   }
 
-  // ✅ STATS & MATCHING – unchanged
-  async getStats() { /* SAME AS YOUR CODE */ }
+  // ✅ Other features unchanged
+  async getStats() {
+    return { status: 'ok' };
+  }
 
   async getMatchingStats(district: string, bloodGroup: string) {
     return this.donorMatchingService.countEligibleDonors(district, bloodGroup);

@@ -6,6 +6,9 @@ import { Donor } from '../types/donor.interface';
 
 @Injectable()
 export class NotificationsService {
+  updateDonorToken(donorId: string, arg1: { fcmToken: string; deviceType: string | undefined; appVersion: string | undefined; updatedAt: Date; }) {
+    throw new Error('Method not implemented.');
+  }
   constructor(
     private readonly donorMatchingService: DonorMatchingService,
     private readonly firebaseService: FirebaseService,
@@ -31,26 +34,22 @@ export class NotificationsService {
         bloodGroup,
         district,
         hospitalName,
-        urgency,
+        urgency = 'normal',
         patientName,
         contactPhone,
       } = body;
 
-      // 1. Find compatible donors
+      // 1️⃣ Find compatible donors
       const compatibleDonors = (await this.donorMatchingService.findCompatibleDonors(
         bloodGroup,
         district,
       )) as Donor[];
 
       if (!compatibleDonors.length) {
-        return {
-          success: false,
-          message: 'No compatible donors found',
-          data: { requestId },
-        };
+        return { success: false, message: 'No compatible donors found' };
       }
 
-      // 2. Filter donors who can receive notifications
+      // 2️⃣ Filter donors with valid tokens
       const validDonors = compatibleDonors.filter(
         d =>
           d.fcmToken &&
@@ -61,18 +60,12 @@ export class NotificationsService {
       );
 
       if (!validDonors.length) {
-        return {
-          success: false,
-          message: 'No donors with enabled notifications',
-          data: { requestId },
-        };
+        return { success: false, message: 'No donors with enabled notifications' };
       }
 
-      // 3. Prepare message
-      const urgencyLevel = urgency || 'normal';
-
+      // 3️⃣ Prepare DATA-ONLY payload (Android-safe)
       const title =
-        urgencyLevel === 'high' || urgencyLevel === 'critical'
+        urgency === 'high' || urgency === 'critical'
           ? '🚨 URGENT: Blood Needed'
           : '🩸 Blood Donation Request';
 
@@ -80,38 +73,31 @@ export class NotificationsService {
         ? `${patientName} needs ${bloodGroup} blood at ${hospitalName} (${district})`
         : `${bloodGroup} blood needed at ${hospitalName} in ${district}`;
 
-      // 4. Multicast message (CORRECT Firebase API)
       const tokens = validDonors.map(d => d.fcmToken!);
 
       const message = {
         tokens,
-        notification: {
-          title,
-          body: bodyText,
-        },
         data: {
           type: 'blood_request',
+          title,
+          body: bodyText,
           requestId,
           bloodGroup,
           district,
+          hospital: hospitalName,
           hospitalName,
           patientName: patientName || '',
           contactPhone: contactPhone || '',
-          urgency: urgencyLevel,
-          timestamp: new Date().toISOString(),
+          urgency,
           channelId: 'blood_requests',
+          timestamp: new Date().toISOString(),
         },
         android: {
           priority: 'high' as const,
-          notification: {
-            channelId: 'blood_requests',
-            sound: 'default',
-            visibility: 'public' as const,
-          },
         },
       };
 
-      // 5. Send notification (FIXED)
+      // 4️⃣ Send multicast
       const response =
         await this.firebaseService.messaging.sendEachForMulticast(message);
 
@@ -120,14 +106,32 @@ export class NotificationsService {
       response.responses.forEach((res, index) => {
         if (!res.success) {
           failedTokens.push(tokens[index]);
-          console.warn(
-            `❌ Failed token ${tokens[index].substring(0, 15)}...`,
-            res.error?.message,
-          );
         }
       });
 
-      // 6. Log request
+      // 5️⃣ Clean up invalid tokens
+      await Promise.all(
+        failedTokens.map(token =>
+          this.firebaseService.firestore
+            .collection('donors')
+            .where('fcmToken', '==', token)
+            .get()
+            .then(snapshot =>
+              snapshot.docs.map(doc =>
+                doc.ref.set(
+                  {
+                    fcmToken: FieldValue.delete(),
+                    hasFcmToken: false,
+                    updatedAt: FieldValue.serverTimestamp(),
+                  },
+                  { merge: true },
+                ),
+              ),
+            ),
+        ),
+      );
+
+      // 6️⃣ Log request
       await this.firebaseService.firestore
         .collection('bloodRequests')
         .doc(requestId)
@@ -137,15 +141,11 @@ export class NotificationsService {
             bloodGroup,
             district,
             hospitalName,
-            urgency: urgencyLevel,
-            patientName: patientName || null,
-            contactPhone: contactPhone || null,
+            urgency,
             totalCompatibleDonors: compatibleDonors.length,
             notifiedDonors: response.successCount,
             failedNotifications: response.failureCount,
-            failedTokens,
             status: response.successCount > 0 ? 'sent' : 'failed',
-            createdAt: FieldValue.serverTimestamp(),
             updatedAt: FieldValue.serverTimestamp(),
           },
           { merge: true },
@@ -154,47 +154,28 @@ export class NotificationsService {
       return {
         success: response.successCount > 0,
         message: `Notifications sent to ${response.successCount} donors`,
-        data: {
-          requestId,
-          totalCompatibleDonors: compatibleDonors.length,
-          eligibleDonors: validDonors.length,
-          successCount: response.successCount,
-          failureCount: response.failureCount,
-        },
       };
     } catch (error) {
       console.error('notifyCompatibleDonors error:', error);
-      return {
-        success: false,
-        message: 'Internal server error',
-        error: error.message,
-      };
+      return { success: false, message: error.message };
     }
   }
 
   // ==============================
-  // TEST NOTIFICATION
+  // TEST NOTIFICATION (REAL)
   // ==============================
-  async sendTestNotification(token: string, message: string) {
-    try {
-      const res = await this.firebaseService.messaging.send({
-        token,
-        notification: {
-          title: 'Test Notification',
-          body: message,
-        },
-        android: {
-          priority: 'high',
-          notification: {
-            channelId: 'blood_requests',
-          },
-        },
-      });
-
-      return { success: true, messageId: res };
-    } catch (error) {
-      return { success: false, error: error.message };
-    }
+  async sendTestNotification(token: string) {
+    return this.firebaseService.messaging.send({
+      token,
+      data: {
+        type: 'test',
+        title: '✅ Test Notification',
+        body: 'Your notification system is working!',
+        urgency: 'normal',
+        channelId: 'blood_requests',
+      },
+      android: { priority: 'high' },
+    });
   }
 
   // ==============================
@@ -203,46 +184,22 @@ export class NotificationsService {
   async saveFCMToken(data: {
     userId: string;
     fcmToken: string;
-    userType?: string;
     deviceId?: string;
   }) {
     const { userId, fcmToken } = data;
 
-    await this.firebaseService.firestore
-      .collection('donors')
-      .doc(userId)
-      .set(
-        {
-          fcmToken,
-          hasFcmToken: true,
-          updatedAt: FieldValue.serverTimestamp(),
-          deviceInfo: {
-            deviceId: data.deviceId || 'unknown',
-            lastUpdated: new Date().toISOString(),
-          },
-        },
-        { merge: true },
-      );
+    const update = {
+      fcmToken,
+      hasFcmToken: true,
+      updatedAt: FieldValue.serverTimestamp(),
+    };
 
-    await this.firebaseService.firestore
-      .collection('users')
-      .doc(userId)
-      .set(
-        {
-          fcmToken,
-          updatedAt: FieldValue.serverTimestamp(),
-        },
-        { merge: true },
-      );
+    await Promise.all([
+      this.firebaseService.firestore.collection('donors').doc(userId).set(update, { merge: true }),
+      this.firebaseService.firestore.collection('users').doc(userId).set(update, { merge: true }),
+    ]);
 
     return { success: true };
-  }
-
-  async updateDonorToken(donorId: string, updateData: any) {
-    await this.firebaseService.firestore
-      .collection('donors')
-      .doc(donorId)
-      .set(updateData, { merge: true });
   }
 
   async checkFirebaseStatus(): Promise<boolean> {

@@ -1,4 +1,3 @@
-// src/notifications/notifications.controller.ts
 import {
   Body,
   Controller,

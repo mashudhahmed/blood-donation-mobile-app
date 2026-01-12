@@ -74,6 +74,7 @@ export class NotificationsService {
         patientName,
         contactPhone,
         units = 1,
+        requesterId,  // ✅ Get requesterId from body
       } = body;
 
       // ✅ RESOLVE HOSPITAL NAME (accepts all three fields)
@@ -100,20 +101,28 @@ export class NotificationsService {
         };
       }
 
-      // 2️⃣ Filter donors with valid tokens
+      // 2️⃣ Filter donors with valid tokens AND EXCLUDE REQUESTER
       const validDonors = compatibleDonors.filter(
         (d: Donor) =>
           d.fcmToken &&
           d.fcmToken.length > 10 &&
           d.isAvailable === true &&
           d.notificationEnabled === true &&
-          d.fcmToken.includes(':')
+          d.fcmToken.includes(':') &&
+          // ✅ CRITICAL FIX: Exclude the requester from receiving their own notification
+          d.userId !== requesterId  // ← ADD THIS LINE
       );
 
       if (!validDonors.length) {
+        // ✅ ENHANCED: Check if only donor was the requester
+        const onlyRequester = compatibleDonors.length === 1 && 
+          compatibleDonors[0].userId === requesterId;
+        
         return {
           success: false,
-          message: 'Compatible donors found but no valid FCM tokens available',
+          message: onlyRequester 
+            ? 'You are the only compatible donor in this district. Please try a different district or contact nearby hospitals.'
+            : 'Compatible donors found but no valid FCM tokens available',
           data: {
             requestId,
             totalCompatibleDonors: compatibleDonors.length,
@@ -154,6 +163,8 @@ export class NotificationsService {
           units: units.toString(),
           channelId: 'blood_requests',
           timestamp: new Date().toISOString(),
+          // ✅ ADD requesterId to notification data
+          requesterId: requesterId || '',
         },
         android: {
           priority: 'high' as const,
@@ -209,6 +220,8 @@ export class NotificationsService {
             medicalName: hospitalName,  // ✅ Store as medicalName too
             urgency,
             units,
+            // ✅ Store requesterId for tracking
+            requesterId: requesterId || null,
             totalCompatibleDonors: compatibleDonors.length,
             notifiedDonors: response.successCount,
             failedNotifications: response.failureCount,
@@ -232,6 +245,8 @@ export class NotificationsService {
           failedNotifications: response.failureCount,
           logId: `log_${Date.now()}`,
           timestamp: new Date().toISOString(),
+          // ✅ Add info about requester exclusion
+          requesterExcluded: requesterId ? true : false,
         },
       };
     } catch (error) {

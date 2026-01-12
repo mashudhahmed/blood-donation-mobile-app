@@ -15,6 +15,7 @@ export class DonorMatchingService {
     bloodGroup: string,
     district: string,
     radiusKm: number = 50,
+    excludeUserId?: string,  // ✅ NEW: Optional user to exclude
   ): Promise<Donor[]> {
     try {
       const compatibleBloodTypes = 
@@ -32,6 +33,7 @@ export class DonorMatchingService {
           .where('district', '==', district)
           .where('isAvailable', '==', true)
           .where('notificationEnabled', '==', true)
+          // ✅ Optionally exclude specific user at query level if provided
           .get()
       );
 
@@ -48,6 +50,11 @@ export class DonorMatchingService {
           
           if (seenIds.has(doc.id)) return;
           seenIds.add(doc.id);
+
+          // ✅ EXCLUDE THE REQUESTER IF PROVIDED
+          if (excludeUserId && donorData.userId === excludeUserId) {
+            return; // Skip this donor - they're the requester
+          }
 
           // Parse donation date
           const lastDonationDate = this.parseDonationDate(donorData);

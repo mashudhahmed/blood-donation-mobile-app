@@ -16,13 +16,19 @@ export class NotificationsService {
     donorId: string, 
     data: { 
       fcmToken: string; 
+      deviceId?: string;
       deviceType?: string; 
       appVersion?: string; 
       updatedAt: Date; 
     }
   ) {
+    const deviceId = data.deviceId || 'unknown';
+    const compoundTokenId = `${donorId}_${deviceId}`;
+    
     const update = {
       fcmToken: data.fcmToken,
+      deviceId: deviceId,
+      compoundTokenId: compoundTokenId,
       deviceType: data.deviceType,
       appVersion: data.appVersion,
       updatedAt: FieldValue.serverTimestamp(),
@@ -33,6 +39,15 @@ export class NotificationsService {
       canDonate: true,
     };
     
+    // ✅ Save to user's devices collection (USING .doc())
+    await this.firebaseService.firestore
+      .collection('users')
+      .doc(donorId)  // ← .doc() NOT .document()
+      .collection('devices')
+      .doc(deviceId)  // ← .doc() NOT .document()
+      .set(update, { merge: true });
+    
+    // Also update donor document
     await this.firebaseService.firestore
       .collection('donors')
       .where('userId', '==', donorId)
@@ -43,7 +58,7 @@ export class NotificationsService {
         } else {
           this.firebaseService.firestore
             .collection('donors')
-            .doc(donorId)
+            .doc(donorId)  // ← .doc() NOT .document()
             .set(update, { merge: true });
         }
       });
@@ -55,7 +70,7 @@ export class NotificationsService {
     district: string;
     hospitalName?: string;
     hospital?: string;
-    medicalName?: string;  // ✅ Accept medicalName
+    medicalName?: string;
     urgency?: string;
     patientName?: string;
     contactPhone?: string;
@@ -69,22 +84,34 @@ export class NotificationsService {
         district,
         hospitalName: bodyHospitalName,
         hospital: bodyHospital,
-        medicalName: bodyMedicalName,  // ✅ Get medicalName
+        medicalName: bodyMedicalName,
         urgency = 'normal',
         patientName,
         contactPhone,
         units = 1,
-        requesterId,  // ✅ Get requesterId from body
+        requesterId,
       } = body;
 
-      // ✅ RESOLVE HOSPITAL NAME (accepts all three fields)
       const hospitalName = bodyHospitalName || bodyHospital || bodyMedicalName || 'Hospital';
       
-      // 1️⃣ Find compatible donors
+      console.log('🔍 Starting donor matching for:', {
+        requestId,
+        requesterId,
+        bloodGroup,
+        district,
+        hospital: hospitalName,
+        urgency
+      });
+
+      // ✅ Get compatible donors WITH requester exclusion
       const compatibleDonors = await this.donorMatchingService.findCompatibleDonors(
         bloodGroup,
         district,
+        50,
+        requesterId
       );
+
+      console.log(`✅ Found ${compatibleDonors?.length || 0} compatible donors`);
 
       if (!compatibleDonors || compatibleDonors.length === 0) {
         return {
@@ -101,53 +128,91 @@ export class NotificationsService {
         };
       }
 
-      // 2️⃣ Filter donors with valid tokens AND EXCLUDE REQUESTER
-      const validDonors = compatibleDonors.filter(
-        (d: Donor) =>
-          d.fcmToken &&
-          d.fcmToken.length > 10 &&
-          d.isAvailable === true &&
-          d.notificationEnabled === true &&
-          d.fcmToken.includes(':') &&
-          // ✅ CRITICAL FIX: Exclude the requester from receiving their own notification
-          d.userId !== requesterId  // ← ADD THIS LINE
-      );
+      // ✅ Get requester's device IDs to avoid same-device notifications
+      const requesterDevices: string[] = [];
+      if (requesterId) {
+        try {
+          const requesterDevicesSnap = await this.firebaseService.firestore
+            .collection('users')
+            .doc(requesterId)  // ← .doc() NOT .document()
+            .collection('devices')
+            .get();
+          
+          requesterDevicesSnap.docs.forEach(doc => {
+            const deviceId = doc.data().deviceId;
+            if (deviceId) requesterDevices.push(deviceId);
+          });
+          console.log(`📱 Requester devices: ${requesterDevices.length} devices found`);
+        } catch (deviceError) {
+          console.warn('⚠️ Could not fetch requester devices:', deviceError.message);
+        }
+      }
+
+      // ✅ Filter eligible donors
+      const validDonors = compatibleDonors.filter((d: Donor) => {
+        // Basic checks
+        if (!d.fcmToken || d.fcmToken.length < 10) {
+          console.log(`❌ Excluding ${d.userId}: No valid FCM token`);
+          return false;
+        }
+        if (!d.isAvailable || !d.notificationEnabled) {
+          console.log(`❌ Excluding ${d.userId}: Not available or notifications disabled`);
+          return false;
+        }
+        if (!d.fcmToken.includes(':')) {
+          console.log(`❌ Excluding ${d.userId}: Invalid token format`);
+          return false;
+        }
+        
+        // Exclude requester by userId
+        if (d.userId === requesterId) {
+          console.log(`❌ Excluding ${d.userId}: Is the requester`);
+          return false;
+        }
+        
+        // Exclude donors on same device as requester
+        if (d.deviceId && requesterDevices.includes(d.deviceId)) {
+          console.log(`❌ Excluding ${d.userId}: Same device as requester (${d.deviceId})`);
+          return false;
+        }
+        
+        console.log(`✅ Including ${d.userId}: Eligible donor`);
+        return true;
+      });
+
+      console.log(`📊 Filtered to ${validDonors.length} valid donors`);
 
       if (!validDonors.length) {
-        // ✅ ENHANCED: Check if only donor was the requester
         const onlyRequester = compatibleDonors.length === 1 && 
           compatibleDonors[0].userId === requesterId;
         
         return {
           success: false,
           message: onlyRequester 
-            ? 'You are the only compatible donor in this district. Please try a different district or contact nearby hospitals.'
-            : 'Compatible donors found but no valid FCM tokens available',
+            ? 'You are the only compatible donor in this district.'
+            : 'No eligible donors with valid notification settings.',
           data: {
             requestId,
             totalCompatibleDonors: compatibleDonors.length,
             eligibleDonors: 0,
             notifiedDonors: 0,
             failedNotifications: 0,
+            requesterDevicesCount: requesterDevices.length,
             timestamp: new Date().toISOString(),
           },
         };
       }
 
-      // 3️⃣ Prepare notification payload
-      const title =
-        urgency === 'high' || urgency === 'critical'
-          ? '🚨 URGENT: Blood Needed'
-          : '🩸 Blood Donation Request';
-
+      const title = urgency === 'high' ? '🚨 URGENT: Blood Needed' : '🩸 Blood Donation Request';
       const bodyText = patientName
         ? `${patientName} needs ${bloodGroup} blood at ${hospitalName} (${district})`
         : `${bloodGroup} blood needed at ${hospitalName} in ${district}`;
 
-      const tokens = validDonors.map(d => d.fcmToken!);
+      console.log(`📤 Preparing to send notifications to ${validDonors.length} donors`);
 
-      const message = {
-        tokens,
+      // ✅ Create individual messages for each donor with recipientUserId
+      const messages = validDonors.map(donor => ({
+        token: donor.fcmToken,
         data: {
           type: 'blood_request',
           title,
@@ -155,36 +220,43 @@ export class NotificationsService {
           requestId,
           bloodGroup,
           district,
-          hospital: hospitalName,          // Send as hospital
-          medicalName: hospitalName,       // ✅ Also send as medicalName for Android
+          hospital: hospitalName,
+          medicalName: hospitalName,
           patientName: patientName || '',
           contactPhone: contactPhone || '',
           urgency,
           units: units.toString(),
           channelId: 'blood_requests',
           timestamp: new Date().toISOString(),
-          // ✅ ADD requesterId to notification data
           requesterId: requesterId || '',
+          // ✅ CRITICAL: Add recipient information for account-specific filtering
+          recipientUserId: donor.userId,
+          recipientDeviceId: donor.deviceId || '',
+          recipientName: donor.name || 'Donor',
         },
         android: {
           priority: 'high' as const,
         },
-      };
+      }));
 
-      // 4️⃣ Send multicast
-      const response =
-        await this.firebaseService.messaging.sendEachForMulticast(message);
-
+      // ✅ Send individual messages
       const failedTokens: string[] = [];
+      const successfulMessages: any[] = [];
 
-      response.responses.forEach((res, index) => {
-        if (!res.success) {
-          failedTokens.push(tokens[index]);
+      for (const message of messages) {
+        try {
+          await this.firebaseService.messaging.send(message);
+          successfulMessages.push(message);
+          console.log(`✅ Sent to ${message.data.recipientUserId}`);
+        } catch (error) {
+          console.error(`❌ Failed to send to ${message.data.recipientUserId}:`, error.message);
+          failedTokens.push(message.token);
         }
-      });
+      }
 
-      // 5️⃣ Clean up invalid tokens
+      // ✅ Clean up invalid tokens
       if (failedTokens.length > 0) {
+        console.log(`🧹 Cleaning up ${failedTokens.length} invalid tokens`);
         await Promise.all(
           failedTokens.map(token =>
             this.firebaseService.firestore
@@ -207,50 +279,65 @@ export class NotificationsService {
         );
       }
 
-      // 6️⃣ Log request
+      // ✅ Log request to Firestore
       await this.firebaseService.firestore
         .collection('bloodRequests')
-        .doc(requestId)
+        .doc(requestId)  // ← .doc() NOT .document()
         .set(
           {
             requestId,
             bloodGroup,
             district,
             hospital: hospitalName,
-            medicalName: hospitalName,  // ✅ Store as medicalName too
+            medicalName: hospitalName,
             urgency,
             units,
-            // ✅ Store requesterId for tracking
             requesterId: requesterId || null,
+            requesterDeviceIds: requesterDevices,
             totalCompatibleDonors: compatibleDonors.length,
-            notifiedDonors: response.successCount,
-            failedNotifications: response.failureCount,
-            status: response.successCount > 0 ? 'sent' : 'failed',
+            notifiedDonors: successfulMessages.length,
+            failedNotifications: failedTokens.length,
+            status: successfulMessages.length > 0 ? 'sent' : 'failed',
+            recipientCount: validDonors.length,
+            recipients: validDonors.map(d => ({
+              userId: d.userId,
+              name: d.name,
+              deviceId: d.deviceId
+            })),
             updatedAt: FieldValue.serverTimestamp(),
+            sentAt: new Date().toISOString(),
           },
           { merge: true },
         );
 
-      // ✅ RETURN RESPONSE
+      console.log(`📝 Request logged to Firestore: ${requestId}`);
+
       return {
-        success: response.successCount > 0,
-        message: response.successCount > 0 
-          ? `Notifications sent to ${response.successCount} donors` 
+        success: successfulMessages.length > 0,
+        message: successfulMessages.length > 0 
+          ? `Notifications sent to ${successfulMessages.length} donor accounts` 
           : 'Failed to send notifications',
         data: {
           requestId,
           totalCompatibleDonors: compatibleDonors.length,
           eligibleDonors: validDonors.length,
-          notifiedDonors: response.successCount,
-          failedNotifications: response.failureCount,
-          logId: `log_${Date.now()}`,
-          timestamp: new Date().toISOString(),
-          // ✅ Add info about requester exclusion
+          notifiedDonors: successfulMessages.length,
+          failedNotifications: failedTokens.length,
+          recipients: validDonors.map(d => ({
+            userId: d.userId,
+            name: d.name,
+            deviceId: d.deviceId,
+            hasToken: !!d.fcmToken
+          })),
           requesterExcluded: requesterId ? true : false,
+          sameDeviceExcluded: requesterDevices.length,
+          requesterDevices: requesterDevices,
+          timestamp: new Date().toISOString(),
+          logId: `log_${Date.now()}`,
         },
       };
     } catch (error) {
-      console.error('notifyCompatibleDonors error:', error);
+      console.error('❌ notifyCompatibleDonors error:', error);
       return {
         success: false,
         message: error.message || 'Internal server error',
@@ -271,35 +358,63 @@ export class NotificationsService {
     fcmToken: string;
     deviceId?: string;
     userType?: string;
+    deviceType?: string;
+    appVersion?: string;
   }) {
-    const { userId, fcmToken, deviceId, userType } = data;
+    const { userId, fcmToken, deviceId, userType, deviceType, appVersion } = data;
+    const deviceIdFinal = deviceId || 'unknown';
+    const compoundTokenId = `${userId}_${deviceIdFinal}`;
 
     const update = {
       userId,
       fcmToken,
-      deviceId,
+      deviceId: deviceIdFinal,
+      compoundTokenId,
       userType: userType || 'donor',
+      deviceType: deviceType || 'android',
+      appVersion: appVersion || '1.0.0',
       isAvailable: true,
       notificationEnabled: true,
       hasFcmToken: true,
       isActive: true,
       canDonate: true,
+      lastActive: FieldValue.serverTimestamp(),
       updatedAt: FieldValue.serverTimestamp(),
     };
 
-    // ✅ UPDATE DONOR
-    await this.firebaseService.firestore
-      .collection('donors')
-      .doc(userId)  // Use userId as document ID
-      .set(update, { merge: true });
-    
-    // ✅ UPDATE USER
+    console.log('💾 Saving FCM token:', {
+      userId,
+      deviceId: deviceIdFinal,
+      compoundTokenId,
+      tokenLength: fcmToken.length
+    });
+
+    // ✅ Save to user's devices collection (USING .doc())
     await this.firebaseService.firestore
       .collection('users')
-      .doc(userId)
+      .doc(userId)  // ← .doc() NOT .document()
+      .collection('devices')
+      .doc(deviceIdFinal)  // ← .doc() NOT .document()
       .set(update, { merge: true });
+    
+    // ✅ Update donor collection
+    const donorQuery = await this.firebaseService.firestore
+      .collection('donors')
+      .where('userId', '==', userId)
+      .get();
 
-    return { success: true };
+    if (!donorQuery.empty) {
+      await donorQuery.docs[0].ref.set(update, { merge: true });
+    } else {
+      await this.firebaseService.firestore
+        .collection('donors')
+        .doc(userId)  // ← .doc() NOT .document()
+        .set(update, { merge: true });
+    }
+
+    console.log('✅ Token saved successfully:', compoundTokenId);
+
+    return { success: true, compoundTokenId };
   }
 
   async sendTestNotification(token: string) {
@@ -311,12 +426,62 @@ export class NotificationsService {
         body: 'Your notification system is working!',
         urgency: 'normal',
         channelId: 'blood_requests',
+        timestamp: new Date().toISOString(),
       },
-      android: { priority: 'high' },
+      android: {
+        priority: 'high',
+      },
     });
   }
 
   async checkFirebaseStatus(): Promise<boolean> {
     return this.firebaseService.isInitialized();
+  }
+
+  // ✅ NEW: Get user's devices
+  async getUserDevices(userId: string): Promise<string[]> {
+    try {
+      const devicesSnap = await this.firebaseService.firestore
+        .collection('users')
+        .doc(userId)  // ← .doc() NOT .document()
+        .collection('devices')
+        .get();
+      
+      return devicesSnap.docs.map(doc => doc.data().deviceId).filter(Boolean);
+    } catch (error) {
+      console.error('Error getting user devices:', error);
+      return [];
+    }
+  }
+
+  // ✅ NEW: Validate token for debugging
+  async validateToken(userId: string, deviceId?: string) {
+    const db = this.firebaseService.firestore;
+    
+    let query = db.collection('donors').where('userId', '==', userId);
+    
+    if (deviceId) {
+      query = query.where('deviceId', '==', deviceId);
+    }
+
+    const snapshot = await query.limit(1).get();
+
+    if (snapshot.empty) {
+      return { hasToken: false, message: 'No donor found' };
+    }
+
+    const donor = snapshot.docs[0].data();
+    const hasToken = !!donor.fcmToken && donor.hasFcmToken === true;
+    
+    return {
+      hasToken,
+      userId,
+      deviceId: donor.deviceId || deviceId,
+      compoundTokenId: donor.compoundTokenId,
+      isAvailable: donor.isAvailable,
+      notificationEnabled: donor.notificationEnabled,
+      lastActive: donor.lastActive || donor.updatedAt,
+      message: hasToken ? 'Valid token found' : 'No valid token found'
+    };
   }
 }

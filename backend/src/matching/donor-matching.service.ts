@@ -1,4 +1,3 @@
-// src/matching/donor-matching.service.ts
 import { Injectable } from '@nestjs/common';
 import { FirebaseService } from '../firebase/firebase.service';
 import { BloodCompatibilityService } from '../blood/blood-compatibility.service';
@@ -15,7 +14,7 @@ export class DonorMatchingService {
     bloodGroup: string,
     district: string,
     radiusKm: number = 50,
-    excludeUserId?: string,  // ✅ NEW: Optional user to exclude
+    excludeUserId?: string,
   ): Promise<Donor[]> {
     try {
       const compatibleBloodTypes = 
@@ -26,19 +25,17 @@ export class DonorMatchingService {
       }
 
       const donorsRef = this.firebaseService.firestore.collection('donors');
-      
       const promises = compatibleBloodTypes.map(bloodType => 
         donorsRef
           .where('bloodGroup', '==', bloodType)
           .where('district', '==', district)
           .where('isAvailable', '==', true)
           .where('notificationEnabled', '==', true)
-          // ✅ Optionally exclude specific user at query level if provided
+          .where('hasFcmToken', '==', true)
           .get()
       );
 
       const snapshots = await Promise.all(promises);
-      
       const allDonors: Donor[] = [];
       const now = new Date();
       const MIN_DAYS_BETWEEN_DONATIONS = 90;
@@ -51,15 +48,12 @@ export class DonorMatchingService {
           if (seenIds.has(doc.id)) return;
           seenIds.add(doc.id);
 
-          // ✅ EXCLUDE THE REQUESTER IF PROVIDED
+          // ✅ Exclude the requester
           if (excludeUserId && donorData.userId === excludeUserId) {
-            return; // Skip this donor - they're the requester
+            return;
           }
 
-          // Parse donation date
           const lastDonationDate = this.parseDonationDate(donorData);
-          
-          // Check eligibility based on 90-day rule
           let isEligible = true;
           let daysSinceLastDonation = 0;
 
@@ -80,7 +74,6 @@ export class DonorMatchingService {
             }
           }
 
-          // ✅ COMPLETE DONOR OBJECT WITH ALL FIELDS
           const donor: Donor = {
             id: doc.id,
             userId: donorData.userId || doc.id,
@@ -90,21 +83,17 @@ export class DonorMatchingService {
             district: donorData.district || '',
             location: donorData.location || '',
             fcmToken: donorData.fcmToken || '',
+            deviceId: donorData.deviceId || '',
+            compoundTokenId: donorData.compoundTokenId || '',
             isAvailable: donorData.isAvailable === true,
             notificationEnabled: donorData.notificationEnabled === true,
-            
-            // ✅ BACKWARD COMPATIBILITY FIELDS
             isActive: donorData.isActive !== false,
             canDonate: donorData.canDonate !== false,
             hasFcmToken: donorData.hasFcmToken === true,
-            
-            // ✅ OPTIONAL FIELDS
             email: donorData.email,
             lastDonationDate: lastDonationDate ? lastDonationDate.getTime() : null,
             lastDonation: donorData.lastDonation,
             imageUrl: donorData.imageUrl,
-            
-            // ✅ COMPUTED PROPERTY
             daysSinceLastDonation: daysSinceLastDonation,
           };
 
@@ -114,7 +103,7 @@ export class DonorMatchingService {
         });
       });
 
-      // SORT BY PRIORITY (FCM token first, then time since last donation)
+      // Sort by priority
       allDonors.sort((a, b) => {
         const aHasToken = a.fcmToken ? 1 : 0;
         const bHasToken = b.fcmToken ? 1 : 0;
@@ -125,6 +114,7 @@ export class DonorMatchingService {
         return bDays - aDays;
       });
 
+      console.log(`Found ${allDonors.length} eligible donors for ${bloodGroup} in ${district}`);
       return allDonors;
     } catch (error) {
       console.error('Error finding compatible donors:', error);
@@ -134,12 +124,10 @@ export class DonorMatchingService {
 
   private parseDonationDate(donorData: any): Date | null {
     try {
-      // 1. Check if lastDonationDate is a timestamp (from Android)
       if (typeof donorData.lastDonationDate === 'number' && donorData.lastDonationDate > 0) {
         return new Date(donorData.lastDonationDate);
       }
       
-      // 2. Check if lastDonation is a string in "dd/MM/yyyy" format (from Android)
       if (donorData.lastDonation && typeof donorData.lastDonation === 'string') {
         const parts = donorData.lastDonation.split('/');
         if (parts.length === 3) {
@@ -147,7 +135,6 @@ export class DonorMatchingService {
         }
       }
       
-      // 3. Check Firebase Timestamp format
       if (donorData.lastDonationDate && donorData.lastDonationDate.toDate) {
         return donorData.lastDonationDate.toDate();
       }

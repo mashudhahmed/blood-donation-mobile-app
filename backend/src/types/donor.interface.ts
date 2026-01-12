@@ -2,32 +2,53 @@
 import { Timestamp } from 'firebase-admin/firestore';
 
 export interface Donor {
+  // ✅ MATCHING ANDROID FIELDS
   id?: string;
-  donorId: string;
+  userId: string;                    // ← Changed from donorId to userId
   name: string;
-  email: string;
+  email?: string;                    // Optional (Android doesn't have it)
   phone: string;
   bloodGroup: string;
   district: string;
-  fcmToken?: string;  // Fixed typo: was "furnToken"
-  lastDonationDate?: Timestamp | Date;
-  isActive: boolean;
-  notificationDisabled?: boolean;
+  location?: string;                 // Optional (Android has it)
+  
+  // ✅ MATCHING ANDROID FIELD NAMES
+  fcmToken?: string;
+  lastDonationDate?: number | Timestamp | Date | null;  // ✅ Added null
+  isAvailable?: boolean;             // ← Changed from isActive to isAvailable
+  isNotificationEnabled?: boolean;
+  
+  // ✅ BACKEND-ONLY FIELDS (optional)
+  isActive?: boolean;                // Keep for backward compatibility
   canDonate?: boolean;
-  isAvailable?: boolean;
-  daysSinceLastDonation?: number;  // Added for computed property
-  createdAt?: Timestamp | Date;
-  updatedAt?: Timestamp | Date;
+  lastActive?: string;
+  deviceId?: string;
+  lastDonation?: string;
+  imageUrl?: string;
+  createdAt?: number | Timestamp | Date;
+  updatedAt?: number | Timestamp | Date;
+  
+  // ✅ ADD THESE COMPUTED PROPERTIES
+  daysSinceLastDonation?: number;    // ← Added for computed property
 }
 
 export interface BloodRequest {
-  requestId: string;
-  bloodGroup: string;
-  district: string;
-  hospitalName: string;
-  urgency?: 'low' | 'medium' | 'high' | 'critical';
+  // ✅ MATCH ANDROID FIELDS
+  id?: string;
+  requestId?: string;
   patientName?: string;
-  timestamp: Timestamp | Date;
-  status: 'pending' | 'processing' | 'sent' | 'failed';
-  notifiedDonors: string[]; // array of donor IDs
+  hospital?: string;                 // Android uses hospital (not hospitalName)
+  hospitalName?: string;             // Keep for backward compatibility
+  phone: string;
+  units: number;
+  bloodGroup: string;
+  date?: string;                     // String format
+  time?: string;                     // String format
+  district: string;
+  location?: string;
+  requesterId?: string;
+  requesterEmail?: string;
+  urgencyLevel?: string;             // Android uses urgencyLevel
+  urgency?: string;                  // Keep for backward compatibility
+  status: string;
 }

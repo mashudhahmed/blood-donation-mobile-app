@@ -1,54 +1,49 @@
 // src/types/donor.interface.ts
-import { Timestamp } from 'firebase-admin/firestore';
-
 export interface Donor {
-  // ✅ MATCHING ANDROID FIELDS
-  id?: string;
-  userId: string;                    // ← Changed from donorId to userId
+  // ✅ ESSENTIAL FIELDS (from Android)
+  id: string;                      // Firebase document ID
+  userId: string;                  // User ID from Firebase Auth
   name: string;
-  email?: string;                    // Optional (Android doesn't have it)
   phone: string;
   bloodGroup: string;
   district: string;
-  location?: string;                 // Optional (Android has it)
+  location?: string;
   
-  // ✅ MATCHING ANDROID FIELD NAMES
-  fcmToken?: string;
-  lastDonationDate?: number | Timestamp | Date | null;  // ✅ Added null
-  isAvailable?: boolean;             // ← Changed from isActive to isAvailable
-  isNotificationEnabled?: boolean;
+  // ✅ CRITICAL NOTIFICATION FIELDS (must exist)
+  fcmToken: string;               // Required for notifications
+  lastDonationDate?: number | null; // Only timestamp
+  isAvailable: boolean;           // Required for matching
+  isNotificationEnabled: boolean; // Required for notifications
   
-  // ✅ BACKEND-ONLY FIELDS (optional)
-  isActive?: boolean;                // Keep for backward compatibility
-  canDonate?: boolean;
-  lastActive?: string;
-  deviceId?: string;
-  lastDonation?: string;
+  // ✅ BACKWARD COMPATIBILITY FIELDS
+  isActive?: boolean;             // Keep for existing queries
+  canDonate?: boolean;            // Keep for existing queries
+  hasFcmToken?: boolean;          // For token management
+  
+  // ✅ OPTIONAL FIELDS (if provided by Android)
+  email?: string;
+  lastDonation?: string;          // "dd/MM/yyyy" format string
   imageUrl?: string;
-  createdAt?: number | Timestamp | Date;
-  updatedAt?: number | Timestamp | Date;
+  createdAt?: number;
+  updatedAt?: number;
   
-  // ✅ ADD THESE COMPUTED PROPERTIES
-  daysSinceLastDonation?: number;    // ← Added for computed property
+  // ✅ COMPUTED PROPERTIES (set in service)
+  daysSinceLastDonation?: number; // Computed in matching service
 }
 
 export interface BloodRequest {
-  // ✅ MATCH ANDROID FIELDS
   id?: string;
   requestId?: string;
   patientName?: string;
-  hospital?: string;                 // Android uses hospital (not hospitalName)
-  hospitalName?: string;             // Keep for backward compatibility
+  hospital: string;                 // Single hospital field
   phone: string;
   units: number;
   bloodGroup: string;
-  date?: string;                     // String format
-  time?: string;                     // String format
+  date?: string;
+  time?: string;
   district: string;
   location?: string;
   requesterId?: string;
-  requesterEmail?: string;
-  urgencyLevel?: string;             // Android uses urgencyLevel
-  urgency?: string;                  // Keep for backward compatibility
+  urgency: string;                  // "normal" or "high" only
   status: string;
 }

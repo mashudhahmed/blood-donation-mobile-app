@@ -12,7 +12,6 @@ export class NotificationsService {
     private readonly firebaseService: FirebaseService,
   ) {}
 
-  // ✅ UPDATE DONOR TOKEN
   async updateDonorToken(
     donorId: string, 
     data: { 
@@ -27,8 +26,11 @@ export class NotificationsService {
       deviceType: data.deviceType,
       appVersion: data.appVersion,
       updatedAt: FieldValue.serverTimestamp(),
-      isAvailable: true,  // ✅ ENSURE isAvailable is set
-      isNotificationEnabled: true,  // ✅ ENSURE notifications are enabled
+      isAvailable: true,
+      isNotificationEnabled: true,
+      hasFcmToken: true,
+      isActive: true,
+      canDonate: true,
     };
     
     await this.firebaseService.firestore
@@ -47,15 +49,13 @@ export class NotificationsService {
       });
   }
 
-  // ==============================
-  // BLOOD REQUEST NOTIFICATIONS
-  // ==============================
   async notifyCompatibleDonors(body: {
     requestId: string;
     bloodGroup: string;
     district: string;
     hospitalName?: string;
     hospital?: string;
+    medicalName?: string;  // ✅ Accept medicalName
     urgency?: string;
     patientName?: string;
     contactPhone?: string;
@@ -69,14 +69,15 @@ export class NotificationsService {
         district,
         hospitalName: bodyHospitalName,
         hospital: bodyHospital,
+        medicalName: bodyMedicalName,  // ✅ Get medicalName
         urgency = 'normal',
         patientName,
         contactPhone,
         units = 1,
       } = body;
 
-      // ✅ RESOLVE HOSPITAL NAME
-      const hospitalName = bodyHospitalName || bodyHospital || 'Hospital';
+      // ✅ RESOLVE HOSPITAL NAME (accepts all three fields)
+      const hospitalName = bodyHospitalName || bodyHospital || bodyMedicalName || 'Hospital';
       
       // 1️⃣ Find compatible donors
       const compatibleDonors = await this.donorMatchingService.findCompatibleDonors(
@@ -104,8 +105,8 @@ export class NotificationsService {
         (d: Donor) =>
           d.fcmToken &&
           d.fcmToken.length > 10 &&
-          d.isAvailable !== false &&
-          d.isNotificationEnabled !== false &&
+          d.isAvailable === true &&
+          d.isNotificationEnabled === true &&
           d.fcmToken.includes(':')
       );
 
@@ -124,7 +125,7 @@ export class NotificationsService {
         };
       }
 
-      // 3️⃣ Prepare DATA-ONLY payload
+      // 3️⃣ Prepare notification payload
       const title =
         urgency === 'high' || urgency === 'critical'
           ? '🚨 URGENT: Blood Needed'
@@ -145,8 +146,8 @@ export class NotificationsService {
           requestId,
           bloodGroup,
           district,
-          hospital: hospitalName,
-          hospitalName,
+          hospital: hospitalName,          // Send as hospital
+          medicalName: hospitalName,       // ✅ Also send as medicalName for Android
           patientName: patientName || '',
           contactPhone: contactPhone || '',
           urgency,
@@ -205,7 +206,7 @@ export class NotificationsService {
             bloodGroup,
             district,
             hospital: hospitalName,
-            hospitalName,
+            medicalName: hospitalName,  // ✅ Store as medicalName too
             urgency,
             units,
             totalCompatibleDonors: compatibleDonors.length,
@@ -250,9 +251,6 @@ export class NotificationsService {
     }
   }
 
-  // ==============================
-  // SAVE FCM TOKEN
-  // ==============================
   async saveFCMToken(data: {
     userId: string;
     fcmToken: string;
@@ -262,34 +260,23 @@ export class NotificationsService {
     const { userId, fcmToken, deviceId, userType } = data;
 
     const update = {
+      userId,
       fcmToken,
-      hasFcmToken: true,
       deviceId,
-      userType: userType || 'donor',  // ✅ STORE userType
+      userType: userType || 'donor',
       isAvailable: true,
       isNotificationEnabled: true,
+      hasFcmToken: true,
+      isActive: true,
+      canDonate: true,
       updatedAt: FieldValue.serverTimestamp(),
     };
 
     // ✅ UPDATE DONOR
     await this.firebaseService.firestore
       .collection('donors')
-      .where('userId', '==', userId)
-      .get()
-      .then(snapshot => {
-        if (!snapshot.empty) {
-          snapshot.docs[0].ref.set(update, { merge: true });
-        } else {
-          this.firebaseService.firestore
-            .collection('donors')
-            .doc(userId)
-            .set({
-              userId,
-              ...update,
-              createdAt: FieldValue.serverTimestamp(),
-            }, { merge: true });
-        }
-      });
+      .doc(userId)  // Use userId as document ID
+      .set(update, { merge: true });
     
     // ✅ UPDATE USER
     await this.firebaseService.firestore
@@ -300,9 +287,6 @@ export class NotificationsService {
     return { success: true };
   }
 
-  // ==============================
-  // SEND TEST NOTIFICATION
-  // ==============================
   async sendTestNotification(token: string) {
     return this.firebaseService.messaging.send({
       token,
@@ -317,9 +301,6 @@ export class NotificationsService {
     });
   }
 
-  // ==============================
-  // CHECK FIREBASE STATUS
-  // ==============================
   async checkFirebaseStatus(): Promise<boolean> {
     return this.firebaseService.isInitialized();
   }

@@ -46,67 +46,68 @@ export class DonorMatchingService {
         snapshot.docs.forEach(doc => {
           const donorData = doc.data();
           
-          // ✅ MAP ALL FIELDS CORRECTLY
-          const donor: Donor = {
-            id: doc.id,
-            userId: donorData.userId || doc.id,
-            name: donorData.name || '',
-            email: donorData.email || '',
-            phone: donorData.phone || '',
-            bloodGroup: donorData.bloodGroup || '',
-            district: donorData.district || '',
-            location: donorData.location || '',
-            fcmToken: donorData.fcmToken || '',
-            
-            lastDonationDate: this.parseDonationDate(donorData),
-            
-            isAvailable: donorData.isAvailable !== false,
-            isNotificationEnabled: donorData.isNotificationEnabled !== false,
-            deviceId: donorData.deviceId,
-            lastDonation: donorData.lastDonation,
-            imageUrl: donorData.imageUrl,
-            
-            isActive: donorData.isAvailable !== false,
-            canDonate: true,
-            lastActive: donorData.lastActive,
-            createdAt: donorData.createdAt,
-            updatedAt: donorData.updatedAt,
-            daysSinceLastDonation: 0,
-          };
-
           if (seenIds.has(doc.id)) return;
           seenIds.add(doc.id);
 
-          // CHECK ELIGIBILITY
+          // Parse donation date
+          const lastDonationDate = this.parseDonationDate(donorData);
+          
+          // Check eligibility based on 90-day rule
           let isEligible = true;
-          if (donor.lastDonationDate) {
+          let daysSinceLastDonation = 0;
+
+          if (lastDonationDate) {
             try {
-              const lastDonation = donor.lastDonationDate instanceof Date 
-                ? donor.lastDonationDate 
-                : typeof donor.lastDonationDate === 'number'
-                  ? new Date(donor.lastDonationDate)
-                  : (donor.lastDonationDate as any).toDate 
-                    ? (donor.lastDonationDate as any).toDate()
-                    : new Date(donor.lastDonationDate as any);
+              const lastDonation = lastDonationDate instanceof Date 
+                ? lastDonationDate 
+                : new Date(lastDonationDate);
               
               const diffTime = now.getTime() - lastDonation.getTime();
               const diffDays = diffTime / (1000 * 60 * 60 * 24);
               
               isEligible = diffDays >= MIN_DAYS_BETWEEN_DONATIONS;
-              donor.daysSinceLastDonation = Math.floor(diffDays);
+              daysSinceLastDonation = Math.floor(diffDays);
             } catch (error) {
               console.warn(`Error parsing donation date:`, error);
               isEligible = true;
             }
           }
 
-          if (isEligible && donor.isAvailable && donor.isNotificationEnabled) {
+          // ✅ COMPLETE DONOR OBJECT WITH ALL FIELDS
+          const donor: Donor = {
+            id: doc.id,
+            userId: donorData.userId || doc.id,
+            name: donorData.name || '',
+            phone: donorData.phone || '',
+            bloodGroup: donorData.bloodGroup || '',
+            district: donorData.district || '',
+            location: donorData.location || '',
+            fcmToken: donorData.fcmToken || '',
+            isAvailable: donorData.isAvailable === true,
+            isNotificationEnabled: donorData.isNotificationEnabled === true,
+            
+            // ✅ BACKWARD COMPATIBILITY FIELDS
+            isActive: donorData.isActive !== false,
+            canDonate: donorData.canDonate !== false,
+            hasFcmToken: donorData.hasFcmToken === true,
+            
+            // ✅ OPTIONAL FIELDS
+            email: donorData.email,
+            lastDonationDate: lastDonationDate ? lastDonationDate.getTime() : null,
+            lastDonation: donorData.lastDonation,
+            imageUrl: donorData.imageUrl,
+            
+            // ✅ COMPUTED PROPERTY
+            daysSinceLastDonation: daysSinceLastDonation,
+          };
+
+          if (isEligible && donor.isAvailable && donor.isNotificationEnabled && donor.fcmToken) {
             allDonors.push(donor);
           }
         });
       });
 
-      // SORT BY PRIORITY
+      // SORT BY PRIORITY (FCM token first, then time since last donation)
       allDonors.sort((a, b) => {
         const aHasToken = a.fcmToken ? 1 : 0;
         const bHasToken = b.fcmToken ? 1 : 0;
@@ -124,19 +125,22 @@ export class DonorMatchingService {
     }
   }
 
-  private parseDonationDate(donorData: any): Date | number | null {
+  private parseDonationDate(donorData: any): Date | null {
     try {
-      if (typeof donorData.lastDonationDate === 'number') {
-        return donorData.lastDonationDate;
+      // 1. Check if lastDonationDate is a timestamp (from Android)
+      if (typeof donorData.lastDonationDate === 'number' && donorData.lastDonationDate > 0) {
+        return new Date(donorData.lastDonationDate);
       }
       
-      if (donorData.lastDonation) {
+      // 2. Check if lastDonation is a string in "dd/MM/yyyy" format (from Android)
+      if (donorData.lastDonation && typeof donorData.lastDonation === 'string') {
         const parts = donorData.lastDonation.split('/');
         if (parts.length === 3) {
           return new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
         }
       }
       
+      // 3. Check Firebase Timestamp format
       if (donorData.lastDonationDate && donorData.lastDonationDate.toDate) {
         return donorData.lastDonationDate.toDate();
       }

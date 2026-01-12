@@ -19,9 +19,6 @@ export class NotificationsController {
     private readonly bloodCompatibilityService: BloodCompatibilityService,
   ) {}
 
-  // ==============================
-  // SEND BLOOD REQUEST NOTIFICATION
-  // ==============================
   @Post('blood-request')
   async sendBloodRequestNotification(
     @Body()
@@ -30,7 +27,8 @@ export class NotificationsController {
       bloodGroup: string;
       district: string;
       hospitalName?: string;
-      hospital?: string;  // ✅ ADDED: Accept both field names
+      hospital?: string;
+      medicalName?: string;  // ✅ Added: Accept medicalName from Android
       urgency?: string;
       patientName?: string;
       contactPhone?: string;
@@ -45,14 +43,18 @@ export class NotificationsController {
       );
     }
 
-    // ✅ ACCEPT BOTH HOSPITAL FIELDS
-    const hospitalName = body.hospitalName || body.hospital;
+    // ✅ ACCEPT ALL HOSPITAL FIELDS (medicalName from Android)
+    const hospitalName = body.hospitalName || body.hospital || body.medicalName;
     if (!hospitalName) {
       throw new HttpException(
-        'Hospital name is required (use hospitalName or hospital field)',
+        'Hospital name is required (use hospitalName, hospital, or medicalName field)',
         HttpStatus.BAD_REQUEST,
       );
     }
+
+    // ✅ NORMALIZE URGENCY (accept any case)
+    const urgency = (body.urgency || 'normal').toLowerCase();
+    const normalizedUrgency = urgency === 'high' ? 'high' : 'normal';
 
     const requestId =
       body.requestId ||
@@ -60,14 +62,12 @@ export class NotificationsController {
 
     return this.notificationsService.notifyCompatibleDonors({
       ...body,
-      hospitalName,  // ✅ Use the resolved hospital name
+      hospitalName,
+      urgency: normalizedUrgency,
       requestId,
     });
   }
 
-  // ==============================
-  // SAVE FCM TOKEN (ANDROID USES THIS)
-  // ==============================
   @Post('save-token')
   async saveFCMToken(
     @Body()
@@ -75,7 +75,7 @@ export class NotificationsController {
       userId: string;
       fcmToken: string;
       deviceId?: string;
-      userType?: string;  // ✅ ACCEPT userType field
+      userType?: string;
     },
   ) {
     if (!body.userId || !body.fcmToken) {
@@ -95,9 +95,6 @@ export class NotificationsController {
     };
   }
 
-  // ==============================
-  // BACKWARD-COMPAT TOKEN REGISTER
-  // ==============================
   @Post('register-token')
   async registerFCMToken(
     @Body()
@@ -130,9 +127,6 @@ export class NotificationsController {
     };
   }
 
-  // ==============================
-  // HEALTH CHECK
-  // ==============================
   @Get('health')
   healthCheck() {
     return {
@@ -143,9 +137,6 @@ export class NotificationsController {
     };
   }
 
-  // ==============================
-  // DEBUG INFO
-  // ==============================
   @Get('debug')
   async debugInfo() {
     const firebaseStatus = await this.notificationsService.checkFirebaseStatus();
@@ -162,9 +153,6 @@ export class NotificationsController {
     };
   }
 
-  // ==============================
-  // SEND TEST NOTIFICATION
-  // ==============================
   @Post('test-notification')
   async sendTestNotification(@Body() body: { token: string }) {
     if (!body.token) {
@@ -185,9 +173,6 @@ export class NotificationsController {
     }
   }
 
-  // ==============================
-  // GET MATCHING STATS
-  // ==============================
   @Post('matching-stats')
   async getMatchingStats(
     @Body() body: { bloodGroup: string; district: string },

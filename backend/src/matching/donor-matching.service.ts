@@ -31,7 +31,7 @@ export class DonorMatchingService {
           .where('bloodGroup', '==', bloodType)
           .where('district', '==', district)
           .where('isAvailable', '==', true)
-          .where('isNotificationEnabled', '==', true)
+          .where('notificationEnabled', '==', true)
           .get()
       );
 
@@ -84,7 +84,7 @@ export class DonorMatchingService {
             location: donorData.location || '',
             fcmToken: donorData.fcmToken || '',
             isAvailable: donorData.isAvailable === true,
-            isNotificationEnabled: donorData.isNotificationEnabled === true,
+            notificationEnabled: donorData.notificationEnabled === true,
             
             // ✅ BACKWARD COMPATIBILITY FIELDS
             isActive: donorData.isActive !== false,
@@ -101,7 +101,7 @@ export class DonorMatchingService {
             daysSinceLastDonation: daysSinceLastDonation,
           };
 
-          if (isEligible && donor.isAvailable && donor.isNotificationEnabled && donor.fcmToken) {
+          if (isEligible && donor.isAvailable && donor.notificationEnabled && donor.fcmToken) {
             allDonors.push(donor);
           }
         });

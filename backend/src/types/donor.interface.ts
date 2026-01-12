@@ -13,7 +13,7 @@ export interface Donor {
   fcmToken: string;               // Required for notifications
   lastDonationDate?: number | null; // Only timestamp
   isAvailable: boolean;           // Required for matching
-  isNotificationEnabled: boolean; // Required for notifications
+  notificationEnabled: boolean; // Required for notifications
   
   // ✅ BACKWARD COMPATIBILITY FIELDS
   isActive?: boolean;             // Keep for existing queries

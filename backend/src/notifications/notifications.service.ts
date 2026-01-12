@@ -27,7 +27,7 @@ export class NotificationsService {
       appVersion: data.appVersion,
       updatedAt: FieldValue.serverTimestamp(),
       isAvailable: true,
-      isNotificationEnabled: true,
+      notificationEnabled: true,
       hasFcmToken: true,
       isActive: true,
       canDonate: true,
@@ -106,7 +106,7 @@ export class NotificationsService {
           d.fcmToken &&
           d.fcmToken.length > 10 &&
           d.isAvailable === true &&
-          d.isNotificationEnabled === true &&
+          d.notificationEnabled === true &&
           d.fcmToken.includes(':')
       );
 
@@ -265,7 +265,7 @@ export class NotificationsService {
       deviceId,
       userType: userType || 'donor',
       isAvailable: true,
-      isNotificationEnabled: true,
+      notificationEnabled: true,
       hasFcmToken: true,
       isActive: true,
       canDonate: true,

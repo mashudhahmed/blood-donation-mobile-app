@@ -59,7 +59,8 @@ export class NotificationsService {
       const hospitalName = bodyHospitalName || bodyHospital || bodyMedicalName || 'Hospital';
       
       console.log('🔍 Starting eligibility check for donors...');
-      console.log(`   Including both logged-in and logged-out donors who are available`);
+      console.log(`   Sending push ONLY to logged-in users`);
+      console.log(`   Storing notifications for ALL eligible users`);
 
       // ✅ Get eligible donors including logged-out donors who are available
       const eligibleDonors = await this.donorMatchingService.findCompatibleDonors(
@@ -69,9 +70,9 @@ export class NotificationsService {
         requesterId
       );
 
-      console.log(`✅ Found ${eligibleDonors.length} ELIGIBLE donors (including logged-out)`);
-      console.log(`   Logged-in: ${eligibleDonors.filter(d => d.isLoggedIn).length}`);
-      console.log(`   Logged-out: ${eligibleDonors.filter(d => !d.isLoggedIn).length}`);
+      console.log(`✅ Found ${eligibleDonors.length} ELIGIBLE donors`);
+      console.log(`   Logged-in (will get push): ${eligibleDonors.filter(d => d.isLoggedIn).length}`);
+      console.log(`   Logged-out (no push, stored only): ${eligibleDonors.filter(d => !d.isLoggedIn).length}`);
 
       if (!eligibleDonors || eligibleDonors.length === 0) {
         return {
@@ -125,8 +126,8 @@ export class NotificationsService {
           storedCount++;
           console.log(`💾 Stored notification for ${donor.name} (${donor.userId}) - ${donor.isLoggedIn ? 'Logged In' : 'Logged Out'}`);
 
-          // 3. If donor has valid FCM token, send real-time push
-          if (donor.fcmToken && donor.fcmToken.length > 20 && donor.fcmToken.includes(':')) {
+          // ✅ CRITICAL CHANGE: ONLY send push to LOGGED-IN users
+          if (donor.isLoggedIn && donor.fcmToken && donor.fcmToken.length > 20 && donor.fcmToken.includes(':')) {
             try {
               const message = {
                 token: donor.fcmToken,
@@ -157,12 +158,15 @@ export class NotificationsService {
 
               await this.firebaseService.messaging.send(message);
               sentCount++;
-              console.log(`📤 Sent push to ${donor.name} (${donor.isLoggedIn ? 'Logged In' : 'Logged Out'})`);
+              console.log(`📤 Sent push to LOGGED-IN user ${donor.name}`);
               
             } catch (pushError) {
               console.error(`❌ Failed to send push to ${donor.userId}:`, pushError.message);
               failedTokens.push(donor.fcmToken);
             }
+          } else if (!donor.isLoggedIn) {
+            // ✅ Logged-out users get notification stored, but NO push
+            console.log(`📝 Notification stored (NO PUSH) for logged-out user ${donor.name}`);
           } else {
             console.log(`⏸️  No valid token for ${donor.name}, notification stored only`);
           }
@@ -449,7 +453,7 @@ export class NotificationsService {
     userType?: string;
     deviceType?: string;
     appVersion?: string;
-    isLoggedIn?: boolean;  // ✅ NEW: Track login status
+    isLoggedIn?: boolean;  // ✅ Track login status
   }) {
     try {
       const { 
@@ -500,7 +504,7 @@ export class NotificationsService {
     deviceType?: string;
     appVersion?: string;
     updatedAt: Date;
-    isLoggedIn?: boolean;  // ✅ NEW: Track login status
+    isLoggedIn?: boolean;  // ✅ Track login status
   }) {
     try {
       const updates: any = {

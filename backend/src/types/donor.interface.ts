@@ -15,6 +15,7 @@ export interface UserDevice {
   lastActive: number;                // Last activity timestamp
   createdAt: number;                 // Creation timestamp
   updatedAt: number;                 // Last update timestamp
+  isLoggedIn?: boolean;              // ✅ ADDED: Login status
 }
 
 // ✅ Donor Interface (Main donor document)
@@ -45,6 +46,7 @@ export interface Donor {
   lastDonationDate?: number | null;  // Timestamp of last donation
   isAvailable: boolean;              // Current availability status
   notificationEnabled: boolean;      // Notification permission status
+  isLoggedIn?: boolean;              // ✅ ADDED: Current login status
   
   // ✅ BACKWARD COMPATIBILITY FIELDS
   isActive?: boolean;                // For existing queries

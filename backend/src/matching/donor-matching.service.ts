@@ -19,6 +19,7 @@ export class DonorMatchingService {
     try {
       console.log('🔍 Starting donor eligibility check...');
       console.log(`   Request: ${bloodGroup} blood in ${district}`);
+      console.log(`   Excluding user: ${excludeUserId || 'none'}`);
 
       // Get compatible blood types
       const compatibleBloodTypes = this.bloodCompatibilityService.getCompatibleDonors(bloodGroup);
@@ -40,13 +41,16 @@ export class DonorMatchingService {
         try {
           console.log(`   Querying donors with blood type: ${bloodType}`);
           
+          // ✅ IMPORTANT: Query for ALL donors with isAvailable: true and hasFcmToken: true
+          // This includes both logged-in AND logged-out donors
           const snapshot = await donorsRef
             .where('bloodGroup', '==', bloodType)
             .where('district', '==', district)
-            .where('isAvailable', '==', true)
+            .where('isAvailable', '==', true)        // ✅ User must be marked as available
+            .where('hasFcmToken', '==', true)        // ✅ Must have valid FCM token
             .get();
 
-          console.log(`   Found ${snapshot.size} donors with ${bloodType} in ${district}`);
+          console.log(`   Found ${snapshot.size} available donors with ${bloodType} in ${district}`);
 
           snapshot.docs.forEach(doc => {
             try {
@@ -56,37 +60,25 @@ export class DonorMatchingService {
               if (seenIds.has(doc.id)) return;
               seenIds.add(doc.id);
 
-              // ✅ FILTER 1: Exclude requester
+              // ✅ FILTER 1: Exclude requester (same as before)
               if (excludeUserId && donorData.userId === excludeUserId) {
                 console.log(`      ❌ Excluding requester: ${donorData.name || donorData.userId}`);
                 return;
               }
 
-              // ✅ FILTER 2: Check notification enabled
-              if (donorData.notificationEnabled !== true) {
-                console.log(`      ❌ Excluding ${donorData.name || doc.id}: Notifications disabled`);
+              // ✅ FILTER 2: Check has valid FCM token (already in query, but double-check)
+              if (!donorData.fcmToken || donorData.fcmToken.length < 20 || !donorData.fcmToken.includes(':')) {
+                console.log(`      ❌ Excluding ${donorData.name || doc.id}: Invalid FCM token`);
                 return;
               }
 
-              // ✅ FILTER 3: Check donor is active
-              if (donorData.isActive === false) {
-                console.log(`      ❌ Excluding ${donorData.name || doc.id}: Donor not active`);
-                return;
-              }
-
-              // ✅ FILTER 4: Check can donate
-              if (donorData.canDonate === false) {
-                console.log(`      ❌ Excluding ${donorData.name || doc.id}: Cannot donate`);
-                return;
-              }
-
-              // ✅ FILTER 5: Check required fields
+              // ✅ FILTER 3: Check required fields
               if (!donorData.name || !donorData.phone || !donorData.bloodGroup || !donorData.district) {
                 console.log(`      ❌ Excluding ${doc.id}: Missing required fields`);
                 return;
               }
 
-              // ✅ FILTER 6: Check 90-day donation rule
+              // ✅ FILTER 4: Check 90-day donation rule
               let isEligibleByTime = true;
               let daysSinceLastDonation = 0;
               const lastDonationDate = this.parseDonationDate(donorData);
@@ -112,6 +104,18 @@ export class DonorMatchingService {
                 }
               }
 
+              // ✅ NEW: Check login status
+              const isLoggedIn = donorData.isLoggedIn !== false; // Default to true if not set
+              const status = isLoggedIn ? "✅ (Logged In)" : "👤 (Logged Out)";
+              
+              // ✅ FOR LOGGED-IN DONORS: Check notificationEnabled
+              if (isLoggedIn && donorData.notificationEnabled !== true) {
+                console.log(`      ❌ Excluding logged-in user ${donorData.name || doc.id}: Notifications disabled`);
+                return;
+              }
+              
+              // ✅ FOR LOGGED-OUT DONORS: Only check isAvailable (already true) and hasFcmToken (already true)
+
               // Create donor object
               const donor: Donor = {
                 id: doc.id,
@@ -124,11 +128,12 @@ export class DonorMatchingService {
                 fcmToken: donorData.fcmToken || '',
                 deviceId: donorData.deviceId || '',
                 compoundTokenId: donorData.compoundTokenId || '',
-                isAvailable: donorData.isAvailable === true,
+                isAvailable: true, // Already filtered by query
                 notificationEnabled: donorData.notificationEnabled === true,
                 isActive: donorData.isActive !== false,
                 canDonate: donorData.canDonate !== false,
-                hasFcmToken: donorData.hasFcmToken === true,
+                hasFcmToken: true, // Already filtered by query
+                isLoggedIn: isLoggedIn, // ✅ Add login status
                 email: donorData.email,
                 lastDonationDate: lastDonationDate ? lastDonationDate.getTime() : null,
                 lastDonation: donorData.lastDonation,
@@ -136,13 +141,8 @@ export class DonorMatchingService {
                 daysSinceLastDonation,
               };
 
-              // Final eligibility check
-              if (donor.isAvailable && donor.notificationEnabled && donor.isActive && donor.canDonate) {
-                allDonors.push(donor);
-                console.log(`      ✅ Eligible: ${donor.name} (${donor.bloodGroup}) - ${daysSinceLastDonation} days since donation`);
-              } else {
-                console.log(`      ❌ Ineligible: ${donor.name} - Available:${donor.isAvailable}, Notif:${donor.notificationEnabled}`);
-              }
+              allDonors.push(donor);
+              console.log(`      ${status} Eligible: ${donor.name} (${donor.bloodGroup}) - ${daysSinceLastDonation} days since donation`);
 
             } catch (docError) {
               console.error(`      ❌ Error processing donor ${doc.id}:`, docError);
@@ -155,26 +155,22 @@ export class DonorMatchingService {
       }
 
       console.log(`✅ Total eligible donors found: ${allDonors.length}`);
+      console.log(`   - Logged-in: ${allDonors.filter(d => d.isLoggedIn).length}`);
+      console.log(`   - Logged-out: ${allDonors.filter(d => !d.isLoggedIn).length}`);
+      console.log(`   - All marked as available: ${allDonors.filter(d => d.isAvailable).length}`);
 
-      // Sort donors: first by FCM token (online), then by days since donation
+      // Sort donors: logged-in first, then by days since donation
       allDonors.sort((a, b) => {
-        // Priority 1: Donors with FCM tokens (online)
-        const aHasToken = a.fcmToken && a.fcmToken.length > 20 ? 1 : 0;
-        const bHasToken = b.fcmToken && b.fcmToken.length > 20 ? 1 : 0;
-        if (bHasToken !== aHasToken) return bHasToken - aHasToken;
+        // Priority 1: Logged-in users first
+        const aLoggedIn = a.isLoggedIn ? 1 : 0;
+        const bLoggedIn = b.isLoggedIn ? 1 : 0;
+        if (bLoggedIn !== aLoggedIn) return bLoggedIn - aLoggedIn;
 
         // Priority 2: Longer time since last donation
         const aDays = a.daysSinceLastDonation || 0;
         const bDays = b.daysSinceLastDonation || 0;
         return bDays - aDays;
       });
-
-      // Log summary
-      console.log('📊 Donor Eligibility Summary:');
-      console.log(`   - Total checked: ${seenIds.size}`);
-      console.log(`   - Eligible: ${allDonors.length}`);
-      console.log(`   - With FCM tokens: ${allDonors.filter(d => d.fcmToken).length}`);
-      console.log(`   - Average days since donation: ${allDonors.length > 0 ? Math.round(allDonors.reduce((sum, d) => sum + (d.daysSinceLastDonation || 0), 0) / allDonors.length) : 0}`);
 
       return allDonors;
 

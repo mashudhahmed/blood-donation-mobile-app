@@ -59,8 +59,9 @@ export class NotificationsService {
       const hospitalName = bodyHospitalName || bodyHospital || bodyMedicalName || 'Hospital';
       
       console.log('🔍 Starting eligibility check for donors...');
+      console.log(`   Including both logged-in and logged-out donors who are available`);
 
-      // ✅ CRITICAL: Get eligible donors with ALL filters applied
+      // ✅ Get eligible donors including logged-out donors who are available
       const eligibleDonors = await this.donorMatchingService.findCompatibleDonors(
         bloodGroup,
         district,
@@ -68,7 +69,9 @@ export class NotificationsService {
         requesterId
       );
 
-      console.log(`✅ Found ${eligibleDonors.length} ELIGIBLE donors after all filters`);
+      console.log(`✅ Found ${eligibleDonors.length} ELIGIBLE donors (including logged-out)`);
+      console.log(`   Logged-in: ${eligibleDonors.filter(d => d.isLoggedIn).length}`);
+      console.log(`   Logged-out: ${eligibleDonors.filter(d => !d.isLoggedIn).length}`);
 
       if (!eligibleDonors || eligibleDonors.length === 0) {
         return {
@@ -94,13 +97,13 @@ export class NotificationsService {
       let sentCount = 0;
       const failedTokens: string[] = [];
 
-      // ✅ Process each eligible donor
+      // ✅ Process each eligible donor (both logged-in and logged-out)
       for (const donor of eligibleDonors) {
         try {
           // 1. Create unique notification ID
           const notificationId = `notif_${requestId}_${donor.userId}_${Date.now()}`;
           
-          // 2. Store notification in Firestore (ALWAYS store, even if offline)
+          // 2. Store notification in Firestore (ALWAYS store, even if user is logged out)
           await this.storeNotificationForUser(donor.userId, {
             id: notificationId,
             requestId,
@@ -120,7 +123,7 @@ export class NotificationsService {
           });
           
           storedCount++;
-          console.log(`💾 Stored notification for ${donor.name} (${donor.userId})`);
+          console.log(`💾 Stored notification for ${donor.name} (${donor.userId}) - ${donor.isLoggedIn ? 'Logged In' : 'Logged Out'}`);
 
           // 3. If donor has valid FCM token, send real-time push
           if (donor.fcmToken && donor.fcmToken.length > 20 && donor.fcmToken.includes(':')) {
@@ -144,6 +147,7 @@ export class NotificationsService {
                   // ✅ Critical: Identify recipient
                   recipientUserId: donor.userId,
                   recipientName: donor.name,
+                  isLoggedIn: donor.isLoggedIn ? 'true' : 'false',
                   action: 'VIEW_NOTIFICATION',
                 },
                 android: {
@@ -153,7 +157,7 @@ export class NotificationsService {
 
               await this.firebaseService.messaging.send(message);
               sentCount++;
-              console.log(`📤 Sent push to ${donor.name}`);
+              console.log(`📤 Sent push to ${donor.name} (${donor.isLoggedIn ? 'Logged In' : 'Logged Out'})`);
               
             } catch (pushError) {
               console.error(`❌ Failed to send push to ${donor.userId}:`, pushError.message);
@@ -190,6 +194,8 @@ export class NotificationsService {
             storedNotifications: storedCount,
             sentNotifications: sentCount,
             failedNotifications: failedTokens.length,
+            loggedInDonors: eligibleDonors.filter(d => d.isLoggedIn).length,
+            loggedOutDonors: eligibleDonors.filter(d => !d.isLoggedIn).length,
             notificationStatus: 'processed',
             processedAt: FieldValue.serverTimestamp(),
             donorDetails: eligibleDonors.map(d => ({
@@ -197,8 +203,9 @@ export class NotificationsService {
               name: d.name,
               hasToken: !!d.fcmToken,
               bloodGroup: d.bloodGroup,
-              lastDonation: d.lastDonationDate,
+              isLoggedIn: d.isLoggedIn,
               isAvailable: d.isAvailable,
+              notificationEnabled: d.notificationEnabled,
               daysSinceDonation: d.daysSinceLastDonation,
             })),
           },
@@ -214,6 +221,8 @@ export class NotificationsService {
           storedNotifications: storedCount,
           sentNotifications: sentCount,
           failedNotifications: failedTokens.length,
+          loggedInDonors: eligibleDonors.filter(d => d.isLoggedIn).length,
+          loggedOutDonors: eligibleDonors.filter(d => !d.isLoggedIn).length,
           notificationIds: eligibleDonors.map(d => `notif_${requestId}_${d.userId}`),
           timestamp: new Date().toISOString(),
           note: 'Notifications stored in database. Users will see them when they log in.',
@@ -432,8 +441,7 @@ export class NotificationsService {
     }
   }
 
-  // ✅ Add missing methods that the controller expects
-
+  // ✅ Save FCM Token with login status tracking
   async saveFCMToken(body: {
     userId: string;
     fcmToken: string;
@@ -441,9 +449,18 @@ export class NotificationsService {
     userType?: string;
     deviceType?: string;
     appVersion?: string;
+    isLoggedIn?: boolean;  // ✅ NEW: Track login status
   }) {
     try {
-      const { userId, fcmToken, deviceId, userType, deviceType, appVersion } = body;
+      const { 
+        userId, 
+        fcmToken, 
+        deviceId, 
+        userType, 
+        deviceType, 
+        appVersion, 
+        isLoggedIn = true  // ✅ Default to true
+      } = body;
       
       // Create a compound ID for device tracking
       const compoundTokenId = `${userId}_${deviceId || 'unknown'}`;
@@ -460,11 +477,14 @@ export class NotificationsService {
           appVersion: appVersion || '1.0.0',
           compoundTokenId,
           hasFcmToken: true,
+          isLoggedIn: isLoggedIn,  // ✅ Store login status
+          isAvailable: true,       // ✅ Keep as available by default
+          notificationEnabled: true, // ✅ Keep notifications enabled by default
           updatedAt: new Date(),
           lastActive: new Date(),
         }, { merge: true });
 
-      console.log(`✅ Saved FCM token for user ${userId}, device: ${deviceId || 'unknown'}`);
+      console.log(`✅ Saved FCM token for user ${userId}, device: ${deviceId || 'unknown'}, loggedIn: ${isLoggedIn}`);
       
       return { success: true, compoundTokenId };
     } catch (error) {
@@ -473,28 +493,37 @@ export class NotificationsService {
     }
   }
 
+  // ✅ Update donor token with login status
   async updateDonorToken(donorId: string, tokenData: {
     fcmToken: string;
     deviceId?: string;
     deviceType?: string;
     appVersion?: string;
     updatedAt: Date;
+    isLoggedIn?: boolean;  // ✅ NEW: Track login status
   }) {
     try {
+      const updates: any = {
+        fcmToken: tokenData.fcmToken,
+        deviceId: tokenData.deviceId,
+        deviceType: tokenData.deviceType,
+        appVersion: tokenData.appVersion,
+        hasFcmToken: true,
+        updatedAt: tokenData.updatedAt,
+        lastActive: tokenData.updatedAt,
+      };
+
+      // ✅ Add login status if provided
+      if (tokenData.isLoggedIn !== undefined) {
+        updates.isLoggedIn = tokenData.isLoggedIn;
+      }
+
       await this.firebaseService.firestore
         .collection('donors')
         .doc(donorId)
-        .set({
-          fcmToken: tokenData.fcmToken,
-          deviceId: tokenData.deviceId,
-          deviceType: tokenData.deviceType,
-          appVersion: tokenData.appVersion,
-          hasFcmToken: true,
-          updatedAt: tokenData.updatedAt,
-          lastActive: tokenData.updatedAt,
-        }, { merge: true });
+        .set(updates, { merge: true });
 
-      console.log(`✅ Updated token for donor ${donorId}`);
+      console.log(`✅ Updated token for donor ${donorId}, loggedIn: ${tokenData.isLoggedIn !== false}`);
       
       return { success: true };
     } catch (error) {
@@ -503,6 +532,7 @@ export class NotificationsService {
     }
   }
 
+  // ✅ Check Firebase status
   async checkFirebaseStatus() {
     try {
       // Check if Firebase is initialized by trying a simple operation
@@ -514,7 +544,8 @@ export class NotificationsService {
     }
   }
 
-  async sendTestNotification(token: string) {
+  // ✅ Send test notification
+  async sendTestNotification(token: string, userId?: string) {
     try {
       const message = {
         token,
@@ -524,6 +555,7 @@ export class NotificationsService {
           body: 'Your notification system is working!',
           urgency: 'normal',
           channelId: 'blood_requests',
+          recipientUserId: userId || 'test_user',  // ✅ Include userId
           timestamp: new Date().toISOString()
         },
         android: { priority: 'high' as const },
@@ -548,6 +580,60 @@ export class NotificationsService {
     } catch (error) {
       console.error('Error sending test notification:', error);
       throw new Error(`Failed to send test notification: ${error.message}`);
+    }
+  }
+
+  // ✅ Mark user as logged out (KEEP FCM token)
+  async markUserAsLoggedOut(userId: string, deviceId?: string) {
+    try {
+      const updates: any = {
+        isLoggedIn: false,  // ✅ Only change login status
+        updatedAt: new Date(),
+        lastActive: new Date(),
+      };
+
+      // Keep all other fields (fcmToken, isAvailable, etc.) unchanged
+    
+      await this.firebaseService.firestore
+        .collection('donors')
+        .doc(userId)
+        .set(updates, { merge: true });
+
+      console.log(`✅ User ${userId} marked as logged out (FCM token preserved)`);
+      console.log(`   User can still receive notifications if isAvailable: true`);
+      
+      return { success: true };
+    } catch (error) {
+      console.error('Error marking user as logged out:', error);
+      throw new Error(`Failed to mark user as logged out: ${error.message}`);
+    }
+  }
+
+  // ✅ Mark user as logged in
+  async markUserAsLoggedIn(userId: string, deviceId?: string) {
+    try {
+      const updates: any = {
+        isLoggedIn: true,
+        updatedAt: new Date(),
+        lastActive: new Date(),
+      };
+
+      if (deviceId) {
+        updates.deviceId = deviceId;
+        updates.compoundTokenId = `${userId}_${deviceId}`;
+      }
+
+      await this.firebaseService.firestore
+        .collection('donors')
+        .doc(userId)
+        .set(updates, { merge: true });
+
+      console.log(`✅ User ${userId} marked as logged in`);
+      
+      return { success: true };
+    } catch (error) {
+      console.error('Error marking user as logged in:', error);
+      throw new Error(`Failed to mark user as logged in: ${error.message}`);
     }
   }
 }

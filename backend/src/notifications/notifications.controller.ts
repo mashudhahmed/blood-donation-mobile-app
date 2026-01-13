@@ -101,12 +101,14 @@ export class NotificationsController {
       userType?: string;
       deviceType?: string;
       appVersion?: string;
+      isLoggedIn?: boolean;  // ✅ NEW: Accept login status
     },
   ) {
     console.log('📱 Save Token API Called:', {
       userId: body.userId,
       deviceId: body.deviceId,
-      tokenLength: body.fcmToken?.length
+      tokenLength: body.fcmToken?.length,
+      isLoggedIn: body.isLoggedIn
     });
 
     if (!body.userId || !body.fcmToken) {
@@ -131,6 +133,7 @@ export class NotificationsController {
       userId: body.userId,
       deviceId: body.deviceId || 'unknown',
       compoundTokenId: result.compoundTokenId,
+      isLoggedIn: body.isLoggedIn !== false,
       timestamp: new Date().toISOString(),
     };
   }
@@ -144,6 +147,7 @@ export class NotificationsController {
       deviceType?: string;
       appVersion?: string;
       deviceId?: string;
+      isLoggedIn?: boolean;  // ✅ NEW: Accept login status
     },
   ) {
     if (!body.donorId || !body.fcmToken) {
@@ -159,6 +163,7 @@ export class NotificationsController {
       deviceType: body.deviceType,
       appVersion: body.appVersion,
       updatedAt: new Date(),
+      isLoggedIn: body.isLoggedIn !== false,  // ✅ Pass login status
     });
 
     return {
@@ -166,6 +171,7 @@ export class NotificationsController {
       message: 'Token registered successfully',
       donorId: body.donorId,
       deviceId: body.deviceId,
+      isLoggedIn: body.isLoggedIn !== false,
       timestamp: new Date().toISOString(),
     };
   }
@@ -180,7 +186,9 @@ export class NotificationsController {
       features: {
         accountSpecificNotifications: true,
         requesterExclusion: true,
-        deviceTracking: true
+        deviceTracking: true,
+        loggedOutNotifications: true,  // ✅ NEW: Logged-out donors can receive notifications
+        availabilityFiltering: true,
       }
     };
   }
@@ -197,8 +205,10 @@ export class NotificationsController {
         bloodRequest: 'POST /notifications/blood-request',
         saveToken: 'POST /notifications/save-token',
         health: 'GET /notifications/health',
+        logout: 'POST /notifications/logout',
+        login: 'POST /notifications/login',
       },
-      features: 'Account-specific notifications with device tracking'
+      features: 'Account-specific notifications with device tracking, logged-out donors support'
     };
   }
 
@@ -209,22 +219,7 @@ export class NotificationsController {
     }
 
     try {
-      // Include recipientUserId for account-specific testing
-      const message = {
-        token: body.token,
-        data: {
-          type: 'test',
-          title: '✅ Test Notification',
-          body: 'Your notification system is working!',
-          urgency: 'normal',
-          channelId: 'blood_requests',
-          recipientUserId: body.userId || 'test_user',
-          timestamp: new Date().toISOString()
-        },
-        android: { priority: 'high' },
-      };
-
-      await this.notificationsService.sendTestNotification(body.token);
+      await this.notificationsService.sendTestNotification(body.token, body.userId);
       return {
         success: true,
         message: 'Test notification sent successfully',
@@ -277,13 +272,16 @@ export class NotificationsController {
         }
       }
 
+      const loggedInDonors = compatibleDonors.filter(d => d.isLoggedIn);
+      const loggedOutDonors = compatibleDonors.filter(d => !d.isLoggedIn);
+
       return {
         bloodGroup: body.bloodGroup,
         district: body.district,
         totalCompatibleDonors: compatibleDonors.length,
-        eligibleDonors: compatibleDonors.filter(d => 
-          d.fcmToken && d.isAvailable && d.notificationEnabled
-        ).length,
+        eligibleDonors: compatibleDonors.filter(d => d.fcmToken && d.isAvailable).length,
+        loggedInDonors: loggedInDonors.length,
+        loggedOutDonors: loggedOutDonors.length,
         compatibleBloodTypes,
         requesterId: body.requesterId || 'not_provided',
         requesterDevices,
@@ -331,6 +329,7 @@ export class NotificationsController {
         deviceId: donor.deviceId || body.deviceId,
         compoundTokenId: donor.compoundTokenId,
         isAvailable: donor.isAvailable,
+        isLoggedIn: donor.isLoggedIn !== false,  // ✅ Include login status
         notificationEnabled: donor.notificationEnabled,
         lastActive: donor.lastActive || donor.updatedAt,
         message: hasToken ? 'Valid token found' : 'No valid token found'
@@ -341,5 +340,44 @@ export class NotificationsController {
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
+  }
+
+  @Post('logout')
+  async markUserAsLoggedOut(
+    @Body() body: { userId: string, deviceId?: string }
+  ) {
+    if (!body.userId) {
+      throw new HttpException('User ID is required', HttpStatus.BAD_REQUEST);
+    }
+
+    await this.notificationsService.markUserAsLoggedOut(body.userId, body.deviceId);
+
+    return {
+      success: true,
+      message: 'User marked as logged out successfully. FCM token preserved for notifications.',
+      userId: body.userId,
+      deviceId: body.deviceId,
+      timestamp: new Date().toISOString(),
+      note: 'User will still receive notifications if marked as available (isAvailable: true)'
+    };
+  }
+
+  @Post('login')
+  async markUserAsLoggedIn(
+    @Body() body: { userId: string, deviceId?: string }
+  ) {
+    if (!body.userId) {
+      throw new HttpException('User ID is required', HttpStatus.BAD_REQUEST);
+    }
+
+    await this.notificationsService.markUserAsLoggedIn(body.userId, body.deviceId);
+
+    return {
+      success: true,
+      message: 'User marked as logged in successfully',
+      userId: body.userId,
+      deviceId: body.deviceId,
+      timestamp: new Date().toISOString(),
+    };
   }
 }

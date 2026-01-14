@@ -1,98 +1,227 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# 🔔 Android Notification Backend (NestJS + Firebase)
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+## 📌 Project Overview
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+This backend is responsible for handling **push notifications** for an Android application using **Firebase Cloud Messaging (FCM)**.  
+It provides secure, scalable, and production-ready APIs to send **real-time notifications** to Android devices.
 
-## Description
+The system is designed to work seamlessly with an Android app, managing FCM tokens and delivering notifications reliably from the server side.
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+---
 
-## Project setup
+## 🚀 Tech Stack
 
-```bash
-$ npm install
+- **NestJS** – Backend framework
+- **TypeScript** – Strongly typed JavaScript
+- **Firebase Admin SDK** – Push notification service (FCM)
+- **REST API** – Communication layer
+- **dotenv** – Environment variable management
+- **Node.js** – Runtime environment
+
+---
+
+## ✨ Core Features
+
+### 🔔 Push Notifications
+- Send notification to a single Android device
+- Send notifications using FCM device tokens
+- Support for:
+  - Foreground notifications
+  - Background notifications
+  - Data-only notifications
+
+### 📱 Android Integration
+- Works with Android Firebase SDK
+- Accepts FCM token from Android app
+- Compatible with modern Android notification handling
+
+### 🛡 Security
+- Firebase Admin SDK runs only on backend
+- No Firebase private keys exposed to Android
+- Environment-based configuration
+
+---
+
+## 📁 Folder Structure
+
+```
+app-backend/
+├── src/
+│   ├── matching/
+│   │   ├── donor-matching.service.ts
+│   │   └── matching.module.ts
+│   │
+│   ├── notifications/
+│   │   ├── notifications.controller.ts
+│   │   ├── notifications.module.ts
+│   │   └── notifications.service.ts
+│   │
+│   ├── types/
+│   │   └── donor.interface.ts
+│   │
+│   ├── app.module.ts
+│   └── main.ts
+│
+├── test/
+│   ├── app.e2e-spec.ts
+│   └── jest-e2e.json
+│
+├── tsconfig.json
+├── tsconfig.build.json
+├── package.json
+├── package-lock.json
+└── README.md
+
 ```
 
-## Compile and run the project
+---
 
-```bash
-# development
-$ npm run start
+## 🔐 Environment Variables
 
-# watch mode
-$ npm run start:dev
+Create a `.env` file in the project root:
+---
 
-# production mode
-$ npm run start:prod
+```env
+FIREBASE_PROJECT_ID=your_firebase_project_id
+FIREBASE_CLIENT_EMAIL=your_firebase_client_email
+FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\nYOUR_PRIVATE_KEY\n-----END PRIVATE KEY-----\n"
+```
+---
+## 🔧 Installation & Setup
+
+1️⃣ Clone the Repositor
+```
+git clone <repository-url>
+cd backend
+```
+2️⃣ Install Dependencies
+```
+npm install
+```
+3️⃣ Run in Development Mode
+```
+npm run start:dev
 ```
 
-## Run tests
+4️⃣ Build & Run in Production
+```
+npm run build
+npm run start:prod
+```
+---
+## 📡 API Endpoints
+### 🔔 Send Notification (Single Device)
 
-```bash
-# unit tests
-$ npm run test
-
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
+### Endpoint
+```
+POST /notifications/send
 ```
 
-## Deployment
-
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
-
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
-
-```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
+### Request Body
+```
+{
+  "token": "FCM_DEVICE_TOKEN",
+  "title": "Blood Needed",
+  "body": "Urgent blood donation request nearby",
+  "data": {
+    "type": "REQUEST",
+    "requestId": "123"
+  }
+}
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+### Response
+```
+{
+  "success": true,
+  "message": "Notification sent successfully"
+}
+```
 
-## Resources
+### 📢 Broadcast Notification (Optional)
+```
+POST /notifications/broadcast
+```
+---
+## 📱 Android App Flow
 
-Check out a few resources that may come in handy when working with NestJS:
+- Android app retrieves FCM token
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+- Token is sent to backend API
 
-## Support
+- Backend uses Firebase Admin SDK
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+- Notification is delivered to the device
 
-## Stay in touch
+- Android app handles notification display
 
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
 
-## License
+## 🛡 Security Best Practices
 
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+- Firebase Admin SDK configured server-side only
+
+- Sensitive keys stored in environment variables
+
+- No direct Firebase access from Android app
+
+- Input validation at controller level
+---
+
+## 🚀 Deployment
+
+### Recommended platforms:
+
+- Render (Used for notification backend)
+
+- Railway
+
+- DigitalOcean
+
+- AWS EC2 / ECS
+
+- Vercel (Server mode)
+
+## Production Tips
+
+- Enable HTTPS
+
+- Use PM2 or Docker
+
+- Set NODE_ENV=production
+
+- Rotate Firebase keys periodically
+---
+
+## 📦 Available Scripts
+
+| Command               | Description        |
+|----------------------|--------------------|
+| `npm run start`       | Start server       |
+| `npm run start:dev`   | Development mode   |
+| `npm run build`       | Build project      |
+| `npm run start:prod`  | Production mode    |
+
+---
+
+## 📈 Future Enhancements
+
+- Notification history storage
+
+- Topic-based notifications
+
+- Scheduled notifications 
+---
+
+## 📄 License
+
+This project is licensed under the MIT License.
+---
+
+## 👨‍💻 Author
+
+- **Mashudh Ahmed** | [LinkedIn](https://www.linkedin.com/in/mashudhahmed)
+- **Mail:** mashudh.ahmed@outlook.com
+---
+##  Support
+
+If this backend helped your project, please consider giving it a ⭐ on GitHub!

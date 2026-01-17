@@ -1,0 +1,681 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/cardview_light_background">
+
+    <!-- App Bar -->
+    <com.google.android.material.appbar.AppBarLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:theme="@style/ThemeOverlay.AppCompat.Dark.ActionBar">
+
+        <com.google.android.material.appbar.MaterialToolbar
+            android:id="@+id/toolbar"
+            android:layout_width="match_parent"
+            android:layout_height="?attr/actionBarSize"
+            android:background="@color/primary_red_dark"
+            app:title="Profile"
+            app:navigationIcon="@drawable/ic_arrow_back_white"
+            app:titleTextColor="@color/white" />
+
+    </com.google.android.material.appbar.AppBarLayout>
+
+    <!-- Main Content -->
+    <androidx.core.widget.NestedScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_marginTop="?attr/actionBarSize"
+        android:fillViewport="true"
+        android:padding="16dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <!-- Progress Bar -->
+            <ProgressBar
+                android:id="@+id/progressBar"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:layout_marginTop="32dp"
+                android:visibility="gone" />
+
+            <!-- Profile Header Card -->
+            <androidx.cardview.widget.CardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="16dp"
+                app:cardCornerRadius="12dp"
+                app:cardElevation="4dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="20dp">
+
+                    <!-- Profile Image -->
+                    <de.hdodenhof.circleimageview.CircleImageView
+                        android:id="@+id/ivProfile"
+                        android:layout_width="80dp"
+                        android:layout_height="80dp"
+                        android:layout_gravity="center"
+                        android:src="@drawable/ic_user_placeholder"
+                        app:civ_border_color="@color/primary_red"
+                        app:civ_border_width="2dp" />
+
+                    <!-- User Name -->
+                    <TextView
+                        android:id="@+id/tvUserName"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:gravity="center"
+                        android:text="Mashhood Siam"
+                        android:textColor="@color/text_primary"
+                        android:textSize="20sp"
+                        android:textStyle="bold"
+                        tools:ignore="HardcodedText" />
+
+                    <!-- User Email -->
+                    <TextView
+                        android:id="@+id/tvUserEmail"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:gravity="center"
+                        android:text="mashhood.siam@gmail.com"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="14sp" />
+
+                    <!-- User Status Badge -->
+                    <LinearLayout
+                        android:id="@+id/layoutDonorStatus"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center"
+                        android:layout_marginTop="12dp"
+                        android:background="@drawable/bg_donor_status"
+                        android:gravity="center"
+                        android:orientation="horizontal"
+                        android:paddingHorizontal="16dp"
+                        android:paddingVertical="8dp"
+                        android:visibility="gone">
+
+
+                        <TextView
+                            android:id="@+id/tvDonorStatus"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Registered Donor"
+                            android:textColor="@color/white"
+                            android:textSize="14sp"
+                            android:textStyle="bold" />
+
+                    </LinearLayout>
+
+                </LinearLayout>
+            </androidx.cardview.widget.CardView>
+
+            <!-- Personal Information Card -->
+            <androidx.cardview.widget.CardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="16dp"
+                app:cardCornerRadius="12dp"
+                app:cardElevation="4dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="20dp">
+
+                    <!-- Section Header -->
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Personal Information"
+                        android:textColor="@color/text_primary"
+                        android:textSize="18sp"
+                        android:textStyle="bold"
+                        android:layout_marginBottom="16dp" />
+
+                    <!-- Name -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="12dp"
+                        android:orientation="horizontal">
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="Name"
+                            android:textColor="@color/text_secondary"
+                            android:textSize="14sp" />
+
+                        <TextView
+                            android:id="@+id/tvName"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:gravity="end"
+                            android:text="Mashhood Siam"
+                            android:textColor="@color/text_primary"
+                            android:textSize="14sp" />
+
+                    </LinearLayout>
+
+                    <!-- Phone -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="12dp"
+                        android:orientation="horizontal">
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="Phone"
+                            android:textColor="@color/text_secondary"
+                            android:textSize="14sp" />
+
+                        <TextView
+                            android:id="@+id/tvPhone"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:gravity="end"
+                            android:text="01705107279"
+                            android:textColor="@color/text_primary"
+                            android:textSize="14sp" />
+
+                    </LinearLayout>
+
+                    <!-- Date of Birth -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="12dp"
+                        android:orientation="horizontal">
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="Date of Birth"
+                            android:textColor="@color/text_secondary"
+                            android:textSize="14sp" />
+
+                        <TextView
+                            android:id="@+id/tvDateOfBirth"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:gravity="end"
+                            android:text="03/01/1996"
+                            android:textColor="@color/text_primary"
+                            android:textSize="14sp" />
+
+                    </LinearLayout>
+
+                    <!-- Edit Button -->
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnEditPersonal"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:text="Edit Personal Info"
+                        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                        app:icon="@drawable/ic_edit" />
+
+                </LinearLayout>
+            </androidx.cardview.widget.CardView>
+
+            <!-- DONOR REGISTRATION PROMOTION CARD -->
+            <!-- Now visible by default, will be controlled programmatically -->
+            <androidx.cardview.widget.CardView
+                android:id="@+id/cardDonorPromotion"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="16dp"
+                app:cardCornerRadius="12dp"
+                app:cardElevation="4dp"
+                app:cardBackgroundColor="@color/surface_variant">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="20dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical">
+
+                        <ImageView
+                            android:layout_width="36dp"
+                            android:layout_height="36dp"
+                            android:src="@drawable/ic_blood_drop"
+                            app:tint="@color/primary_red_dark" />
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:layout_marginStart="12dp"
+                            android:text="Ready to Save Lives?"
+                            android:textColor="@color/text_primary"
+                            android:textSize="18sp"
+                            android:textStyle="bold" />
+                    </LinearLayout>
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:text="Register as a blood donor and make a difference in someone's life"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="14sp" />
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:drawablePadding="8dp"
+                            android:drawableStart="@drawable/ic_check_circle_small"
+                            android:text="Quick 2-minute registration"
+                            android:textColor="@color/text_primary"
+                            android:textSize="13sp" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="4dp"
+                            android:drawablePadding="8dp"
+                            android:drawableStart="@drawable/ic_check_circle_small"
+                            android:text="Save up to 3 lives per donation"
+                            android:textColor="@color/text_primary"
+                            android:textSize="13sp" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="4dp"
+                            android:drawablePadding="8dp"
+                            android:drawableStart="@drawable/ic_check_circle_small"
+                            android:text="Get notified when someone needs your blood type"
+                            android:textColor="@color/text_primary"
+                            android:textSize="13sp" />
+                    </LinearLayout>
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnRegisterDonor"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="16dp"
+                        android:text="Register as Donor"
+                        app:icon="@drawable/ic_arrow_forward"
+                        app:iconGravity="end"
+                        app:iconPadding="4dp"
+                        style="@style/Widget.MaterialComponents.Button" />
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:gravity="center"
+                        android:text="Safe • Confidential • Rewarding"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="12sp" />
+                </LinearLayout>
+            </androidx.cardview.widget.CardView>
+
+            <!-- DONOR INFORMATION CARD -->
+            <androidx.cardview.widget.CardView
+                android:id="@+id/cardDonorInfo"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="16dp"
+                android:visibility="gone"
+                app:cardCornerRadius="12dp"
+                app:cardElevation="4dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="20dp">
+
+                    <!-- Section Header -->
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Donor Information"
+                        android:textColor="@color/text_primary"
+                        android:textSize="18sp"
+                        android:textStyle="bold"
+                        android:layout_marginBottom="16dp" />
+
+                    <!-- Blood Group -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="12dp"
+                        android:orientation="horizontal">
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="Blood Group"
+                            android:textColor="@color/text_secondary"
+                            android:textSize="14sp" />
+
+                        <TextView
+                            android:id="@+id/tvBloodGroup"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:gravity="end"
+                            android:text="O+"
+                            android:textColor="@color/text_primary"
+                            android:textSize="14sp"
+                            android:textStyle="bold" />
+
+                    </LinearLayout>
+
+                    <!-- Availability Status -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="12dp"
+                        android:orientation="horizontal">
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="Availability"
+                            android:textColor="@color/text_secondary"
+                            android:textSize="14sp" />
+
+                        <TextView
+                            android:id="@+id/tvAvailability"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:gravity="end"
+                            android:text="Available"
+                            android:textColor="@color/green_dark"
+                            android:textSize="14sp" />
+
+                    </LinearLayout>
+
+                    <!-- Last Donation -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="12dp"
+                        android:orientation="horizontal">
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="Last Donation"
+                            android:textColor="@color/text_secondary"
+                            android:textSize="14sp" />
+
+                        <TextView
+                            android:id="@+id/tvLastDonation"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:gravity="end"
+                            android:text="Never donated"
+                            android:textColor="@color/text_primary"
+                            android:textSize="14sp" />
+
+                    </LinearLayout>
+
+                    <!-- Medical History -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="12dp"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="Medical History"
+                            android:textColor="@color/text_secondary"
+                            android:textSize="14sp"
+                            android:layout_marginBottom="4dp" />
+
+                        <TextView
+                            android:id="@+id/tvMedicalHistory"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="No medical history recorded"
+                            android:textColor="@color/text_primary"
+                            android:textSize="14sp" />
+
+                    </LinearLayout>
+
+                    <!-- Toggle Availability -->
+                    <com.google.android.material.switchmaterial.SwitchMaterial
+                        android:id="@+id/switchAvailability"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:text="Available for Donation"
+                        android:textSize="14sp" />
+
+                    <!-- Edit Donor Info Button -->
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnEditDonor"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="16dp"
+                        android:text="Update Donor Info"
+                        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                        app:icon="@drawable/ic_edit" />
+
+                </LinearLayout>
+            </androidx.cardview.widget.CardView>
+
+            <!-- Address Information Card -->
+            <androidx.cardview.widget.CardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="16dp"
+                app:cardCornerRadius="12dp"
+                app:cardElevation="4dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="20dp">
+
+                    <!-- Section Header -->
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Address Information"
+                        android:textColor="@color/text_primary"
+                        android:textSize="18sp"
+                        android:textStyle="bold"
+                        android:layout_marginBottom="16dp" />
+
+                    <!-- District -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="12dp"
+                        android:orientation="horizontal">
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="District"
+                            android:textColor="@color/text_secondary"
+                            android:textSize="14sp" />
+
+                        <TextView
+                            android:id="@+id/tvDistrict"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:gravity="end"
+                            android:text="Dhaka"
+                            android:textColor="@color/text_primary"
+                            android:textSize="14sp" />
+
+                    </LinearLayout>
+
+                    <!-- Police Station -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="12dp"
+                        android:orientation="horizontal">
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="Police Station"
+                            android:textColor="@color/text_secondary"
+                            android:textSize="14sp" />
+
+                        <TextView
+                            android:id="@+id/tvPoliceStation"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:gravity="end"
+                            android:text="Uttara"
+                            android:textColor="@color/text_primary"
+                            android:textSize="14sp" />
+
+                    </LinearLayout>
+
+                    <!-- Post Office -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="12dp"
+                        android:orientation="horizontal">
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="Post Office"
+                            android:textColor="@color/text_secondary"
+                            android:textSize="14sp" />
+
+                        <TextView
+                            android:id="@+id/tvPostOffice"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:gravity="end"
+                            android:text="Uttara"
+                            android:textColor="@color/text_primary"
+                            android:textSize="14sp" />
+
+                    </LinearLayout>
+
+                    <!-- Village/Road -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="12dp"
+                        android:orientation="horizontal">
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="Village/Road"
+                            android:textColor="@color/text_secondary"
+                            android:textSize="14sp" />
+
+                        <TextView
+                            android:id="@+id/tvVillage"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:gravity="end"
+                            android:text="Nikunjo, Road 18"
+                            android:textColor="@color/text_primary"
+                            android:textSize="14sp" />
+
+                    </LinearLayout>
+
+                    <!-- Edit Address Button -->
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnEditAddress"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:text="Edit Address"
+                        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                        app:icon="@drawable/ic_edit" />
+
+                </LinearLayout>
+            </androidx.cardview.widget.CardView>
+
+            <!-- Action Buttons -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:layout_marginBottom="24dp">
+
+                <!-- Become Donor Button (shown when not donor) -->
+                <!-- Now visible by default, will be controlled programmatically -->
+                <!--com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnBecomeDonor"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="12dp"
+                    android:text="Become a Blood Donor"
+                    app:icon="@drawable/ic_blood_drop"
+                    style="@style/Widget.MaterialComponents.Button" /-->
+
+                <!-- Logout Button -->
+                <!--com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnLogout"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Logout"
+                    app:icon="@drawable/ic_logout"
+                    style="@style/Widget.MaterialComponents.Button.OutlinedButton" /-->
+
+            </LinearLayout>
+
+        </LinearLayout>
+    </androidx.core.widget.NestedScrollView>
+
+</androidx.coordinatorlayout.widget.CoordinatorLayout>

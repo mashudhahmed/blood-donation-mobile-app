@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_margin="20dp"
+    app:cardCornerRadius="16dp"
+    app:cardElevation="10dp"
+    app:cardUseCompatPadding="true"
+    app:cardBackgroundColor="@android:color/white">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <!-- HEADER -->
+        <RelativeLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Request Information"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:textColor="#000000" />
+
+            <ImageView
+                android:id="@+id/ivClose"
+                android:layout_width="26dp"
+                android:layout_height="26dp"
+                android:layout_alignParentEnd="true"
+                android:src="@drawable/ic_close"
+                android:padding="4dp"
+                app:tint="#000000" />
+        </RelativeLayout>
+
+        <!-- ICON -->
+        <FrameLayout
+            android:layout_width="84dp"
+            android:layout_height="84dp"
+            android:layout_gravity="center"
+            android:layout_marginTop="14dp"
+            android:background="@drawable/circle_red">
+
+            <ImageView
+                android:layout_width="42dp"
+                android:layout_height="42dp"
+                android:layout_gravity="center"
+                android:src="@drawable/ic_blood_drop"
+                app:tint="@color/primary_red_dark" />
+        </FrameLayout>
+
+        <!-- INFO LIST -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:orientation="vertical">
+
+            <TextView style="@style/InfoRow" android:text="Name: Imran Hossen"/>
+            <View style="@style/Divider"/>
+
+            <TextView style="@style/InfoRow" android:text="Blood Group: O+"/>
+            <View style="@style/Divider"/>
+
+            <TextView style="@style/InfoRow" android:text="Date: Aug 29,2024"/>
+            <View style="@style/Divider"/>
+
+            <TextView style="@style/InfoRow" android:text="Time: 10:00 Am"/>
+            <View style="@style/Divider"/>
+
+            <TextView style="@style/InfoRow" android:text="Medical Name: Pabna Medical"/>
+            <View style="@style/Divider"/>
+
+            <TextView style="@style/InfoRow" android:text="Mobile Number: +880 01792712798"/>
+            <View style="@style/Divider"/>
+
+            <TextView style="@style/InfoRow" android:text="Area: Shalgaria, Pabna Sadar"/>
+            <View style="@style/Divider"/>
+
+            <TextView style="@style/InfoRow" android:text="District: Pabna"/>
+            <View style="@style/Divider"/>
+
+            <TextView
+                style="@style/InfoRow"
+                android:text="Message: Blood is urgently needed for pregnant women."
+                android:textColor="@color/primary_red_dark"/>
+        </LinearLayout>
+
+        <!-- BUTTONS -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:orientation="horizontal"
+            android:gravity="center">
+
+            <Button
+                android:id="@+id/btnAccept"
+                android:layout_width="0dp"
+                android:layout_height="40dp"
+                android:layout_weight="1"
+                android:text="Accept"
+                android:textAllCaps="false"
+                android:textColor="@android:color/white"
+                android:backgroundTint="#2E7D32"
+                app:cornerRadius="24dp"/>
+
+            <Space
+                android:layout_width="12dp"
+                android:layout_height="wrap_content"/>
+
+            <Button
+                android:id="@+id/btnReject"
+                android:layout_width="0dp"
+                android:layout_height="40dp"
+                android:layout_weight="1"
+                android:text="Reject"
+                android:textAllCaps="false"
+                android:textColor="@android:color/white"
+                android:backgroundTint="#D32F2F"
+                app:cornerRadius="24dp"/>
+        </LinearLayout>
+
+    </LinearLayout>
+
+</androidx.cardview.widget.CardView>

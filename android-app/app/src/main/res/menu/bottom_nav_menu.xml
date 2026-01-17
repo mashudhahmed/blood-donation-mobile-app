@@ -1,0 +1,19 @@
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <item
+        android:id="@+id/nav_home"
+        android:icon="@drawable/ic_home"
+        android:title="Home" />
+
+    <item
+        android:id="@+id/nav_request_donate"
+        android:icon="@drawable/ic_blood_drop_small"
+        android:title="Request Blood" />
+
+    <!-- Replaced Profile with Activity/History -->
+    <item
+        android:id="@+id/nav_history"
+        android:icon="@drawable/ic_activity"
+        android:title="Activity" />
+
+</menu>

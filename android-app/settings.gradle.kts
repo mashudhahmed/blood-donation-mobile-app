@@ -1,0 +1,21 @@
+// DonateBlood/settings.gradle.kts
+
+pluginManagement {
+    repositories {
+        google()
+        mavenCentral()
+        gradlePluginPortal()
+    }
+}
+
+dependencyResolutionManagement {
+    repositoriesMode.set(RepositoriesMode.PREFER_SETTINGS)
+    repositories {
+        google()
+        mavenCentral()
+        maven { url = uri("https://jitpack.io") } // ✅ REQUIRED for uCrop
+    }
+}
+
+rootProject.name = "DonateBlood"
+include(":app")

@@ -1,50 +1,91 @@
-# 🔔 Android Notification Backend (NestJS + Firebase)
+# Android Notification Backend
 
-## 📌 Project Overview
+A production-ready NestJS backend for delivering Firebase Cloud Messaging (FCM) push notifications to Android devices. The service is designed with scalability, security, and maintainability in mind, providing a centralized notification system that integrates seamlessly with Android applications.
 
-This backend is responsible for handling **push notifications** for an Android application using **Firebase Cloud Messaging (FCM)**.  
-It provides secure, scalable, and production-ready APIs to send **real-time notifications** to Android devices.
-
-The system is designed to work seamlessly with an Android app, managing FCM tokens and delivering notifications reliably from the server side.
-
----
-
-## 🚀 Tech Stack
-
-- **NestJS** – Backend framework
-- **TypeScript** – Strongly typed JavaScript
-- **Firebase Admin SDK** – Push notification service (FCM)
-- **REST API** – Communication layer
-- **dotenv** – Environment variable management
-- **Node.js** – Runtime environment
+![NestJS](https://img.shields.io/badge/NestJS-10-E0234E?logo=nestjs)
+![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript)
+![Firebase](https://img.shields.io/badge/Firebase-FCM-FFCA28?logo=firebase)
+![Node.js](https://img.shields.io/badge/Node.js-20-339933?logo=node.js)
+![License](https://img.shields.io/badge/License-MIT-green)
 
 ---
 
-## ✨ Core Features
+## Features
 
-### 🔔 Push Notifications
-- Send notification to a single Android device
-- Send notifications using FCM device tokens
-- Support for:
-  - Foreground notifications
-  - Background notifications
-  - Data-only notifications
+### Push Notification Delivery
 
-### 📱 Android Integration
-- Works with Android Firebase SDK
-- Accepts FCM token from Android app
-- Compatible with modern Android notification handling
+- Send notifications to individual Android devices
+- Deliver notifications using FCM device tokens
+- Support for foreground notifications
+- Support for background notifications
+- Support for data-only notifications
+- Real-time notification delivery
 
-### 🛡 Security
-- Firebase Admin SDK runs only on backend
-- No Firebase private keys exposed to Android
-- Environment-based configuration
+### Android Integration
+
+- Compatible with Firebase Android SDK
+- Secure FCM token registration
+- Modern Android notification support
+- Easy integration with existing Android applications
+
+### Security
+
+- Firebase Admin SDK configured exclusively on the backend
+- Service account credentials never exposed to clients
+- Environment-based configuration management
+- Secure notification dispatching
+
+### Production Features
+
+- Modular NestJS architecture
+- Dependency Injection
+- TypeScript type safety
+- Environment configuration support
+- Scalable service structure
+- RESTful API design
+- Firebase Admin SDK integration
 
 ---
 
-## 📁 Folder Structure
+## Architecture
 
+```text
+Android Client
+      │
+      ▼
+FCM Device Token
+      │
+      ▼
+NestJS Backend API
+      │
+      ▼
+Firebase Admin SDK
+      │
+      ▼
+Firebase Cloud Messaging
+      │
+      ▼
+Android Device
 ```
+
+---
+
+## Technology Stack
+
+| Technology | Purpose |
+|------------|---------|
+| NestJS | Backend framework |
+| TypeScript | Application development |
+| Firebase Admin SDK | Push notification delivery |
+| REST API | Client communication |
+| dotenv | Environment configuration |
+| Node.js | Runtime environment |
+
+---
+
+## Project Structure
+
+```text
 app-backend/
 ├── src/
 │   ├── matching/
@@ -71,54 +112,92 @@ app-backend/
 ├── package.json
 ├── package-lock.json
 └── README.md
-
 ```
 
 ---
 
-## 🔐 Environment Variables
+## Prerequisites
 
-Create a `.env` file in the project root:
+Before running the application, ensure you have:
+
+- Node.js 18 or later
+- npm 9 or later
+- A Firebase project
+- Firebase Service Account credentials
+- Firebase Cloud Messaging enabled
+
 ---
+
+## Environment Variables
+
+Create a `.env` file in the project root.
+
+### Required Variables
+
+| Variable | Description |
+|-----------|-------------|
+| `FIREBASE_PROJECT_ID` | Firebase project identifier |
+| `FIREBASE_CLIENT_EMAIL` | Firebase service account email |
+| `FIREBASE_PRIVATE_KEY` | Firebase private key |
+
+### Example
 
 ```env
 FIREBASE_PROJECT_ID=your_firebase_project_id
 FIREBASE_CLIENT_EMAIL=your_firebase_client_email
 FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\nYOUR_PRIVATE_KEY\n-----END PRIVATE KEY-----\n"
 ```
----
-## 🔧 Installation & Setup
 
-1️⃣ Clone the Repositor
-```
+---
+
+## Installation
+
+### Clone the Repository
+
+```bash
 git clone <repository-url>
 cd backend
 ```
-2️⃣ Install Dependencies
-```
+
+### Install Dependencies
+
+```bash
 npm install
 ```
-3️⃣ Run in Development Mode
-```
+
+### Run in Development Mode
+
+```bash
 npm run start:dev
 ```
 
-4️⃣ Build & Run in Production
-```
+### Build for Production
+
+```bash
 npm run build
+```
+
+### Run Production Build
+
+```bash
 npm run start:prod
 ```
----
-## 📡 API Endpoints
-### 🔔 Send Notification (Single Device)
 
-### Endpoint
-```
+---
+
+## API Endpoints
+
+### Send Notification
+
+#### Endpoint
+
+```http
 POST /notifications/send
 ```
 
-### Request Body
-```
+#### Request Body
+
+```json
 {
   "token": "FCM_DEVICE_TOKEN",
   "title": "Blood Needed",
@@ -130,99 +209,125 @@ POST /notifications/send
 }
 ```
 
-### Response
-```
+#### Success Response
+
+```json
 {
   "success": true,
   "message": "Notification sent successfully"
 }
 ```
 
-### 📢 Broadcast Notification (Optional)
+#### Error Response
+
+```json
+{
+  "success": false,
+  "message": "Invalid FCM token"
+}
 ```
+
+---
+
+### Broadcast Notification
+
+#### Endpoint
+
+```http
 POST /notifications/broadcast
 ```
----
-## 📱 Android App Flow
 
-- Android app retrieves FCM token
+Used for sending notifications to multiple recipients.
 
-- Token is sent to backend API
-
-- Backend uses Firebase Admin SDK
-
-- Notification is delivered to the device
-
-- Android app handles notification display
-
-
-## 🛡 Security Best Practices
-
-- Firebase Admin SDK configured server-side only
-
-- Sensitive keys stored in environment variables
-
-- No direct Firebase access from Android app
-
-- Input validation at controller level
 ---
 
-## 🚀 Deployment
+### Health Check
 
-### Recommended platforms:
+#### Endpoint
 
-- Render (Used for notification backend)
+```http
+GET /health
+```
 
+#### Response
+
+```json
+{
+  "status": "ok"
+}
+```
+
+---
+
+## Android Notification Flow
+
+1. Android application retrieves an FCM device token.
+2. The token is securely sent to the backend.
+3. The backend validates and processes the request.
+4. Firebase Admin SDK sends the notification.
+5. Firebase Cloud Messaging delivers the message.
+6. Android application receives and displays the notification.
+
+---
+
+## Security Considerations
+
+- Firebase credentials remain server-side only.
+- Sensitive configuration is managed through environment variables.
+- No Firebase private keys are exposed to Android clients.
+- Request validation should be enforced at the controller level.
+- HTTPS should be enabled in production.
+- Access controls should be implemented for administrative endpoints.
+
+---
+
+## Deployment
+
+### Recommended Platforms
+
+- Render
 - Railway
-
 - DigitalOcean
+- AWS EC2
+- AWS ECS
+- Vercel
 
-- AWS EC2 / ECS
-
-- Vercel (Server mode)
-
-## Production Tips
+### Production Recommendations
 
 - Enable HTTPS
-
-- Use PM2 or Docker
-
-- Set NODE_ENV=production
-
-- Rotate Firebase keys periodically
----
-
-## 📦 Available Scripts
-
-| Command               | Description        |
-|----------------------|--------------------|
-| `npm run start`       | Start server       |
-| `npm run start:dev`   | Development mode   |
-| `npm run build`       | Build project      |
-| `npm run start:prod`  | Production mode    |
+- Configure environment variables securely
+- Use PM2 or Docker for process management
+- Set `NODE_ENV=production`
+- Monitor application logs
+- Rotate Firebase credentials periodically
+- Implement centralized logging and monitoring
 
 ---
 
-## 📈 Future Enhancements
+## Available Scripts
 
-- Notification history storage
+| Command | Description |
+|----------|-------------|
+| `npm run start` | Start application |
+| `npm run start:dev` | Run in development mode |
+| `npm run build` | Build project |
+| `npm run start:prod` | Run production build |
 
-- Topic-based notifications
-
-- Scheduled notifications 
 ---
 
-## 📄 License
+## Planned Improvements
+
+- Notification history persistence
+- Topic-based messaging
+- Scheduled notifications
+- Delivery analytics
+- Notification templates
+- Retry mechanisms for failed deliveries
+- Multi-platform notification support
+
+---
+
+## License
 
 This project is licensed under the MIT License.
 
----
-
-## 👨‍💻 Author
-
-- **Mashudh Ahmed** | [LinkedIn](https://www.linkedin.com/in/mashudhahmed)
-- **Mail:** mashudh.ahmed@outlook.com
----
-##  Support
-
-If this backend helped your project, please consider giving it a ⭐ on GitHub!

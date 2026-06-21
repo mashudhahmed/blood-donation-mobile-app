@@ -15,7 +15,7 @@
 
 BloodLink Android is the mobile front-end of the BloodLink platform. It allows users to register as blood donors, post urgent blood requests, receive instant push notifications when a match is found, and track their donation history — all in a clean, fast native Android experience.
 
-The app communicates with a [NestJS backend](../bloodlink-backend/) for donor matching and push notifications, and uses Firebase directly for authentication, real-time data sync, and FCM delivery.
+The app communicates with a [NestJS backend](../backend/) for donor matching and push notifications, and uses Firebase directly for authentication, real-time data sync, and FCM delivery.
 
 ---
 

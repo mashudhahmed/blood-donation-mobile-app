@@ -1,4 +1,4 @@
-# 🩸 BloodLink
+# BloodLink
 
 ![Android](https://img.shields.io/badge/Android-Kotlin-green?logo=android)
 ![Backend](https://img.shields.io/badge/Backend-NestJS-red?logo=nestjs)
@@ -19,17 +19,7 @@ BloodLink bridges the gap between blood donors and recipients by enabling real-t
 - **NestJS Notification Backend** — REST API for donor matching and FCM push notifications
 - **Firebase Services** — Authentication, Firestore database, and Cloud Messaging
 
----
 
-## Screenshots
-
-| Home | Blood Request | Notifications | Profile |
-|------|--------------|---------------|---------|
-| ![Home](screenshots/home.png) | ![Request](screenshots/request.png) | ![Notifications](screenshots/notifications.png) | ![Profile](screenshots/profile.png) |
-
-> Screenshots coming soon. APK available — see [Getting Started](#getting-started).
-
----
 
 ## System Architecture
 

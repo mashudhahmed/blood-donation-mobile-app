@@ -14,6 +14,8 @@ object FirebaseUtils {
         const val NOTIFICATIONS = "notifications"
         const val CHATS = "chats"
         const val MESSAGES = "messages"
+        const val HOSPITALS = "hospitals"
+        const val BLOOD_BANKS = "bloodBanks"
     }
 
     object UserFields {

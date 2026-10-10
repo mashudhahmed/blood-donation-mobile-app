@@ -12,28 +12,37 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
+import android.net.Uri
 import androidx.core.content.edit
 import androidx.core.net.toUri
 import androidx.core.view.GravityCompat
 import androidx.core.widget.addTextChangedListener
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.google.android.material.tabs.TabLayout
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.firestore.Query
 import com.project.donateblood.MainActivity
 import com.project.donateblood.R
+import com.project.donateblood.adapter.BloodBankAdapter
 import com.project.donateblood.adapter.DonorAdapter
 import com.project.donateblood.adapter.HomeUrgentRequestAdapter
+import com.project.donateblood.adapter.HospitalAdapter
 import com.project.donateblood.databinding.FragmentHomeBinding
+import com.project.donateblood.models.BloodBank
 import com.project.donateblood.models.BloodRequest
 import com.project.donateblood.models.Donor
+import com.project.donateblood.models.Hospital
+import com.project.donateblood.repository.DirectoryRepository
 import com.project.donateblood.utils.FirebaseUtils
 import com.project.donateblood.utils.ProfileImageManager
 import com.project.donateblood.viewmodels.UserViewModel
+import kotlinx.coroutines.launch
 import timber.log.Timber
 
 class HomeFragment : Fragment() {
@@ -47,6 +56,17 @@ class HomeFragment : Fragment() {
     private lateinit var urgentRequestAdapter: HomeUrgentRequestAdapter
     private val urgentRequestList = mutableListOf<BloodRequest>()
     private var urgentRequestsListener: ListenerRegistration? = null
+
+    // Directory Tabs (Hospitals & Blood Banks)
+    private lateinit var hospitalAdapter: HospitalAdapter
+    private lateinit var bloodBankAdapter: BloodBankAdapter
+    private val directoryRepository = DirectoryRepository()
+    private var allHospitals: List<Hospital> = emptyList()
+    private var filteredHospitals: List<Hospital> = emptyList()
+    private var allBloodBanks: List<BloodBank> = emptyList()
+    private var filteredBloodBanks: List<BloodBank> = emptyList()
+    private var selectedHospitalFilter: String = "All"
+    private var selectedBloodBankFilter: String = "All"
 
     private lateinit var firestore: FirebaseFirestore
     private lateinit var auth: FirebaseAuth
@@ -170,7 +190,7 @@ class HomeFragment : Fragment() {
     @SuppressLint("SetTextI18n")
     private fun setupViews() {
         binding.tvTitle.text = "BloodLink"
-        binding.etSearch.hint = "Search by name, location, or district"
+        binding.etSearch.hint = "Search donors by name, location, or district"
 
         // Hide clickable overlay since feature is removed
         binding.clickableOverlay.visibility = View.GONE
@@ -178,9 +198,18 @@ class HomeFragment : Fragment() {
         // Initialize empty state
         binding.errorLayout.visibility = View.GONE
         binding.layoutUrgentEmpty.visibility = View.GONE
+        binding.layoutHospitalEmpty.visibility = View.GONE
+        binding.layoutBloodBankEmpty.visibility = View.GONE
+
+        // Setup Directory Tabs
+        setupDirectoryTabs()
 
         // Setup blood group quick filter chips
         setupBloodGroupChips()
+
+        // Setup hospital and blood bank filter chips
+        setupHospitalFilterChips()
+        setupBloodBankFilterChips()
     }
 
     @SuppressLint("SetTextI18n")
@@ -210,7 +239,7 @@ class HomeFragment : Fragment() {
         }
 
         binding.btnHeroFindDonors.setOnClickListener {
-            binding.nestedScrollViewHome.smoothScrollTo(0, binding.layoutDonorsSectionHeader.top)
+            binding.nestedScrollViewHome.smoothScrollTo(0, binding.tabLayoutDirectory.top)
             binding.etSearch.requestFocus()
         }
 
@@ -223,12 +252,12 @@ class HomeFragment : Fragment() {
     private fun updateHeroDonorBadge(bloodGroup: String, isAvailable: Boolean) {
         if (!isAdded || _binding == null) return
         if (bloodGroup.isNotBlank()) {
-            binding.tvHeroDonorBadge.text = "🩸 $bloodGroup • ${if (isAvailable) "Available" else "Unavailable"}"
+            binding.tvHeroDonorBadge.text = "$bloodGroup • ${if (isAvailable) "Available" else "Unavailable"}"
             binding.tvHeroDonorBadge.setTextColor(
                 requireContext().getColor(if (isAvailable) R.color.primary_red else R.color.text_secondary)
             )
         } else {
-            binding.tvHeroDonorBadge.text = "🩸 Donor Ready"
+            binding.tvHeroDonorBadge.text = "Donor Ready"
             binding.tvHeroDonorBadge.setTextColor(requireContext().getColor(R.color.primary_red))
         }
     }
@@ -294,9 +323,32 @@ class HomeFragment : Fragment() {
                 openChatWithDonor(donor)
             }
         )
-
         binding.rvDonors.layoutManager = LinearLayoutManager(requireContext())
         binding.rvDonors.adapter = donorAdapter
+
+        // Setup Hospitals RecyclerView
+        hospitalAdapter = HospitalAdapter(
+            onCallClick = { hospital ->
+                dialPhoneNumber(if (hospital.emergencyHotline.isNotBlank()) hospital.emergencyHotline else hospital.phone)
+            },
+            onDirectionsClick = { hospital ->
+                openDirectionsInMaps(hospital.name, hospital.address, hospital.latitude, hospital.longitude)
+            }
+        )
+        binding.rvHospitals.layoutManager = LinearLayoutManager(requireContext())
+        binding.rvHospitals.adapter = hospitalAdapter
+
+        // Setup Blood Banks RecyclerView
+        bloodBankAdapter = BloodBankAdapter(
+            onCallClick = { bb ->
+                dialPhoneNumber(if (bb.hotline.isNotBlank()) bb.hotline else bb.phone)
+            },
+            onDirectionsClick = { bb ->
+                openDirectionsInMaps(bb.name, bb.address, bb.latitude, bb.longitude)
+            }
+        )
+        binding.rvBloodBanks.layoutManager = LinearLayoutManager(requireContext())
+        binding.rvBloodBanks.adapter = bloodBankAdapter
     }
 
     // ---------------- PULL TO REFRESH ----------------
@@ -313,6 +365,7 @@ class HomeFragment : Fragment() {
             if (networkAvailable) {
                 loadUrgentRequestsFromFirestore()
                 loadRealDonorsFromFirestore()
+                loadDirectoryData()
             } else {
                 binding.swipeRefreshLayout.isRefreshing = false
                 toast("No internet connection")
@@ -333,6 +386,7 @@ class HomeFragment : Fragment() {
                     if (shouldRefresh()) {
                         requireActivity().runOnUiThread {
                             loadRealDonorsFromFirestore()
+                            loadDirectoryData()
                         }
                     }
                 }
@@ -353,7 +407,7 @@ class HomeFragment : Fragment() {
     private fun showOfflineMode() {
         if (isAdded && _binding != null) {
             showLoading(false)
-            binding.tvNoDonors.text = "📵 No internet connection"
+            binding.tvNoDonors.text = "No internet connection"
             binding.errorLayout.visibility = View.VISIBLE
             binding.btnRetry.visibility = View.VISIBLE
             binding.rvDonors.visibility = View.GONE
@@ -361,6 +415,7 @@ class HomeFragment : Fragment() {
             binding.btnRetry.setOnClickListener {
                 if (networkAvailable) {
                     loadRealDonorsFromFirestore()
+                    loadDirectoryData()
                 } else {
                     toast("Still offline. Check your connection.")
                 }
@@ -373,6 +428,7 @@ class HomeFragment : Fragment() {
         showLoading(true)
         loadUrgentRequestsFromFirestore()
         loadRealDonorsFromFirestore()
+        loadDirectoryData()
     }
 
     // ---------------- AUTO REFRESH ----------------
@@ -653,14 +709,13 @@ class HomeFragment : Fragment() {
         Timber.tag("HomeFragment").d("Login stats: $loggedInCount logged in, $loggedOutCount logged out")
 
         if (donorList.isEmpty()) {
-            showNoDonorsMessage("🤷‍♂️ No available donors at the moment", showRetry = false)
+            showNoDonorsMessage("No available donors at the moment", showRetry = false)
         } else {
             // Success - reset attempts
             refreshAttempts = 0
 
             // Update donor count in UI
             binding.tvTitle.text = "BloodLink"
-            binding.tvDonorsScopeSubtitle.text = "Verified Donors (${donorList.size})"
 
             // Submit filtered list to adapter
             applyFilters()
@@ -668,7 +723,7 @@ class HomeFragment : Fragment() {
             // Optional: add animation
             binding.rvDonors.scheduleLayoutAnimation()
 
-            Timber.tag("HomeFragment").d("✅ UI updated with ${donorList.size} donors")
+            Timber.tag("HomeFragment").d("UI updated with ${donorList.size} donors")
         }
     }
 
@@ -734,13 +789,13 @@ class HomeFragment : Fragment() {
         if (filtered.isEmpty()) {
             binding.tvNoDonors.text = when {
                 selectedBloodGroup != "All" && currentSearchQuery.isNotBlank() ->
-                    "🔍 No $selectedBloodGroup donors found for \"$currentSearchQuery\""
+                    "No $selectedBloodGroup donors found for \"$currentSearchQuery\""
                 selectedBloodGroup != "All" ->
-                    "🔍 No $selectedBloodGroup donors available"
+                    "No $selectedBloodGroup donors available"
                 currentSearchQuery.isNotBlank() ->
-                    "🔍 No donors found for \"$currentSearchQuery\""
+                    "No donors found for \"$currentSearchQuery\""
                 else ->
-                    "🤷‍♂️ No available donors at the moment"
+                    "No available donors at the moment"
             }
             binding.errorLayout.visibility = View.VISIBLE
             binding.btnRetry.visibility = View.GONE
@@ -759,7 +814,7 @@ class HomeFragment : Fragment() {
     @SuppressLint("SetTextI18n")
     private fun updateEmptyState() {
         if (donorList.isEmpty()) {
-            binding.tvNoDonors.text = "🤷‍♂️ No available donors at the moment"
+            binding.tvNoDonors.text = "No available donors at the moment"
             binding.errorLayout.visibility = View.VISIBLE
             binding.rvDonors.visibility = View.GONE
         } else {
@@ -836,7 +891,206 @@ class HomeFragment : Fragment() {
         binding.btnFilter.setOnClickListener { showFilterOptionsDialog() }
 
         binding.etSearch.addTextChangedListener {
-            filterDonors(it.toString())
+            val query = it?.toString() ?: ""
+            currentSearchQuery = query
+            when (binding.tabLayoutDirectory.selectedTabPosition) {
+                0 -> filterDonors(query)
+                1 -> applyHospitalFilters()
+                2 -> applyBloodBankFilters()
+            }
+        }
+    }
+
+    // ---------------- DIRECTORY TABS (DONORS / HOSPITALS / BLOOD BANKS) ----------------
+    private fun setupDirectoryTabs() {
+        binding.tabLayoutDirectory.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
+            override fun onTabSelected(tab: TabLayout.Tab?) {
+                when (tab?.position) {
+                    0 -> {
+                        binding.layoutDonorsTabContent.visibility = View.VISIBLE
+                        binding.layoutHospitalsTabContent.visibility = View.GONE
+                        binding.layoutBloodBanksTabContent.visibility = View.GONE
+                        binding.etSearch.hint = "Search donors by name, location, or district"
+                        applyFilters()
+                    }
+                    1 -> {
+                        binding.layoutDonorsTabContent.visibility = View.GONE
+                        binding.layoutHospitalsTabContent.visibility = View.VISIBLE
+                        binding.layoutBloodBanksTabContent.visibility = View.GONE
+                        binding.etSearch.hint = "Search hospitals by name, area, or type"
+                        applyHospitalFilters()
+                    }
+                    2 -> {
+                        binding.layoutDonorsTabContent.visibility = View.GONE
+                        binding.layoutHospitalsTabContent.visibility = View.GONE
+                        binding.layoutBloodBanksTabContent.visibility = View.VISIBLE
+                        binding.etSearch.hint = "Search blood banks by name, district, or org"
+                        applyBloodBankFilters()
+                    }
+                }
+            }
+
+            override fun onTabUnselected(tab: TabLayout.Tab?) {}
+            override fun onTabReselected(tab: TabLayout.Tab?) {}
+        })
+    }
+
+    private fun setupHospitalFilterChips() {
+        binding.chipGroupHospital.setOnCheckedStateChangeListener { _, checkedIds ->
+            selectedHospitalFilter = if (checkedIds.isEmpty()) {
+                "All"
+            } else {
+                when (checkedIds.first()) {
+                    binding.chipHospitalGovt.id -> "Govt Medical"
+                    binding.chipHospitalPrivate.id -> "Private"
+                    binding.chipHospitalEmergency.id -> "24/7 Emergency"
+                    binding.chipHospitalSpecialized.id -> "Specialized"
+                    else -> "All"
+                }
+            }
+            applyHospitalFilters()
+        }
+    }
+
+    private fun setupBloodBankFilterChips() {
+        binding.chipGroupBloodBank.setOnCheckedStateChangeListener { _, checkedIds ->
+            selectedBloodBankFilter = if (checkedIds.isEmpty()) {
+                "All"
+            } else {
+                when (checkedIds.first()) {
+                    binding.chipBloodBankRedCrescent.id -> "Red Crescent"
+                    binding.chipBloodBankQuantum.id -> "Quantum"
+                    binding.chipBloodBankVoluntary.id -> "Voluntary Org"
+                    binding.chipBloodBank24Hours.id -> "Open 24/7"
+                    else -> "All"
+                }
+            }
+            applyBloodBankFilters()
+        }
+    }
+
+    private fun loadDirectoryData() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            try {
+                allHospitals = directoryRepository.getHospitals()
+            } catch (e: Exception) {
+                Timber.tag("HomeFragment").e("Failed to load hospitals: ${e.message}")
+                allHospitals = DirectoryRepository.getDefaultHospitals()
+            }
+            applyHospitalFilters()
+        }
+
+        viewLifecycleOwner.lifecycleScope.launch {
+            try {
+                allBloodBanks = directoryRepository.getBloodBanks()
+            } catch (e: Exception) {
+                Timber.tag("HomeFragment").e("Failed to load blood banks: ${e.message}")
+                allBloodBanks = DirectoryRepository.getDefaultBloodBanks()
+            }
+            applyBloodBankFilters()
+        }
+    }
+
+    private fun applyHospitalFilters() {
+        if (!isAdded || _binding == null) return
+        var list = allHospitals
+        if (selectedHospitalFilter != "All") {
+            list = when (selectedHospitalFilter) {
+                "Govt Medical" -> list.filter { it.type.contains("Govt", ignoreCase = true) }
+                "Private" -> list.filter { it.type.contains("Private", ignoreCase = true) }
+                "24/7 Emergency" -> list.filter { it.isEmergency24Hours }
+                "Specialized" -> list.filter { it.type.contains("Specialized", ignoreCase = true) }
+                else -> list
+            }
+        }
+        if (currentSearchQuery.isNotBlank()) {
+            val q = currentSearchQuery.trim()
+            list = list.filter {
+                it.name.contains(q, true) ||
+                it.address.contains(q, true) ||
+                it.district.contains(q, true) ||
+                it.area.contains(q, true) ||
+                it.type.contains(q, true)
+            }
+        }
+        filteredHospitals = list
+        hospitalAdapter.submitList(ArrayList(list))
+
+        if (list.isEmpty()) {
+            binding.layoutHospitalEmpty.visibility = View.VISIBLE
+            binding.rvHospitals.visibility = View.GONE
+        } else {
+            binding.layoutHospitalEmpty.visibility = View.GONE
+            binding.rvHospitals.visibility = View.VISIBLE
+        }
+    }
+
+    private fun applyBloodBankFilters() {
+        if (!isAdded || _binding == null) return
+        var list = allBloodBanks
+        if (selectedBloodBankFilter != "All") {
+            list = when (selectedBloodBankFilter) {
+                "Red Crescent" -> list.filter { it.organization.contains("Red Crescent", ignoreCase = true) }
+                "Quantum" -> list.filter { it.organization.contains("Quantum", ignoreCase = true) }
+                "Voluntary Org" -> list.filter {
+                    it.organization.contains("Badhan", ignoreCase = true) ||
+                    it.organization.contains("Sandhani", ignoreCase = true)
+                }
+                "Open 24/7" -> list.filter { it.isOpen24Hours }
+                else -> list
+            }
+        }
+        if (currentSearchQuery.isNotBlank()) {
+            val q = currentSearchQuery.trim()
+            list = list.filter {
+                it.name.contains(q, true) ||
+                it.address.contains(q, true) ||
+                it.district.contains(q, true) ||
+                it.organization.contains(q, true) ||
+                it.availableComponents.contains(q, true)
+            }
+        }
+        filteredBloodBanks = list
+        bloodBankAdapter.submitList(ArrayList(list))
+
+        if (list.isEmpty()) {
+            binding.layoutBloodBankEmpty.visibility = View.VISIBLE
+            binding.rvBloodBanks.visibility = View.GONE
+        } else {
+            binding.layoutBloodBankEmpty.visibility = View.GONE
+            binding.rvBloodBanks.visibility = View.VISIBLE
+        }
+    }
+
+    private fun dialPhoneNumber(phone: String) {
+        if (phone.isBlank()) {
+            toast("Phone number not available")
+            return
+        }
+        try {
+            val intent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:${phone.trim()}"))
+            startActivity(intent)
+        } catch (_: Exception) {
+            toast("Unable to open dialer")
+        }
+    }
+
+    private fun openDirectionsInMaps(name: String, address: String, lat: Double, lng: Double) {
+        try {
+            val uri = if (lat != 0.0 && lng != 0.0) {
+                Uri.parse("geo:$lat,$lng?q=$lat,$lng(${Uri.encode(name)})")
+            } else {
+                Uri.parse("geo:0,0?q=${Uri.encode("$name, $address")}")
+            }
+            val mapIntent = Intent(Intent.ACTION_VIEW, uri)
+            startActivity(mapIntent)
+        } catch (_: Exception) {
+            try {
+                val webUri = Uri.parse("https://www.google.com/maps/search/?api=1&query=${Uri.encode("$name, $address")}")
+                startActivity(Intent(Intent.ACTION_VIEW, webUri))
+            } catch (_: Exception) {
+                toast("Unable to open map")
+            }
         }
     }
 
@@ -1228,7 +1482,7 @@ class HomeFragment : Fragment() {
         }
 
         android.app.AlertDialog.Builder(requireContext())
-            .setTitle("🤝 Offer Blood Donation")
+            .setTitle("Offer Blood Donation")
             .setMessage("Would you like to contact the requester for ${request.patientName.ifBlank { "Patient" }} (${request.bloodGroup}) at ${request.hospital}?")
             .setPositiveButton("Message on BloodLink") { _, _ ->
                 openChatWithRequester(request)
@@ -1242,14 +1496,14 @@ class HomeFragment : Fragment() {
 
     private fun showRequestDetailsDialog(request: BloodRequest) {
         val detailsMsg = buildString {
-            append("🩸 Blood Group: ${request.bloodGroup}\n")
-            if (request.patientName.isNotBlank()) append("👤 Patient: ${request.patientName}\n")
-            append("🏥 Hospital: ${request.hospital}\n")
+            append("Blood Group: ${request.bloodGroup}\n")
+            if (request.patientName.isNotBlank()) append("Patient: ${request.patientName}\n")
+            append("Hospital: ${request.hospital}\n")
             val loc = if (request.district.isNotBlank()) "${request.location}, ${request.district}".trim(',', ' ') else request.location
-            if (loc.isNotBlank()) append("📍 Location: $loc\n")
-            append("💉 Units Needed: ${request.units}\n")
-            if (request.date.isNotBlank()) append("📅 Date: ${request.date} ${request.time}\n")
-            if (request.phone.isNotBlank()) append("📞 Phone: ${request.phone}\n")
+            if (loc.isNotBlank()) append("Location: $loc\n")
+            append("Units Needed: ${request.units}\n")
+            if (request.date.isNotBlank()) append("Date: ${request.date} ${request.time}\n")
+            if (request.phone.isNotBlank()) append("Phone: ${request.phone}\n")
         }
 
         android.app.AlertDialog.Builder(requireContext())

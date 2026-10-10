@@ -152,7 +152,7 @@
             android:background="@drawable/bg_date_header"
             android:paddingHorizontal="16dp"
             android:paddingVertical="8dp"
-            android:text="👋 Say hello to coordinate blood donation safely."
+            android:text="Coordinate blood donation safely."
             android:textColor="@color/text_secondary"
             android:textSize="12sp" />
     </LinearLayout>

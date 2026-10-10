@@ -185,7 +185,7 @@
             app:drawableStartCompat="@drawable/ic_check"
             app:drawableTint="@color/success_color"
             android:gravity="center_vertical"
-            android:text="🎉 You helped save lives!"
+            android:text="You helped save lives!"
             android:textSize="12sp"
             android:textStyle="bold"
             android:textColor="@color/success_color" />

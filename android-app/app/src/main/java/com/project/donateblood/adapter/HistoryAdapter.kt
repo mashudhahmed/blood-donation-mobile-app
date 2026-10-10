@@ -157,9 +157,9 @@ class HistoryAdapter(
 
             // Set impact message based on units
             tvImpact.text = when (item.units) {
-                1 -> "🎉 You helped save up to 3 lives!"
-                2 -> "🎉 You helped save up to 6 lives!"
-                else -> "🎉 You helped save multiple lives!"
+                1 -> "You helped save up to 3 lives!"
+                2 -> "You helped save up to 6 lives!"
+                else -> "You helped save multiple lives!"
             }
 
             // Set status text (always black for consistency)

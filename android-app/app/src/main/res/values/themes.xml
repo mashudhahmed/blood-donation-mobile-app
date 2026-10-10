@@ -76,4 +76,11 @@
     <style name="Widget.BloodLink.BottomSheet" parent="Widget.MaterialComponents.BottomSheet">
         <item name="android:background">@android:color/transparent</item>
     </style>
+
+    <!-- Directory TabLayout Text Appearance -->
+    <style name="TextAppearance.BloodLink.Tab" parent="TextAppearance.Material3.LabelLarge">
+        <item name="android:textSize">11.5sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:textAllCaps">false</item>
+    </style>
 </resources>

@@ -56,11 +56,21 @@ class HomeUrgentRequestAdapter(
                     request.units >= 3
 
             if (isUrgent) {
-                tvUrgencyTag.text = "🚨 URGENT"
+                tvUrgencyTag.text = "URGENT"
                 tvUrgencyTag.setTextColor(ContextCompat.getColor(context, R.color.primary_red))
+                tvUrgencyTag.setCompoundDrawablesWithIntrinsicBounds(R.drawable.ic_urgent, 0, 0, 0)
+                androidx.core.widget.TextViewCompat.setCompoundDrawableTintList(
+                    tvUrgencyTag,
+                    android.content.res.ColorStateList.valueOf(ContextCompat.getColor(context, R.color.primary_red))
+                )
             } else {
-                tvUrgencyTag.text = "🩸 NEEDED"
+                tvUrgencyTag.text = "NEEDED"
                 tvUrgencyTag.setTextColor(ContextCompat.getColor(context, R.color.text_primary))
+                tvUrgencyTag.setCompoundDrawablesWithIntrinsicBounds(R.drawable.ic_blood_drop, 0, 0, 0)
+                androidx.core.widget.TextViewCompat.setCompoundDrawableTintList(
+                    tvUrgencyTag,
+                    android.content.res.ColorStateList.valueOf(ContextCompat.getColor(context, R.color.primary_red))
+                )
             }
 
             // Units

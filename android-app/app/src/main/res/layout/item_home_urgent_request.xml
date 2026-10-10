@@ -53,10 +53,13 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:background="@drawable/bg_urgent_tag"
-                    android:text="🚨 URGENT"
+                    android:text="URGENT"
                     android:textColor="@color/primary_red"
                     android:textSize="11sp"
                     android:textStyle="bold"
+                    app:drawableStartCompat="@drawable/ic_urgent"
+                    app:drawableTint="@color/primary_red"
+                    android:drawablePadding="4dp"
                     tools:ignore="HardcodedText" />
 
                 <!-- Units Needed -->

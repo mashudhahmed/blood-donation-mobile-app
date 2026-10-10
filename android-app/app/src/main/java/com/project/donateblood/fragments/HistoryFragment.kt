@@ -499,9 +499,9 @@ class HistoryFragment : Fragment() {
             sheetBinding.tvModalHospitalLabel.text = "Donation Center"
 
             val impactMsg = when (historyItem.units) {
-                1 -> "🎉 You helped save up to 3 lives!"
-                2 -> "🎉 You helped save up to 6 lives!"
-                else -> "🎉 You helped save multiple lives!"
+                1 -> "You helped save up to 3 lives!"
+                2 -> "You helped save up to 6 lives!"
+                else -> "You helped save multiple lives!"
             }
             sheetBinding.ivModalNoteIcon.setImageResource(R.drawable.ic_check_circle)
             sheetBinding.ivModalNoteIcon.imageTintList = ContextCompat.getColorStateList(requireContext(), R.color.success_color)

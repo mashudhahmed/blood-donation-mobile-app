@@ -256,46 +256,60 @@ class MainActivity : BaseActivity() {
                     // User is logged in
                     val compoundTokenId = "${user.uid}_$deviceId"
 
-                    // Save to user's devices collection
+                    // Fetch user document to check userType
                     db.collection("users")
                         .document(user.uid)
-                        .collection("devices")
-                        .document(deviceId)
-                        .set(
-                            mapOf(
-                                "userId" to user.uid,
-                                "fcmToken" to token,
-                                "deviceId" to deviceId,
-                                "compoundTokenId" to compoundTokenId,
-                                "lastActive" to System.currentTimeMillis(),
-                                "userType" to "donor",
-                                "isAvailable" to true,
-                                "notificationEnabled" to true,
-                                "hasFcmToken" to true,
-                                "isLoggedIn" to true
-                            ),
-                            com.google.firebase.firestore.SetOptions.merge()
-                        )
-                        .addOnSuccessListener {
-                            Timber.d("✅ FCM token saved to users/devices")
+                        .get()
+                        .addOnSuccessListener { userDoc ->
+                            val userType = userDoc.getString("userType") ?: "user"
+                            val isDonorUser = userType == "donor"
 
-                            // ✅ Sync with backend as logged in
-                            FcmTokenSyncManager.syncTokenWithBackend(
-                                token = token,
-                                context = this,
-                                targetUserId = user.uid,
-                                isLoggedIn = true
-                            )
+                            // Save to user's devices collection
+                            db.collection("users")
+                                .document(user.uid)
+                                .collection("devices")
+                                .document(deviceId)
+                                .set(
+                                    mapOf(
+                                        "userId" to user.uid,
+                                        "fcmToken" to token,
+                                        "deviceId" to deviceId,
+                                        "compoundTokenId" to compoundTokenId,
+                                        "lastActive" to System.currentTimeMillis(),
+                                        "userType" to userType,
+                                        "isAvailable" to (if (isDonorUser) (userDoc.getBoolean("isAvailable") ?: true) else false),
+                                        "notificationEnabled" to true,
+                                        "hasFcmToken" to true,
+                                        "isLoggedIn" to true
+                                    ),
+                                    com.google.firebase.firestore.SetOptions.merge()
+                                )
+                                .addOnSuccessListener {
+                                    Timber.d("✅ FCM token saved to users/devices")
 
-                            // Update donor document
-                            updateDonorDocument(user.uid, token, deviceId, compoundTokenId, true)
+                                    // ✅ Sync with backend as logged in
+                                    FcmTokenSyncManager.syncTokenWithBackend(
+                                        token = token,
+                                        context = this,
+                                        targetUserId = user.uid,
+                                        isLoggedIn = true
+                                    )
 
-                            // Notify ViewModel
-                            userViewModel.updateUserName(user.displayName ?: "User")
-                            userViewModel.updateUserEmail(user.email ?: "No email")
+                                    // Update donor document ONLY IF user is a donor
+                                    if (isDonorUser) {
+                                        updateDonorDocument(user.uid, token, deviceId, compoundTokenId, true)
+                                    }
+
+                                    // Notify ViewModel
+                                    userViewModel.updateUserName(user.displayName ?: "User")
+                                    userViewModel.updateUserEmail(user.email ?: "No email")
+                                }
+                                .addOnFailureListener { e ->
+                                    Timber.e("❌ Failed to save to users/devices: ${e.message}")
+                                }
                         }
                         .addOnFailureListener { e ->
-                            Timber.e("❌ Failed to save to users/devices: ${e.message}")
+                            Timber.e("❌ Failed to fetch user doc for FCM token: ${e.message}")
                         }
 
                 } else {
@@ -331,28 +345,35 @@ class MainActivity : BaseActivity() {
         compoundTokenId: String,
         isLoggedIn: Boolean
     ) {
+        // ONLY update donor document if it already exists; never auto-create for a non-donor
         db.collection("donors")
             .document(userId)
-            .set(
-                mapOf(
-                    "userId" to userId,
-                    "fcmToken" to token,
-                    "deviceId" to deviceId,
-                    "compoundTokenId" to compoundTokenId,
-                    "isAvailable" to true,
-                    "notificationEnabled" to true,
-                    "hasFcmToken" to true,
-                    "isLoggedIn" to isLoggedIn,
-                    "lastActive" to System.currentTimeMillis(),
-                    "updatedAt" to System.currentTimeMillis()
-                ),
-                com.google.firebase.firestore.SetOptions.merge()
-            )
-            .addOnSuccessListener {
-                Timber.d("✅ Donor document updated (loggedIn: $isLoggedIn)")
-            }
-            .addOnFailureListener { e ->
-                Timber.e("❌ Failed to update donor document: ${e.message}")
+            .get()
+            .addOnSuccessListener { donorDoc ->
+                if (donorDoc.exists()) {
+                    db.collection("donors")
+                        .document(userId)
+                        .set(
+                            mapOf(
+                                "userId" to userId,
+                                "fcmToken" to token,
+                                "deviceId" to deviceId,
+                                "compoundTokenId" to compoundTokenId,
+                                "notificationEnabled" to true,
+                                "hasFcmToken" to true,
+                                "isLoggedIn" to isLoggedIn,
+                                "lastActive" to System.currentTimeMillis(),
+                                "updatedAt" to System.currentTimeMillis()
+                            ),
+                            com.google.firebase.firestore.SetOptions.merge()
+                        )
+                        .addOnSuccessListener {
+                            Timber.d("✅ Donor document updated (loggedIn: $isLoggedIn)")
+                        }
+                        .addOnFailureListener { e ->
+                            Timber.e("❌ Failed to update donor document: ${e.message}")
+                        }
+                }
             }
     }
 

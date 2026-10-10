@@ -217,7 +217,6 @@ class ProfileFragment : Fragment() {
         initialSwitchState = null
         isInitialSetupComplete = false
 
-        // Check if user exists in donors collection
         firestore.collection(FirebaseUtils.Collections.DONORS)
             .document(currentUser.uid)
             .get()

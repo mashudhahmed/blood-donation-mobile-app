@@ -1,35 +1,40 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:orientation="vertical"
     android:background="@color/cardview_light_background">
 
-    <!-- App Bar -->
-    <com.google.android.material.appbar.AppBarLayout
+    <!-- Top Crimson Header matching Request Blood, Chat & Activity -->
+    <com.google.android.material.appbar.MaterialToolbar
+        android:id="@+id/toolbar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:theme="@style/ThemeOverlay.AppCompat.Dark.ActionBar">
+        android:minHeight="?attr/actionBarSize"
+        android:background="@color/primary_red_dark"
+        app:navigationIcon="@drawable/ic_arrow_back_white"
+        app:title="Profile"
+        app:titleTextAppearance="@style/TextAppearance.BloodLink.Toolbar.Title"
+        app:subtitle="Manage your personal &amp; donor profile"
+        app:subtitleTextAppearance="@style/TextAppearance.BloodLink.Toolbar.Subtitle"
+        app:titleTextColor="@color/white"
+        app:subtitleTextColor="#E0E0E0"
+        app:contentInsetStartWithNavigation="8dp"
+        app:elevation="3dp" />
 
-        <com.google.android.material.appbar.MaterialToolbar
-            android:id="@+id/toolbar"
-            android:layout_width="match_parent"
-            android:layout_height="?attr/actionBarSize"
-            android:background="@color/primary_red_dark"
-            app:title="Profile"
-            app:navigationIcon="@drawable/ic_arrow_back_white"
-            app:titleTextColor="@color/white" />
-
-    </com.google.android.material.appbar.AppBarLayout>
-
-    <!-- Main Content -->
+    <!-- Main Content Container with Pull Scroll -->
     <androidx.core.widget.NestedScrollView
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_marginTop="?attr/actionBarSize"
         android:fillViewport="true"
-        android:padding="16dp">
+        android:overScrollMode="never"
+        android:scrollbars="none"
+        android:clipToPadding="false"
+        android:paddingHorizontal="16dp"
+        android:paddingTop="12dp"
+        android:paddingBottom="24dp">
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -39,173 +44,217 @@
             <!-- Progress Bar -->
             <ProgressBar
                 android:id="@+id/progressBar"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
                 android:layout_gravity="center"
-                android:layout_marginTop="32dp"
+                android:layout_marginVertical="16dp"
+                android:indeterminateTint="@color/primary_red"
                 android:visibility="gone" />
 
-            <!-- Profile Header Card -->
-            <androidx.cardview.widget.CardView
+            <!-- ================= PROFILE HERO HEADER CARD ================= -->
+            <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="16dp"
-                app:cardCornerRadius="12dp"
-                app:cardElevation="4dp">
+                android:layout_marginBottom="14dp"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="1dp"
+                app:strokeWidth="1dp"
+                app:strokeColor="#EDEDED"
+                app:cardBackgroundColor="@color/surface_white">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:gravity="center_horizontal"
                     android:orientation="vertical"
                     android:padding="20dp">
 
-                    <!-- Profile Image -->
-                    <de.hdodenhof.circleimageview.CircleImageView
-                        android:id="@+id/ivProfile"
-                        android:layout_width="80dp"
-                        android:layout_height="80dp"
-                        android:layout_gravity="center"
-                        android:src="@drawable/ic_user_placeholder"
-                        app:civ_border_color="@color/primary_red"
-                        app:civ_border_width="2dp" />
+                    <!-- Profile Image with Avatar Badge -->
+                    <FrameLayout
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content">
+
+                        <de.hdodenhof.circleimageview.CircleImageView
+                            android:id="@+id/ivProfile"
+                            android:layout_width="86dp"
+                            android:layout_height="86dp"
+                            android:src="@drawable/ic_user_placeholder"
+                            app:civ_border_color="@color/primary_red"
+                            app:civ_border_width="2.5dp" />
+                    </FrameLayout>
 
                     <!-- User Name -->
                     <TextView
                         android:id="@+id/tvUserName"
-                        android:layout_width="match_parent"
+                        android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="12dp"
                         android:gravity="center"
-                        android:text="Mashhood Siam"
+                        android:text="User Name"
                         android:textColor="@color/text_primary"
                         android:textSize="20sp"
-                        android:textStyle="bold"
-                        tools:ignore="HardcodedText" />
+                        android:textStyle="bold" />
 
                     <!-- User Email -->
                     <TextView
                         android:id="@+id/tvUserEmail"
-                        android:layout_width="match_parent"
+                        android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="4dp"
+                        android:layout_marginTop="3dp"
                         android:gravity="center"
-                        android:text="mashhood.siam@gmail.com"
+                        android:text="user@example.com"
                         android:textColor="@color/text_secondary"
-                        android:textSize="14sp" />
+                        android:textSize="13sp" />
 
-                    <!-- User Status Badge -->
+                    <!-- Donor Status Pill Badge -->
                     <LinearLayout
                         android:id="@+id/layoutDonorStatus"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_gravity="center"
                         android:layout_marginTop="12dp"
-                        android:background="@drawable/bg_donor_status"
-                        android:gravity="center"
+                        android:background="@drawable/bg_donor_status_active"
+                        android:gravity="center_vertical"
                         android:orientation="horizontal"
-                        android:paddingHorizontal="16dp"
-                        android:paddingVertical="8dp"
+                        android:paddingHorizontal="14dp"
+                        android:paddingVertical="5dp"
                         android:visibility="gone">
-
 
                         <TextView
                             android:id="@+id/tvDonorStatus"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Registered Donor"
-                            android:textColor="@color/white"
-                            android:textSize="14sp"
+                            android:text="Active Donor"
+                            android:textColor="@color/green_dark"
+                            android:textSize="12sp"
                             android:textStyle="bold" />
-
                     </LinearLayout>
-
                 </LinearLayout>
-            </androidx.cardview.widget.CardView>
+            </com.google.android.material.card.MaterialCardView>
 
-            <!-- Personal Information Card -->
-            <androidx.cardview.widget.CardView
+            <!-- ================= PERSONAL INFORMATION CARD ================= -->
+            <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="16dp"
-                app:cardCornerRadius="12dp"
-                app:cardElevation="4dp">
+                android:layout_marginBottom="14dp"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="1dp"
+                app:strokeWidth="1dp"
+                app:strokeColor="#EDEDED"
+                app:cardBackgroundColor="@color/surface_white">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
-                    android:padding="20dp">
+                    android:padding="16dp">
 
                     <!-- Section Header -->
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="Personal Information"
-                        android:textColor="@color/text_primary"
-                        android:textSize="18sp"
-                        android:textStyle="bold"
-                        android:layout_marginBottom="16dp" />
-
-                    <!-- Name -->
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginBottom="12dp"
+                        android:gravity="center_vertical"
                         android:orientation="horizontal">
+
+                        <FrameLayout
+                            android:layout_width="34dp"
+                            android:layout_height="34dp"
+                            android:background="@drawable/circle_light_red">
+
+                            <ImageView
+                                android:layout_width="18dp"
+                                android:layout_height="18dp"
+                                android:layout_gravity="center"
+                                android:src="@drawable/ic_user_small"
+                                app:tint="@color/primary_red"
+                                tools:ignore="ContentDescription" />
+                        </FrameLayout>
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="10dp"
+                            android:text="Personal Information"
+                            android:textColor="@color/text_primary"
+                            android:textSize="16sp"
+                            android:textStyle="bold" />
+                    </LinearLayout>
+
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:layout_marginTop="12dp"
+                        android:layout_marginBottom="10dp"
+                        android:background="#F0F0F0" />
+
+                    <!-- Name Row -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:paddingVertical="5dp">
 
                         <TextView
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:text="Name"
+                            android:text="Full Name"
                             android:textColor="@color/text_secondary"
-                            android:textSize="14sp" />
+                            android:textSize="13sp" />
 
                         <TextView
                             android:id="@+id/tvName"
-                            android:layout_width="0dp"
+                            android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:gravity="end"
                             android:text="Mashhood Siam"
                             android:textColor="@color/text_primary"
-                            android:textSize="14sp" />
-
+                            android:textSize="14sp"
+                            android:textStyle="bold" />
                     </LinearLayout>
 
-                    <!-- Phone -->
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:background="#F5F5F5" />
+
+                    <!-- Phone Row -->
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginBottom="12dp"
-                        android:orientation="horizontal">
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:paddingVertical="5dp">
 
                         <TextView
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:text="Phone"
+                            android:text="Phone Number"
                             android:textColor="@color/text_secondary"
-                            android:textSize="14sp" />
+                            android:textSize="13sp" />
 
                         <TextView
                             android:id="@+id/tvPhone"
-                            android:layout_width="0dp"
+                            android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:gravity="end"
                             android:text="01705107279"
                             android:textColor="@color/text_primary"
-                            android:textSize="14sp" />
-
+                            android:textSize="14sp"
+                            android:textStyle="bold" />
                     </LinearLayout>
 
-                    <!-- Date of Birth -->
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:background="#F5F5F5" />
+
+                    <!-- Date of Birth Row -->
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginBottom="12dp"
-                        android:orientation="horizontal">
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:paddingVertical="5dp">
 
                         <TextView
                             android:layout_width="0dp"
@@ -213,80 +262,101 @@
                             android:layout_weight="1"
                             android:text="Date of Birth"
                             android:textColor="@color/text_secondary"
-                            android:textSize="14sp" />
+                            android:textSize="13sp" />
 
                         <TextView
                             android:id="@+id/tvDateOfBirth"
-                            android:layout_width="0dp"
+                            android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:gravity="end"
-                            android:text="03/01/1996"
+                            android:text="30/07/1999"
                             android:textColor="@color/text_primary"
-                            android:textSize="14sp" />
-
+                            android:textSize="14sp"
+                            android:textStyle="bold" />
                     </LinearLayout>
 
-                    <!-- Edit Button -->
+                    <!-- Edit Personal Info Button -->
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/btnEditPersonal"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp"
-                        android:text="Edit Personal Info"
                         style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-                        app:icon="@drawable/ic_edit" />
-
+                        android:layout_width="match_parent"
+                        android:layout_height="40dp"
+                        android:layout_marginTop="12dp"
+                        android:text="Edit Personal Info"
+                        android:textAllCaps="false"
+                        android:textColor="@color/primary_red"
+                        android:textSize="13sp"
+                        app:cornerRadius="20dp"
+                        app:icon="@drawable/ic_edit"
+                        app:iconGravity="textStart"
+                        app:iconSize="16dp"
+                        app:iconTint="@color/primary_red"
+                        app:strokeColor="@color/primary_red"
+                        app:strokeWidth="1dp" />
                 </LinearLayout>
-            </androidx.cardview.widget.CardView>
+            </com.google.android.material.card.MaterialCardView>
 
-            <!-- DONOR REGISTRATION PROMOTION CARD -->
-            <!-- Now visible by default, will be controlled programmatically -->
-            <androidx.cardview.widget.CardView
+            <!-- ================= DONOR REGISTRATION PROMOTION CARD ================= -->
+            <com.google.android.material.card.MaterialCardView
                 android:id="@+id/cardDonorPromotion"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="16dp"
-                app:cardCornerRadius="12dp"
-                app:cardElevation="4dp"
-                app:cardBackgroundColor="@color/surface_variant">
+                android:layout_marginBottom="14dp"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="1dp"
+                app:strokeWidth="1dp"
+                app:strokeColor="#FFCDD2"
+                app:cardBackgroundColor="#FFF8F8">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
-                    android:padding="20dp">
+                    android:padding="18dp">
 
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:orientation="horizontal"
-                        android:gravity="center_vertical">
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
 
-                        <ImageView
-                            android:layout_width="36dp"
-                            android:layout_height="36dp"
-                            android:src="@drawable/ic_blood_drop"
-                            app:tint="@color/primary_red_dark" />
+                        <FrameLayout
+                            android:layout_width="38dp"
+                            android:layout_height="38dp"
+                            android:background="@drawable/circle_light_red">
 
-                        <TextView
+                            <ImageView
+                                android:layout_width="20dp"
+                                android:layout_height="20dp"
+                                android:layout_gravity="center"
+                                android:src="@drawable/ic_blood_drop"
+                                app:tint="@color/primary_red"
+                                tools:ignore="ContentDescription" />
+                        </FrameLayout>
+
+                        <LinearLayout
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
                             android:layout_marginStart="12dp"
-                            android:text="Ready to Save Lives?"
-                            android:textColor="@color/text_primary"
-                            android:textSize="18sp"
-                            android:textStyle="bold" />
-                    </LinearLayout>
+                            android:orientation="vertical">
 
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp"
-                        android:text="Register as a blood donor and make a difference in someone's life"
-                        android:textColor="@color/text_secondary"
-                        android:textSize="14sp" />
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Ready to Save Lives?"
+                                android:textColor="@color/text_primary"
+                                android:textSize="16sp"
+                                android:textStyle="bold" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="2dp"
+                                android:text="Register as a verified blood donor"
+                                android:textColor="@color/text_secondary"
+                                android:textSize="12sp" />
+                        </LinearLayout>
+                    </LinearLayout>
 
                     <LinearLayout
                         android:layout_width="match_parent"
@@ -298,7 +368,8 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:drawablePadding="8dp"
-                            android:drawableStart="@drawable/ic_check_circle_small"
+                            app:drawableStartCompat="@drawable/ic_check_circle_small"
+                            app:drawableTint="@color/success_color"
                             android:text="Quick 2-minute registration"
                             android:textColor="@color/text_primary"
                             android:textSize="13sp" />
@@ -306,9 +377,10 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_marginTop="4dp"
+                            android:layout_marginTop="6dp"
                             android:drawablePadding="8dp"
-                            android:drawableStart="@drawable/ic_check_circle_small"
+                            app:drawableStartCompat="@drawable/ic_check_circle_small"
+                            app:drawableTint="@color/success_color"
                             android:text="Save up to 3 lives per donation"
                             android:textColor="@color/text_primary"
                             android:textSize="13sp" />
@@ -316,9 +388,10 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_marginTop="4dp"
+                            android:layout_marginTop="6dp"
                             android:drawablePadding="8dp"
-                            android:drawableStart="@drawable/ic_check_circle_small"
+                            app:drawableStartCompat="@drawable/ic_check_circle_small"
+                            app:drawableTint="@color/success_color"
                             android:text="Get notified when someone needs your blood type"
                             android:textColor="@color/text_primary"
                             android:textSize="13sp" />
@@ -327,57 +400,84 @@
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/btnRegisterDonor"
                         android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
+                        android:layout_height="44dp"
                         android:layout_marginTop="16dp"
                         android:text="Register as Donor"
+                        android:textAllCaps="false"
+                        android:textColor="@color/white"
+                        android:textSize="14sp"
+                        app:cornerRadius="22dp"
+                        app:backgroundTint="@color/primary_red"
                         app:icon="@drawable/ic_arrow_forward"
-                        app:iconGravity="end"
-                        app:iconPadding="4dp"
-                        style="@style/Widget.MaterialComponents.Button" />
-
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp"
-                        android:gravity="center"
-                        android:text="Safe • Confidential • Rewarding"
-                        android:textColor="@color/text_secondary"
-                        android:textSize="12sp" />
+                        app:iconGravity="textEnd"
+                        app:iconPadding="6dp" />
                 </LinearLayout>
-            </androidx.cardview.widget.CardView>
+            </com.google.android.material.card.MaterialCardView>
 
-            <!-- DONOR INFORMATION CARD -->
-            <androidx.cardview.widget.CardView
+            <!-- ================= DONOR INFORMATION CARD ================= -->
+            <com.google.android.material.card.MaterialCardView
                 android:id="@+id/cardDonorInfo"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="16dp"
+                android:layout_marginBottom="14dp"
                 android:visibility="gone"
-                app:cardCornerRadius="12dp"
-                app:cardElevation="4dp">
+                app:cardCornerRadius="16dp"
+                app:cardElevation="1dp"
+                app:strokeWidth="1dp"
+                app:strokeColor="#EDEDED"
+                app:cardBackgroundColor="@color/surface_white">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
-                    android:padding="20dp">
+                    android:padding="16dp">
 
                     <!-- Section Header -->
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="Donor Information"
-                        android:textColor="@color/text_primary"
-                        android:textSize="18sp"
-                        android:textStyle="bold"
-                        android:layout_marginBottom="16dp" />
-
-                    <!-- Blood Group -->
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginBottom="12dp"
+                        android:gravity="center_vertical"
                         android:orientation="horizontal">
+
+                        <FrameLayout
+                            android:layout_width="34dp"
+                            android:layout_height="34dp"
+                            android:background="@drawable/circle_light_red">
+
+                            <ImageView
+                                android:layout_width="18dp"
+                                android:layout_height="18dp"
+                                android:layout_gravity="center"
+                                android:src="@drawable/ic_blood_drop"
+                                app:tint="@color/primary_red"
+                                tools:ignore="ContentDescription" />
+                        </FrameLayout>
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="10dp"
+                            android:text="Donor Information"
+                            android:textColor="@color/text_primary"
+                            android:textSize="16sp"
+                            android:textStyle="bold" />
+                    </LinearLayout>
+
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:layout_marginTop="12dp"
+                        android:layout_marginBottom="10dp"
+                        android:background="#F0F0F0" />
+
+                    <!-- Blood Group Row -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:paddingVertical="5dp">
 
                         <TextView
                             android:layout_width="0dp"
@@ -385,27 +485,30 @@
                             android:layout_weight="1"
                             android:text="Blood Group"
                             android:textColor="@color/text_secondary"
-                            android:textSize="14sp" />
+                            android:textSize="13sp" />
 
                         <TextView
                             android:id="@+id/tvBloodGroup"
-                            android:layout_width="0dp"
+                            android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:gravity="end"
                             android:text="O+"
-                            android:textColor="@color/text_primary"
-                            android:textSize="14sp"
+                            android:textColor="@color/primary_red"
+                            android:textSize="15sp"
                             android:textStyle="bold" />
-
                     </LinearLayout>
 
-                    <!-- Availability Status -->
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:background="#F5F5F5" />
+
+                    <!-- Availability Status Row -->
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginBottom="12dp"
-                        android:orientation="horizontal">
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:paddingVertical="5dp">
 
                         <TextView
                             android:layout_width="0dp"
@@ -413,26 +516,30 @@
                             android:layout_weight="1"
                             android:text="Availability"
                             android:textColor="@color/text_secondary"
-                            android:textSize="14sp" />
+                            android:textSize="13sp" />
 
                         <TextView
                             android:id="@+id/tvAvailability"
-                            android:layout_width="0dp"
+                            android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:gravity="end"
                             android:text="Available"
                             android:textColor="@color/green_dark"
-                            android:textSize="14sp" />
-
+                            android:textSize="13sp"
+                            android:textStyle="bold" />
                     </LinearLayout>
 
-                    <!-- Last Donation -->
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:background="#F5F5F5" />
+
+                    <!-- Last Donation Row -->
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginBottom="12dp"
-                        android:orientation="horizontal">
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:paddingVertical="5dp">
 
                         <TextView
                             android:layout_width="0dp"
@@ -440,34 +547,37 @@
                             android:layout_weight="1"
                             android:text="Last Donation"
                             android:textColor="@color/text_secondary"
-                            android:textSize="14sp" />
+                            android:textSize="13sp" />
 
                         <TextView
                             android:id="@+id/tvLastDonation"
-                            android:layout_width="0dp"
+                            android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:gravity="end"
                             android:text="Never donated"
                             android:textColor="@color/text_primary"
-                            android:textSize="14sp" />
-
+                            android:textSize="13sp"
+                            android:textStyle="bold" />
                     </LinearLayout>
 
-                    <!-- Medical History -->
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:background="#F5F5F5" />
+
+                    <!-- Medical History Row -->
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginBottom="12dp"
-                        android:orientation="vertical">
+                        android:orientation="vertical"
+                        android:paddingVertical="6dp">
 
                         <TextView
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:text="Medical History"
                             android:textColor="@color/text_secondary"
-                            android:textSize="14sp"
-                            android:layout_marginBottom="4dp" />
+                            android:textSize="13sp"
+                            android:layout_marginBottom="2dp" />
 
                         <TextView
                             android:id="@+id/tvMedicalHistory"
@@ -475,62 +585,114 @@
                             android:layout_height="wrap_content"
                             android:text="No medical history recorded"
                             android:textColor="@color/text_primary"
-                            android:textSize="14sp" />
-
+                            android:textSize="13sp" />
                     </LinearLayout>
 
-                    <!-- Toggle Availability -->
-                    <com.google.android.material.switchmaterial.SwitchMaterial
-                        android:id="@+id/switchAvailability"
+                    <!-- Toggle Availability Container -->
+                    <com.google.android.material.card.MaterialCardView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="8dp"
-                        android:text="Available for Donation"
-                        android:textSize="14sp" />
+                        app:cardCornerRadius="12dp"
+                        app:cardElevation="0dp"
+                        app:cardBackgroundColor="#F8F8F8">
+
+                        <com.google.android.material.switchmaterial.SwitchMaterial
+                            android:id="@+id/switchAvailability"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:paddingHorizontal="14dp"
+                            android:paddingVertical="8dp"
+                            android:text="Available for Donation"
+                            android:textColor="@color/text_primary"
+                            android:textSize="13sp"
+                            android:textStyle="bold"
+                            app:useMaterialThemeColors="true" />
+                    </com.google.android.material.card.MaterialCardView>
 
                     <!-- Edit Donor Info Button -->
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/btnEditDonor"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="16dp"
-                        android:text="Update Donor Info"
                         style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-                        app:icon="@drawable/ic_edit" />
-
+                        android:layout_width="match_parent"
+                        android:layout_height="40dp"
+                        android:layout_marginTop="12dp"
+                        android:text="Update Donor Info"
+                        android:textAllCaps="false"
+                        android:textColor="@color/primary_red"
+                        android:textSize="13sp"
+                        app:cornerRadius="20dp"
+                        app:icon="@drawable/ic_edit"
+                        app:iconGravity="textStart"
+                        app:iconSize="16dp"
+                        app:iconTint="@color/primary_red"
+                        app:strokeColor="@color/primary_red"
+                        app:strokeWidth="1dp" />
                 </LinearLayout>
-            </androidx.cardview.widget.CardView>
+            </com.google.android.material.card.MaterialCardView>
 
-            <!-- Address Information Card -->
-            <androidx.cardview.widget.CardView
+            <!-- ================= ADDRESS INFORMATION CARD ================= -->
+            <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="16dp"
-                app:cardCornerRadius="12dp"
-                app:cardElevation="4dp">
+                app:cardCornerRadius="16dp"
+                app:cardElevation="1dp"
+                app:strokeWidth="1dp"
+                app:strokeColor="#EDEDED"
+                app:cardBackgroundColor="@color/surface_white">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
-                    android:padding="20dp">
+                    android:padding="16dp">
 
                     <!-- Section Header -->
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="Address Information"
-                        android:textColor="@color/text_primary"
-                        android:textSize="18sp"
-                        android:textStyle="bold"
-                        android:layout_marginBottom="16dp" />
-
-                    <!-- District -->
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginBottom="12dp"
+                        android:gravity="center_vertical"
                         android:orientation="horizontal">
+
+                        <FrameLayout
+                            android:layout_width="34dp"
+                            android:layout_height="34dp"
+                            android:background="@drawable/circle_light_red">
+
+                            <ImageView
+                                android:layout_width="18dp"
+                                android:layout_height="18dp"
+                                android:layout_gravity="center"
+                                android:src="@drawable/ic_location"
+                                app:tint="@color/primary_red"
+                                tools:ignore="ContentDescription" />
+                        </FrameLayout>
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="10dp"
+                            android:text="Address Information"
+                            android:textColor="@color/text_primary"
+                            android:textSize="16sp"
+                            android:textStyle="bold" />
+                    </LinearLayout>
+
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:layout_marginTop="12dp"
+                        android:layout_marginBottom="10dp"
+                        android:background="#F0F0F0" />
+
+                    <!-- District Row -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:paddingVertical="5dp">
 
                         <TextView
                             android:layout_width="0dp"
@@ -538,26 +700,30 @@
                             android:layout_weight="1"
                             android:text="District"
                             android:textColor="@color/text_secondary"
-                            android:textSize="14sp" />
+                            android:textSize="13sp" />
 
                         <TextView
                             android:id="@+id/tvDistrict"
-                            android:layout_width="0dp"
+                            android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:gravity="end"
                             android:text="Dhaka"
                             android:textColor="@color/text_primary"
-                            android:textSize="14sp" />
-
+                            android:textSize="14sp"
+                            android:textStyle="bold" />
                     </LinearLayout>
 
-                    <!-- Police Station -->
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:background="#F5F5F5" />
+
+                    <!-- Police Station Row -->
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginBottom="12dp"
-                        android:orientation="horizontal">
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:paddingVertical="5dp">
 
                         <TextView
                             android:layout_width="0dp"
@@ -565,26 +731,30 @@
                             android:layout_weight="1"
                             android:text="Police Station"
                             android:textColor="@color/text_secondary"
-                            android:textSize="14sp" />
+                            android:textSize="13sp" />
 
                         <TextView
                             android:id="@+id/tvPoliceStation"
-                            android:layout_width="0dp"
+                            android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:gravity="end"
-                            android:text="Uttara"
+                            android:text="Gulshan"
                             android:textColor="@color/text_primary"
-                            android:textSize="14sp" />
-
+                            android:textSize="14sp"
+                            android:textStyle="bold" />
                     </LinearLayout>
 
-                    <!-- Post Office -->
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:background="#F5F5F5" />
+
+                    <!-- Post Office Row -->
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginBottom="12dp"
-                        android:orientation="horizontal">
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:paddingVertical="5dp">
 
                         <TextView
                             android:layout_width="0dp"
@@ -592,90 +762,70 @@
                             android:layout_weight="1"
                             android:text="Post Office"
                             android:textColor="@color/text_secondary"
-                            android:textSize="14sp" />
+                            android:textSize="13sp" />
 
                         <TextView
                             android:id="@+id/tvPostOffice"
-                            android:layout_width="0dp"
+                            android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:gravity="end"
-                            android:text="Uttara"
+                            android:text="Gulshan"
                             android:textColor="@color/text_primary"
-                            android:textSize="14sp" />
-
+                            android:textSize="14sp"
+                            android:textStyle="bold" />
                     </LinearLayout>
 
-                    <!-- Village/Road -->
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:background="#F5F5F5" />
+
+                    <!-- Village/Road Row -->
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginBottom="12dp"
-                        android:orientation="horizontal">
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:paddingVertical="5dp">
 
                         <TextView
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:text="Village/Road"
+                            android:text="Village / Road"
                             android:textColor="@color/text_secondary"
-                            android:textSize="14sp" />
+                            android:textSize="13sp" />
 
                         <TextView
                             android:id="@+id/tvVillage"
-                            android:layout_width="0dp"
+                            android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:gravity="end"
-                            android:text="Nikunjo, Road 18"
+                            android:text="Nikunjo Road 18"
                             android:textColor="@color/text_primary"
-                            android:textSize="14sp" />
-
+                            android:textSize="14sp"
+                            android:textStyle="bold" />
                     </LinearLayout>
 
                     <!-- Edit Address Button -->
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/btnEditAddress"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp"
-                        android:text="Edit Address"
                         style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-                        app:icon="@drawable/ic_edit" />
-
+                        android:layout_width="match_parent"
+                        android:layout_height="40dp"
+                        android:layout_marginTop="12dp"
+                        android:text="Edit Address"
+                        android:textAllCaps="false"
+                        android:textColor="@color/primary_red"
+                        android:textSize="13sp"
+                        app:cornerRadius="20dp"
+                        app:icon="@drawable/ic_edit"
+                        app:iconGravity="textStart"
+                        app:iconSize="16dp"
+                        app:iconTint="@color/primary_red"
+                        app:strokeColor="@color/primary_red"
+                        app:strokeWidth="1dp" />
                 </LinearLayout>
-            </androidx.cardview.widget.CardView>
-
-            <!-- Action Buttons -->
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:layout_marginBottom="24dp">
-
-                <!-- Become Donor Button (shown when not donor) -->
-                <!-- Now visible by default, will be controlled programmatically -->
-                <!--com.google.android.material.button.MaterialButton
-                    android:id="@+id/btnBecomeDonor"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginBottom="12dp"
-                    android:text="Become a Blood Donor"
-                    app:icon="@drawable/ic_blood_drop"
-                    style="@style/Widget.MaterialComponents.Button" /-->
-
-                <!-- Logout Button -->
-                <!--com.google.android.material.button.MaterialButton
-                    android:id="@+id/btnLogout"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="Logout"
-                    app:icon="@drawable/ic_logout"
-                    style="@style/Widget.MaterialComponents.Button.OutlinedButton" /-->
-
-            </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
 
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>
-
-</androidx.coordinatorlayout.widget.CoordinatorLayout>
+</LinearLayout>

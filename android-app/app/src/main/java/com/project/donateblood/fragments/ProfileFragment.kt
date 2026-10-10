@@ -5,6 +5,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
+import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
 import com.google.firebase.auth.FirebaseAuth
@@ -60,6 +61,19 @@ class ProfileFragment : Fragment() {
     private fun setupToolbar() {
         binding.toolbar.setNavigationOnClickListener {
             findNavController().navigateUp()
+        }
+        binding.toolbar.inflateMenu(R.menu.profile_menu)
+        binding.toolbar.setOnMenuItemClickListener { menuItem ->
+            if (menuItem.itemId == R.id.action_settings) {
+                try {
+                    findNavController().navigate(R.id.action_profileFragment_to_settingsFragment)
+                } catch (e: Exception) {
+                    Timber.e(e, "Failed to navigate to settings")
+                }
+                true
+            } else {
+                false
+            }
         }
     }
 
@@ -436,12 +450,13 @@ class ProfileFragment : Fragment() {
         binding.layoutDonorStatus.visibility = View.VISIBLE
         binding.tvDonorStatus.text = if (isAvailable) "Active Donor" else "Inactive Donor"
 
-        val backgroundColor = if (isAvailable) {
-            resources.getColor(R.color.green_dark, requireContext().theme)
+        if (isAvailable) {
+            binding.layoutDonorStatus.setBackgroundResource(R.drawable.bg_donor_status_active)
+            binding.tvDonorStatus.setTextColor(ContextCompat.getColor(requireContext(), R.color.green_dark))
         } else {
-            resources.getColor(R.color.primary_red_dark, requireContext().theme)
+            binding.layoutDonorStatus.setBackgroundResource(R.drawable.bg_donor_status_inactive)
+            binding.tvDonorStatus.setTextColor(ContextCompat.getColor(requireContext(), R.color.primary_red_dark))
         }
-        binding.layoutDonorStatus.setBackgroundColor(backgroundColor)
     }
 
     // ✅ FIX: Added isUserAction parameter to distinguish between setup vs user toggle

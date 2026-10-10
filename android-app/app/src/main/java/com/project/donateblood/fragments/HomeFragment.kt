@@ -244,7 +244,11 @@ class HomeFragment : Fragment() {
         }
 
         binding.btnViewAllUrgentRequests.setOnClickListener {
-            navigateToHistoryFragment()
+            try {
+                findNavController().navigate(R.id.action_homeFragment_to_urgentRequestsFragment)
+            } catch (e: Exception) {
+                Timber.e(e, "Failed to navigate to urgentRequestsFragment")
+            }
         }
     }
 

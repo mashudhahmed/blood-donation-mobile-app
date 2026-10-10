@@ -155,6 +155,11 @@
         <action
             android:id="@+id/action_homeFragment_to_chatFragment"
             app:destination="@id/chatFragment" />
+
+        <!-- Action to Urgent Requests Feed Fragment -->
+        <action
+            android:id="@+id/action_homeFragment_to_urgentRequestsFragment"
+            app:destination="@id/urgentRequestsFragment" />
     </fragment>
 
     <!-- About Fragment -->
@@ -384,6 +389,24 @@
         <action
             android:id="@+id/action_addressEditFragment_to_profileFragment"
             app:destination="@id/profileFragment" />
+    </fragment>
+
+    <!-- Urgent Blood Requests Fragment -->
+    <fragment
+        android:id="@+id/urgentRequestsFragment"
+        android:name="com.project.donateblood.fragments.UrgentRequestsFragment"
+        android:label="Urgent Blood Requests"
+        tools:layout="@layout/fragment_urgent_requests">
+
+        <!-- Action to Conversation Fragment -->
+        <action
+            android:id="@+id/action_urgentRequestsFragment_to_conversationFragment"
+            app:destination="@id/conversationFragment" />
+
+        <!-- Action to Login Fragment -->
+        <action
+            android:id="@+id/action_urgentRequestsFragment_to_loginFragment"
+            app:destination="@id/loginFragment" />
     </fragment>
 
 </navigation>

@@ -293,8 +293,9 @@
                                     android:textColorHint="@color/text_hint"
                                     android:inputType="none"
                                     android:completionThreshold="1"
-                                    android:dropDownWidth="match_parent"
-                                    android:dropDownHeight="wrap_content" />
+                                    android:popupBackground="@drawable/bg_dropdown_popup"
+                                    android:dropDownHeight="240dp"
+                                    android:dropDownVerticalOffset="6dp" />
                             </com.google.android.material.textfield.TextInputLayout>
                         </LinearLayout>
 
@@ -500,7 +501,7 @@
 
                     <com.google.android.material.textfield.TextInputLayout
                         android:id="@+id/textInputLayoutDistrict"
-                        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
+                        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginBottom="12dp"
@@ -510,21 +511,25 @@
                         app:boxCornerRadiusBottomEnd="12dp"
                         app:boxStrokeColor="@color/primary_red"
                         app:boxBackgroundColor="#FAFAFA"
+                        app:startIconDrawable="@drawable/ic_district"
+                        app:startIconTint="@color/text_secondary"
+                        app:endIconMode="custom"
+                        app:endIconDrawable="@drawable/ic_arrow_drop_down"
+                        app:endIconTint="@color/text_secondary"
                         app:hintEnabled="false">
 
-                        <AutoCompleteTextView
+                        <com.google.android.material.textfield.TextInputEditText
                             android:id="@+id/actvDistrict"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:hint="Select district"
+                            android:hint="Select district (tap to search)"
                             android:textSize="14sp"
                             android:paddingVertical="12dp"
                             android:textColor="@color/text_primary"
                             android:textColorHint="@color/text_hint"
-                            android:inputType="none"
-                            android:completionThreshold="1"
-                            android:dropDownWidth="match_parent"
-                            android:dropDownHeight="wrap_content" />
+                            android:focusable="false"
+                            android:clickable="true"
+                            android:cursorVisible="false" />
                     </com.google.android.material.textfield.TextInputLayout>
 
                     <!-- Specific Area / Hospital Address -->

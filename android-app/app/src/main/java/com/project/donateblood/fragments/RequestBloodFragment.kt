@@ -1,18 +1,27 @@
 package com.project.donateblood.fragments
 
-import android.app.DatePickerDialog
-import android.app.TimePickerDialog
 import android.os.Bundle
+import android.text.Editable
+import android.text.TextWatcher
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ArrayAdapter
 import android.widget.Toast
+import androidx.core.content.ContextCompat
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
+import com.google.android.material.bottomsheet.BottomSheetDialog
+import com.google.android.material.datepicker.CalendarConstraints
+import com.google.android.material.datepicker.DateValidatorPointForward
+import com.google.android.material.datepicker.MaterialDatePicker
+import com.google.android.material.timepicker.MaterialTimePicker
+import com.google.android.material.timepicker.TimeFormat
 import com.google.firebase.Timestamp
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
@@ -20,7 +29,9 @@ import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
 import com.google.gson.Gson
 import com.project.donateblood.R
+import com.project.donateblood.databinding.BottomSheetDistrictPickerBinding
 import com.project.donateblood.databinding.FragmentRequestBloodBinding
+import com.project.donateblood.databinding.ItemDistrictPickerBinding
 import com.project.donateblood.models.BloodRequest
 import com.project.donateblood.network.*
 import kotlinx.coroutines.launch
@@ -44,8 +55,19 @@ class RequestBloodFragment : Fragment() {
     )
 
     private val districts = arrayOf(
-        "Dhaka", "Chittagong", "Sylhet", "Rajshahi", "Khulna",
-        "Barisal", "Rangpur", "Mymensingh", "Comilla", "Noakhali"
+        "Bagerhat", "Bandarban", "Barguna", "Barisal", "Bhola", "Bogra",
+        "Brahmanbaria", "Chandpur", "Chapai Nawabganj", "Chattogram",
+        "Chuadanga", "Comilla", "Cox's Bazar", "Cumilla", "Dhaka", "Dinajpur",
+        "Faridpur", "Feni", "Gaibandha", "Gazipur", "Gopalganj",
+        "Habiganj", "Jamalpur", "Jashore", "Jhalokati", "Jhenaidah",
+        "Joypurhat", "Khagrachhari", "Khulna", "Kishoreganj", "Kurigram",
+        "Kushtia", "Lakshmipur", "Lalmonirhat", "Madaripur", "Magura",
+        "Manikganj", "Meherpur", "Moulvibazar", "Munshiganj", "Mymensingh",
+        "Naogaon", "Narail", "Narayanganj", "Narsingdi", "Natore",
+        "Netrokona", "Nilphamari", "Noakhali", "Pabna", "Panchagarh",
+        "Patuakhali", "Pirojpur", "Rajbari", "Rajshahi", "Rangamati",
+        "Rangpur", "Satkhira", "Shariatpur", "Sherpur", "Sirajganj",
+        "Sunamganj", "Sylhet", "Tangail", "Thakurgaon"
     )
 
     override fun onCreateView(
@@ -81,19 +103,25 @@ class RequestBloodFragment : Fragment() {
     }
 
     private fun setupUI() {
-        // Setup blood group dropdown
+        // Setup blood group dropdown with custom styled item layout
         binding.actvBloodGroup.setAdapter(
-            ArrayAdapter(requireContext(), android.R.layout.simple_dropdown_item_1line, bloodGroups)
+            ArrayAdapter(requireContext(), R.layout.item_dropdown_menu, bloodGroups)
         )
 
-        // Setup district dropdown
-        binding.actvDistrict.setAdapter(
-            ArrayAdapter(requireContext(), android.R.layout.simple_dropdown_item_1line, districts)
-        )
+        // Setup searchable district selection
+        val openDistrictPicker = { showDistrictPickerBottomSheet() }
+        binding.actvDistrict.setOnClickListener { openDistrictPicker() }
+        binding.textInputLayoutDistrict.setOnClickListener { openDistrictPicker() }
+        binding.textInputLayoutDistrict.setEndIconOnClickListener { openDistrictPicker() }
 
-        // Date and time pickers
+        // Date and time pickers with Material 3 BloodLink theming
         binding.donationDateEditText.setOnClickListener { showDatePicker() }
+        binding.textInputLayoutDate.setOnClickListener { showDatePicker() }
+        binding.textInputLayoutDate.setEndIconOnClickListener { showDatePicker() }
+
         binding.donationTimeEditText.setOnClickListener { showTimePicker() }
+        binding.textInputLayoutTime.setOnClickListener { showTimePicker() }
+        binding.textInputLayoutTime.setEndIconOnClickListener { showTimePicker() }
 
         // Submit button
         binding.btnSubmit.setOnClickListener {
@@ -118,44 +146,143 @@ class RequestBloodFragment : Fragment() {
     private fun showDatePicker() {
         if (!isAdded) return
 
-        val datePicker = DatePickerDialog(
-            requireContext(),
-            { _, year, month, day ->
-                if (!isAdded) return@DatePickerDialog
-                calendar.set(year, month, day)
-                binding.donationDateEditText.setText(
-                    SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(calendar.time)
-                )
-                binding.textInputLayoutDate.error = null
-            },
-            calendar.get(Calendar.YEAR),
-            calendar.get(Calendar.MONTH),
-            calendar.get(Calendar.DAY_OF_MONTH)
-        )
+        val constraints = CalendarConstraints.Builder()
+            .setValidator(DateValidatorPointForward.now())
+            .build()
 
-        // Set minimum date to today
-        datePicker.datePicker.minDate = System.currentTimeMillis() - 1000
-        datePicker.show()
+        val datePicker = MaterialDatePicker.Builder.datePicker()
+            .setTitleText("Select Donation Date")
+            .setSelection(calendar.timeInMillis)
+            .setCalendarConstraints(constraints)
+            .setTheme(R.style.ThemeOverlay_BloodLink_MaterialCalendar)
+            .build()
+
+        datePicker.addOnPositiveButtonClickListener { selection ->
+            val utcCalendar = Calendar.getInstance(TimeZone.getTimeZone("UTC")).apply {
+                timeInMillis = selection
+            }
+            calendar.set(
+                utcCalendar.get(Calendar.YEAR),
+                utcCalendar.get(Calendar.MONTH),
+                utcCalendar.get(Calendar.DAY_OF_MONTH)
+            )
+            binding.donationDateEditText.setText(
+                SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(calendar.time)
+            )
+            binding.textInputLayoutDate.error = null
+        }
+
+        datePicker.show(parentFragmentManager, "BLOODLINK_DATE_PICKER")
     }
 
     private fun showTimePicker() {
         if (!isAdded) return
 
-        TimePickerDialog(
+        val timePicker = MaterialTimePicker.Builder()
+            .setTimeFormat(TimeFormat.CLOCK_12H)
+            .setHour(calendar.get(Calendar.HOUR_OF_DAY))
+            .setMinute(calendar.get(Calendar.MINUTE))
+            .setTitleText("Select Donation Time")
+            .setTheme(R.style.ThemeOverlay_BloodLink_MaterialTimePicker)
+            .build()
+
+        timePicker.addOnPositiveButtonClickListener {
+            calendar.set(Calendar.HOUR_OF_DAY, timePicker.hour)
+            calendar.set(Calendar.MINUTE, timePicker.minute)
+            binding.donationTimeEditText.setText(
+                SimpleDateFormat("hh:mm a", Locale.getDefault()).format(calendar.time)
+            )
+            binding.textInputLayoutTime.error = null
+        }
+
+        timePicker.show(parentFragmentManager, "BLOODLINK_TIME_PICKER")
+    }
+
+    private fun showDistrictPickerBottomSheet() {
+        if (!isAdded) return
+
+        val dialog = BottomSheetDialog(
             requireContext(),
-            { _, hour, minute ->
-                if (!isAdded) return@TimePickerDialog
-                calendar.set(Calendar.HOUR_OF_DAY, hour)
-                calendar.set(Calendar.MINUTE, minute)
-                binding.donationTimeEditText.setText(
-                    SimpleDateFormat("hh:mm a", Locale.getDefault()).format(calendar.time)
+            R.style.Theme_BloodLink_BottomSheetDialog
+        )
+        val dialogBinding = BottomSheetDistrictPickerBinding.inflate(layoutInflater)
+        dialog.setContentView(dialogBinding.root)
+
+        val selectedDistrict = binding.actvDistrict.text.toString().trim()
+        val allList = districts.toList()
+        var currentList = allList
+
+        val adapter = DistrictAdapter(currentList, selectedDistrict) { clickedDistrict ->
+            binding.actvDistrict.setText(clickedDistrict)
+            binding.textInputLayoutDistrict.error = null
+            dialog.dismiss()
+        }
+
+        dialogBinding.rvDistricts.layoutManager = LinearLayoutManager(requireContext())
+        dialogBinding.rvDistricts.adapter = adapter
+
+        dialogBinding.etDistrictSearch.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+                val query = s?.toString()?.trim() ?: ""
+                currentList = if (query.isEmpty()) {
+                    allList
+                } else {
+                    allList.filter { it.contains(query, ignoreCase = true) }
+                }
+                adapter.updateList(currentList)
+                dialogBinding.tvNoDistrictFound.isVisible = currentList.isEmpty()
+                dialogBinding.rvDistricts.isVisible = currentList.isNotEmpty()
+            }
+            override fun afterTextChanged(s: Editable?) {}
+        })
+
+        dialogBinding.ivCloseDistrictPicker.setOnClickListener {
+            dialog.dismiss()
+        }
+
+        dialog.show()
+    }
+
+    private class DistrictAdapter(
+        private var list: List<String>,
+        private val selected: String,
+        private val onItemClick: (String) -> Unit
+    ) : RecyclerView.Adapter<DistrictAdapter.DistrictViewHolder>() {
+
+        fun updateList(newList: List<String>) {
+            list = newList
+            notifyDataSetChanged()
+        }
+
+        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): DistrictViewHolder {
+            val itemBinding = ItemDistrictPickerBinding.inflate(
+                LayoutInflater.from(parent.context), parent, false
+            )
+            return DistrictViewHolder(itemBinding)
+        }
+
+        override fun onBindViewHolder(holder: DistrictViewHolder, position: Int) {
+            val item = list[position]
+            holder.binding.tvDistrictName.text = item
+            val isCurrent = item.equals(selected, ignoreCase = true)
+            holder.binding.ivSelectedCheck.isVisible = isCurrent
+            if (isCurrent) {
+                holder.binding.tvDistrictName.setTextColor(
+                    ContextCompat.getColor(holder.itemView.context, R.color.primary_red)
                 )
-                binding.textInputLayoutTime.error = null
-            },
-            calendar.get(Calendar.HOUR_OF_DAY),
-            calendar.get(Calendar.MINUTE),
-            false
-        ).show()
+            } else {
+                holder.binding.tvDistrictName.setTextColor(
+                    ContextCompat.getColor(holder.itemView.context, R.color.text_primary)
+                )
+            }
+            holder.itemView.setOnClickListener { onItemClick(item) }
+        }
+
+        override fun getItemCount(): Int = list.size
+
+        class DistrictViewHolder(val binding: ItemDistrictPickerBinding) :
+            RecyclerView.ViewHolder(binding.root)
     }
 
     private fun submitBloodRequest() {

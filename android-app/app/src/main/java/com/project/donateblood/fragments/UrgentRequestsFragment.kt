@@ -23,6 +23,7 @@ import com.project.donateblood.adapter.BloodRequestFeedAdapter
 import com.project.donateblood.databinding.FragmentUrgentRequestsBinding
 import com.project.donateblood.models.BloodRequest
 import com.project.donateblood.utils.BloodCompatibility
+import com.project.donateblood.utils.BloodRequestDetailsSheet
 import com.project.donateblood.utils.FirebaseUtils
 import com.project.donateblood.viewmodels.UserViewModel
 import timber.log.Timber
@@ -535,30 +536,19 @@ class UrgentRequestsFragment : Fragment() {
     }
 
     private fun showRequestDetailsDialog(request: BloodRequest) {
-        val detailsMsg = buildString {
-            append("Blood Group: ${request.bloodGroup}\n")
-            if (request.patientName.isNotBlank()) append("Patient: ${request.patientName}\n")
-            append("Hospital: ${request.hospital}\n")
-            val loc = if (request.district.isNotBlank()) "${request.location}, ${request.district}".trim(',', ' ') else request.location
-            if (loc.isNotBlank()) append("Location: $loc\n")
-            append("Units Needed: ${request.units}\n")
-            if (request.date.isNotBlank()) append("Required Date: ${request.date} ${request.time}\n")
-            if (request.phone.isNotBlank()) append("Contact Phone: ${request.phone}\n")
-            append("Urgency: ${request.urgency.replaceFirstChar { it.uppercase() }}\n")
-            append("Status: ${request.status.replaceFirstChar { it.uppercase() }}")
-        }
-
-        MaterialAlertDialogBuilder(requireContext())
-            .setTitle("Blood Request Details")
-            .setMessage(detailsMsg)
-            .setPositiveButton("I Can Help") { _, _ ->
-                handleHelpClick(request)
-            }
-            .setNeutralButton("Share") { _, _ ->
-                handleShareClick(request)
-            }
-            .setNegativeButton("Close", null)
-            .show()
+        if (!isAdded) return
+        BloodRequestDetailsSheet.show(
+            context = requireContext(),
+            layoutInflater = layoutInflater,
+            request = request,
+            currentUserBloodGroup = currentUserBloodGroup,
+            currentUserId = auth.currentUser?.uid,
+            onCallClick = { r -> handleCallClick(r) },
+            onChatClick = { r -> openChatWithRequester(r) },
+            onShareClick = { r -> handleShareClick(r) },
+            onDirectionsClick = { r -> handleDirectionsClick(r) },
+            onHelpClick = { r -> handleHelpClick(r) }
+        )
     }
 
     private fun toast(msg: String) {

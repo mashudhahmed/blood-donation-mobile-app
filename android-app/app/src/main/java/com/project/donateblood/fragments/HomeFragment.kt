@@ -39,6 +39,7 @@ import com.project.donateblood.models.BloodRequest
 import com.project.donateblood.models.Donor
 import com.project.donateblood.models.Hospital
 import com.project.donateblood.repository.DirectoryRepository
+import com.project.donateblood.utils.BloodRequestDetailsSheet
 import com.project.donateblood.utils.FirebaseUtils
 import com.project.donateblood.utils.ProfileImageManager
 import com.project.donateblood.viewmodels.UserViewModel
@@ -1523,26 +1524,71 @@ class HomeFragment : Fragment() {
             .show()
     }
 
-    private fun showRequestDetailsDialog(request: BloodRequest) {
-        val detailsMsg = buildString {
+    private fun handleShareClick(request: BloodRequest) {
+        val shareText = buildString {
+            append("EMERGENCY BLOOD REQUEST\n\n")
             append("Blood Group: ${request.bloodGroup}\n")
             if (request.patientName.isNotBlank()) append("Patient: ${request.patientName}\n")
             append("Hospital: ${request.hospital}\n")
             val loc = if (request.district.isNotBlank()) "${request.location}, ${request.district}".trim(',', ' ') else request.location
             if (loc.isNotBlank()) append("Location: $loc\n")
             append("Units Needed: ${request.units}\n")
-            if (request.date.isNotBlank()) append("Date: ${request.date} ${request.time}\n")
-            if (request.phone.isNotBlank()) append("Phone: ${request.phone}\n")
+            if (request.date.isNotBlank()) append("Needed Date: ${request.date} ${request.time}\n")
+            if (request.phone.isNotBlank()) append("Contact: ${request.phone}\n")
+            append("\nPlease share and help save a life via BloodLink!")
         }
+        val intent = Intent(Intent.ACTION_SEND).apply {
+            type = "text/plain"
+            putExtra(Intent.EXTRA_SUBJECT, "Urgent Blood Request - ${request.bloodGroup}")
+            putExtra(Intent.EXTRA_TEXT, shareText)
+        }
+        startActivity(Intent.createChooser(intent, "Share Blood Request"))
+    }
 
-        android.app.AlertDialog.Builder(requireContext())
-            .setTitle("Blood Request Details")
-            .setMessage(detailsMsg)
-            .setPositiveButton("I Can Help") { _, _ ->
-                handleHelpClick(request)
+    private fun handleDirectionsClick(request: BloodRequest) {
+        val destination = when {
+            request.hospital.isNotBlank() && request.district.isNotBlank() -> "${request.hospital}, ${request.district}"
+            request.hospital.isNotBlank() -> request.hospital
+            request.location.isNotBlank() -> request.location
+            else -> ""
+        }
+        if (destination.isBlank()) {
+            toast("Hospital location not available")
+            return
+        }
+        try {
+            val uri = Uri.parse("geo:0,0?q=${Uri.encode(destination)}")
+            val intent = Intent(Intent.ACTION_VIEW, uri)
+            startActivity(intent)
+        } catch (_: Exception) {
+            try {
+                val webUri = Uri.parse("https://www.google.com/maps/search/?api=1&query=${Uri.encode(destination)}")
+                startActivity(Intent(Intent.ACTION_VIEW, webUri))
+            } catch (_: Exception) {
+                toast("Unable to open map application")
             }
-            .setNegativeButton("Close", null)
-            .show()
+        }
+    }
+
+    private fun showRequestDetailsDialog(request: BloodRequest) {
+        if (!isAdded) return
+        val currentUserId = FirebaseAuth.getInstance().currentUser?.uid
+        val currentUserBloodGroup = userViewModel.userBloodGroup.value.orEmpty()
+        BloodRequestDetailsSheet.show(
+            context = requireContext(),
+            layoutInflater = layoutInflater,
+            request = request,
+            currentUserBloodGroup = currentUserBloodGroup,
+            currentUserId = currentUserId,
+            onCallClick = { r ->
+                if (r.phone.isNotBlank()) makePhoneCall(r.phone)
+                else toast("Requester phone number not available")
+            },
+            onChatClick = { r -> openChatWithRequester(r) },
+            onShareClick = { r -> handleShareClick(r) },
+            onDirectionsClick = { r -> handleDirectionsClick(r) },
+            onHelpClick = { r -> handleHelpClick(r) }
+        )
     }
 
     private fun toast(msg: String) {

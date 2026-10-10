@@ -92,7 +92,7 @@ class PrivacyPolicyDialogFragment : DialogFragment() {
             - Export your data
 
             6. Contact Us
-            For privacy concerns, contact: privacy@donateblood.com
+            For privacy concerns, contact: privacy@bloodlink.com
         """.trimIndent()
 
         binding.tvPrivacyContent.text = privacyContent
@@ -137,7 +137,7 @@ class PrivacyPolicyDialogFragment : DialogFragment() {
     private fun showDeclineWarning() {
         android.app.AlertDialog.Builder(requireContext())
             .setTitle("Privacy Policy Required")
-            .setMessage("You must accept the Privacy Policy to use Donate Blood app. If you decline, you will be logged out of the app.")
+            .setMessage("You must accept the Privacy Policy to use BloodLink app. If you decline, you will be logged out of the app.")
             .setPositiveButton("Accept") { _, _ ->
                 acceptPrivacyPolicy()
             }

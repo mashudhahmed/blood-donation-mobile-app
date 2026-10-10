@@ -42,7 +42,7 @@ object RetrofitClient {
             val requestBuilder = request.newBuilder()
                 .addHeader("Content-Type", "application/json")
                 .addHeader("Accept", "application/json")
-                .addHeader("User-Agent", "DonateBlood-Android/${BuildConfig.VERSION_NAME}")
+                .addHeader("User-Agent", "BloodLink-Android/${BuildConfig.VERSION_NAME}")
                 .addHeader("X-Platform", "android")
                 .addHeader("X-App-Version", BuildConfig.VERSION_NAME)
                 .addHeader("X-Requester-Info", "Android-App/${BuildConfig.VERSION_CODE}")

@@ -20,5 +20,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "DonateBlood"
+rootProject.name = "BloodLink"
 include(":app")

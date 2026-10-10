@@ -65,7 +65,7 @@ class AboutUsFragment : Fragment() {
 
         // Website click
         binding.tvWebsite.setOnClickListener {
-            openUrl("https://donateblood.com")
+            openUrl("https://bloodlink.com")
         }
 
         // Phone click
@@ -110,10 +110,10 @@ class AboutUsFragment : Fragment() {
 
     private fun sendEmail() {
         try {
-            val email = "support@donateblood.com"
+            val email = "support@bloodlink.com"
             val intent = android.content.Intent(android.content.Intent.ACTION_SENDTO).apply {
                 data = "mailto:$email".toUri()
-                putExtra(android.content.Intent.EXTRA_SUBJECT, "Donate Blood App Inquiry")
+                putExtra(android.content.Intent.EXTRA_SUBJECT, "BloodLink App Inquiry")
             }
             startActivity(intent)
         } catch (_: Exception) {
@@ -161,7 +161,7 @@ class AboutUsFragment : Fragment() {
 
     private fun shareApp() {
         try {
-            val shareText = "Check out this amazing blood donation app! Download it from: https://play.google.com/store/apps/details?id=${requireContext().packageName}"
+            val shareText = "Check out BloodLink, the life-saving blood donation app! Download it from: https://play.google.com/store/apps/details?id=${requireContext().packageName}"
             val intent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
                 type = "text/plain"
                 putExtra(android.content.Intent.EXTRA_TEXT, shareText)

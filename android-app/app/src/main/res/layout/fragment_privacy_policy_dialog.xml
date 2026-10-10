@@ -121,7 +121,7 @@
                     <TextView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="By continuing to use Donate Blood, you agree to our Privacy Policy. Your personal and health information is protected and used only for connecting donors with recipients in need."
+                        android:text="By continuing to use BloodLink, you agree to our Privacy Policy. Your personal and health information is protected and used only for connecting donors with recipients in need."
                         android:textSize="12sp"
                         android:textColor="@color/text_primary"
                         android:lineSpacingExtra="4dp" />
@@ -195,7 +195,7 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="privacy@donateblood.com"
+                            android:text="privacy@bloodlink.com"
                             android:textSize="12sp"
                             android:textColor="@color/text_secondary"
                             android:textStyle="italic" />
@@ -222,7 +222,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Donate Blood v1.0.0"
+                    android:text="BloodLink v1.0.0"
                     android:textSize="10sp"
                     android:textColor="@color/text_secondary" />
             </LinearLayout>

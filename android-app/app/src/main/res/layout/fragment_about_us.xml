@@ -320,7 +320,7 @@
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="© 2024 Donate Blood App. All rights reserved."
+                android:text="@string/copyright"
                 android:textSize="12sp"
                 android:textColor="@color/text_secondary"
                 android:gravity="center"

@@ -2,7 +2,7 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
 
     <!-- ================= APP INFO ================= -->
-    <string name="app_name">SaveLife</string>
+    <string name="app_name">BloodLink</string>
     <string name="app_slogan">Save a Life, Donate Blood</string>
     <string name="donate_blood">Donate Blood</string>
     <string name="save_lives">Save Lives</string>
@@ -167,11 +167,11 @@
 
     <!-- ================= PERMISSION STRINGS ================= -->
     <string name="permission_camera_title">Camera Permission</string>
-    <string name="permission_camera_message">SaveLife needs camera permission to take profile photos</string>
+    <string name="permission_camera_message">BloodLink needs camera permission to take profile photos</string>
     <string name="permission_location_title">Location Permission</string>
-    <string name="permission_location_message">SaveLife needs location permission to find nearby donors</string>
+    <string name="permission_location_message">BloodLink needs location permission to find nearby donors</string>
     <string name="permission_phone_title">Phone Permission</string>
-    <string name="permission_phone_message">SaveLife needs phone permission to call donors</string>
+    <string name="permission_phone_message">BloodLink needs phone permission to call donors</string>
 
     <!-- ================= DIALOG TEXTS ================= -->
     <string name="dialog_confirm">Confirm</string>
@@ -219,7 +219,7 @@
     <string name="settings_language">Language</string>
     <string name="settings_theme">Theme</string>
     <string name="settings_help">Help &amp; Support</string>
-    <string name="settings_about">About SaveLife</string>
+    <string name="settings_about">About BloodLink</string>
 
     <!-- ================= PROFILE ================= -->
     <string name="profile_title">My Profile</string>
@@ -238,7 +238,7 @@
 
     <!-- ================= MISCELLANEOUS ================= -->
     <string name="version">Version %s</string>
-    <string name="copyright">© 2024 SaveLife. All rights reserved.</string>
+    <string name="copyright">© 2024 BloodLink. All rights reserved.</string>
     <string name="contact_us">Contact Us</string>
     <string name="phone_number">Phone: %s</string>
     <string name="email_contact">Email: %s</string>
@@ -405,14 +405,14 @@
     <string name="last_updated_format">Last Updated: %s</string>
 
     <string name="no_donors_available">No donors available</string>
-    <string name="support_donateblood_com">support@donateblood.com</string>
+    <string name="support_donateblood_com">support@bloodlink.com</string>
     <string name="_1_234_567_8900">+1 (234) 567-8900</string>
-    <string name="www_donateblood_com">www.donateblood.com</string>
-    <string name="donate_blood_">Donate Blood</string>
+    <string name="www_donateblood_com">www.bloodlink.com</string>
+    <string name="donate_blood_">BloodLink</string>
     <string name="app_logo">App Logo</string>
     <string name="version_1_0_0">Version 1.0.0</string>
     <string name="about_our_app">About Our App</string>
-    <string name="donate_blood_is_a_life_saving_platform_connecting_blood_donors_with_those_in_need_our_mission_is_to_make_blood_donation_accessible_safe_and_efficient_for_everyone">Donate Blood is a life-saving platform connecting blood donors with those in need. Our mission is to make blood donation accessible, safe, and efficient for everyone.</string>
+    <string name="donate_blood_is_a_life_saving_platform_connecting_blood_donors_with_those_in_need_our_mission_is_to_make_blood_donation_accessible_safe_and_efficient_for_everyone">BloodLink is a life-saving platform connecting blood donors with those in need. Our mission is to make blood donation accessible, safe, and efficient for everyone.</string>
     <string name="contact_us_">Contact Us</string>
     <string name="about_legal"><![CDATA[About & Legal]]></string>
     <string name="privacy_policy">Privacy Policy</string>

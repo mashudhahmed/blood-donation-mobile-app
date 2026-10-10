@@ -7,18 +7,22 @@
     android:orientation="vertical"
     android:background="#F8F9FA">
 
-    <!-- Top Crimson Toolbar -->
+    <!-- Top Crimson Toolbar matching Activity, Profile & Chat -->
     <com.google.android.material.appbar.MaterialToolbar
         android:id="@+id/toolbar"
         android:layout_width="match_parent"
-        android:layout_height="?attr/actionBarSize"
+        android:layout_height="wrap_content"
+        android:minHeight="?attr/actionBarSize"
         android:background="@color/primary_red_dark"
-        app:elevation="3dp"
         app:navigationIcon="@drawable/ic_arrow_back_white"
         app:title="Donor Registration"
-        app:titleTextColor="@color/white"
+        app:titleTextAppearance="@style/TextAppearance.BloodLink.Toolbar.Title"
         app:subtitle="Join as an active blood donor"
-        app:subtitleTextColor="#FFCDD2" />
+        app:subtitleTextAppearance="@style/TextAppearance.BloodLink.Toolbar.Subtitle"
+        app:titleTextColor="@color/white"
+        app:subtitleTextColor="#E0E0E0"
+        app:contentInsetStartWithNavigation="8dp"
+        app:elevation="3dp" />
 
     <!-- Scrollable Form -->
     <androidx.core.widget.NestedScrollView

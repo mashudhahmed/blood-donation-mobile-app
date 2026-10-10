@@ -7,17 +7,19 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.core.net.toUri
-import androidx.fragment.app.DialogFragment
 import androidx.navigation.fragment.findNavController
+import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import com.project.donateblood.R
 import com.project.donateblood.databinding.FragmentDonorDetailsBinding
 import com.project.donateblood.models.Donor
 import com.project.donateblood.utils.ProfileImageManager
 
-class DonorDetailsDialogFragment : DialogFragment() {
+class DonorDetailsDialogFragment : BottomSheetDialogFragment() {
 
     private var _binding: FragmentDonorDetailsBinding? = null
     private val binding get() = _binding!!
+
+    override fun getTheme(): Int = R.style.Theme_BloodLink_BottomSheetDialog
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -36,13 +38,13 @@ class DonorDetailsDialogFragment : DialogFragment() {
         ProfileImageManager.loadAvatar(binding.ivProfilePicture, donor.imageUrl)
         binding.tvName.text = donor.name
         binding.tvBloodGroup.text = donor.bloodGroup
-        binding.tvAddressLine1.text = donor.location
+        binding.tvAddressLine1.text = donor.location.ifBlank { "Location not specified" }
         binding.tvAddressLine2.text = donor.district
         binding.tvMobileNumber.text = maskPhoneNumber(donor.phone)
         binding.tvCurrentStatus.text =
-            if (donor.isAvailable) "Available" else "Not Available"
+            if (donor.isAvailable) "Available" else "Busy"
 
-        binding.tvMobileNumber.setOnClickListener {
+        val triggerCallAction = {
             if (donor.phone.isNotEmpty()) {
                 android.app.AlertDialog.Builder(requireContext())
                     .setTitle("Emergency Call Notice")
@@ -55,6 +57,9 @@ class DonorDetailsDialogFragment : DialogFragment() {
                     .show()
             }
         }
+
+        binding.tvMobileNumber.setOnClickListener { triggerCallAction() }
+        binding.btnCallDonor.setOnClickListener { triggerCallAction() }
 
         binding.ivClose.setOnClickListener {
             dismiss()

@@ -1,280 +1,404 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.core.widget.NestedScrollView
+    xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    app:cardBackgroundColor="@color/white"
-    app:cardCornerRadius="14dp">
+    android:background="@drawable/bg_bottom_sheet_dialog"
+    android:overScrollMode="never">
 
-    <ScrollView
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="@color/white"
-        android:paddingTop="8dp">
+        android:orientation="vertical"
+        android:paddingHorizontal="20dp"
+        android:paddingTop="12dp"
+        android:paddingBottom="24dp">
 
+        <!-- TOP DRAG HANDLE -->
+        <View
+            android:layout_width="40dp"
+            android:layout_height="4dp"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginBottom="16dp"
+            android:background="@drawable/bg_sheet_drag_handle" />
+
+        <!-- ================= HERO HEADER: AVATAR + NAME & BADGES + CLOSE BUTTON ================= -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:padding="24dp"
-            android:paddingTop="16dp">
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
 
-            <!-- Title Row with Close Icon -->
-            <RelativeLayout
-                android:layout_width="300dp"
+            <!-- DONOR AVATAR -->
+            <de.hdodenhof.circleimageview.CircleImageView
+                android:id="@+id/ivProfilePicture"
+                android:layout_width="60dp"
+                android:layout_height="60dp"
+                android:src="@drawable/ic_user_placeholder"
+                app:civ_border_color="#E2E8F0"
+                app:civ_border_width="2dp" />
+
+            <!-- NAME & BADGES -->
+            <LinearLayout
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="24dp">
+                android:layout_weight="1"
+                android:layout_marginStart="14dp"
+                android:layout_marginEnd="8dp"
+                android:orientation="vertical">
 
-                <!-- Details Information Title - Left Aligned -->
                 <TextView
-                    android:id="@+id/tvTitle"
+                    android:id="@+id/tvName"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Details Information"
-                    android:textSize="20sp"
+                    android:textColor="#0F172A"
+                    android:textSize="18sp"
                     android:textStyle="bold"
-                    android:textColor="@color/black"
-                    android:layout_alignParentStart="true"
-                    android:layout_centerVertical="true" />
+                    tools:text="Ayesha Siddiqua" />
 
-                <!-- Close Icon - Right Aligned -->
-                <ImageView
-                    android:id="@+id/ivClose"
-                    android:layout_width="32dp"
-                    android:layout_height="32dp"
-                    android:layout_alignParentEnd="true"
-                    android:layout_centerVertical="true"
-                    android:src="@drawable/ic_close"
-                    android:background="@drawable/card_background"
-                    android:padding="4dp"
-                    app:tint="@color/black"
-                    android:clickable="true"
-                    android:focusable="true" />
-
-            </RelativeLayout>
-
-            <!-- Profile Picture Section -->
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:gravity="center"
-                android:layout_marginBottom="16dp">
-
-                <de.hdodenhof.circleimageview.CircleImageView
-                    android:id="@+id/ivProfilePicture"
-                    android:layout_width="108dp"
-                    android:layout_height="109dp"
-                    android:src="@drawable/ic_user_placeholder"
-                    app:civ_border_color="@color/black"
-                    app:civ_border_width="2dp" />
-
-                <!-- Blood Group Badge -->
-                <TextView
-                    android:id="@+id/tvBloodGroup"
+                <!-- BADGES ROW: BLOOD GROUP + STATUS + PROTECTED -->
+                <LinearLayout
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="O+"
-                    android:textSize="14sp"
-                    android:textStyle="bold"
-                    android:textColor="@color/primary_red_dark"
-                    android:background="@drawable/card_background"
-                    android:paddingHorizontal="12dp"
-                    android:paddingVertical="4dp"
-                    android:layout_marginTop="8dp" />
-            </LinearLayout>
-
-            <!-- Name Section -->
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:layout_marginBottom="12dp">
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
+                    android:layout_marginTop="5dp"
                     android:orientation="horizontal"
-                    android:layout_marginBottom="8dp">
+                    android:gravity="center_vertical">
 
+                    <!-- BLOOD GROUP BADGE -->
                     <TextView
+                        android:id="@+id/tvBloodGroup"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Name:"
-                        android:textSize="16sp"
+                        android:background="@drawable/bg_tag_urgent_2026"
+                        android:paddingHorizontal="8dp"
+                        android:paddingVertical="2.5dp"
+                        android:textColor="@color/primary_red"
+                        android:textSize="11.5sp"
                         android:textStyle="bold"
-                        android:textColor="@color/text_primary" />
+                        tools:text="AB+" />
 
-                    <TextView
-                        android:id="@+id/tvName"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Farjana Afrin"
-                        android:textSize="16sp"
-                        android:textColor="@color/text_primary"
-                        android:layout_marginStart="8dp" />
-                </LinearLayout>
-
-                <!-- Divider Line After Name -->
-                <View
-                    android:layout_width="match_parent"
-                    android:layout_height="1dp"
-                    android:background="@color/border_color"
-                    android:layout_marginTop="4dp" />
-            </LinearLayout>
-
-            <!-- Address Section -->
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:layout_marginBottom="12dp">
-
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="Address:"
-                    android:textSize="16sp"
-                    android:textStyle="bold"
-                    android:textColor="@color/text_primary"
-                    android:layout_marginBottom="4dp" />
-
-                <TextView
-                    android:id="@+id/tvAddressLine1"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="Sreekol Laxmikol, Dubila"
-                    android:textSize="16sp"
-                    android:textColor="@color/text_primary"
-                    android:layout_marginBottom="2dp" />
-
-                <TextView
-                    android:id="@+id/tvAddressLine2"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="Pabna Sadar,Pabna"
-                    android:textSize="16sp"
-                    android:textColor="@color/text_primary"
-                    android:layout_marginBottom="8dp" />
-
-                <!-- Divider Line After Address -->
-                <View
-                    android:layout_width="match_parent"
-                    android:layout_height="1dp"
-                    android:background="@color/border_color"
-                    android:layout_marginTop="4dp" />
-            </LinearLayout>
-
-            <!-- Mobile Number Section -->
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:layout_marginBottom="12dp">
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:layout_marginBottom="8dp">
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Mobile Number:"
-                        android:textSize="16sp"
-                        android:textStyle="bold"
-                        android:textColor="@color/text_primary" />
-
-                    <TextView
-                        android:id="@+id/tvMobileNumber"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="+880 01792712798"
-                        android:textSize="16sp"
-                        android:textColor="@color/text_primary"
-                        android:layout_marginStart="8dp" />
-                </LinearLayout>
-
-                <!-- Divider Line After Mobile Number -->
-                <View
-                    android:layout_width="match_parent"
-                    android:layout_height="1dp"
-                    android:background="@color/border_color"
-                    android:layout_marginTop="4dp" />
-            </LinearLayout>
-
-            <!-- Current Status Section -->
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:layout_marginBottom="24dp">
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:layout_marginBottom="8dp">
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Current Status:"
-                        android:textSize="16sp"
-                        android:textStyle="bold"
-                        android:textColor="@color/text_primary" />
-
+                    <!-- AVAILABILITY STATUS BADGE -->
                     <TextView
                         android:id="@+id/tvCurrentStatus"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Ready for Donate"
-                        android:textSize="16sp"
-                        android:textColor="@color/green_dark"
-                        android:layout_marginStart="8dp" />
-                </LinearLayout>
+                        android:layout_marginStart="6dp"
+                        android:background="@drawable/bg_tag_available_2026"
+                        android:paddingHorizontal="8dp"
+                        android:paddingVertical="2.5dp"
+                        android:textColor="#16A34A"
+                        android:textSize="11.5sp"
+                        android:textStyle="bold"
+                        tools:text="Available" />
 
-                <!-- Divider Line After Status (Optional) -->
-                <!-- <View
-                    android:layout_width="match_parent"
-                    android:layout_height="1dp"
-                    android:background="@color/border_color"
-                    android:layout_marginTop="4dp" /> -->
+                    <!-- PRIVACY PROTECTED BADGE -->
+                    <TextView
+                        android:id="@+id/tvPrivacyBadge"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="6dp"
+                        android:background="@drawable/bg_tag_compatibility_2026"
+                        android:drawablePadding="3dp"
+                        android:paddingHorizontal="8dp"
+                        android:paddingVertical="2.5dp"
+                        android:text="Protected"
+                        android:textColor="#0284C7"
+                        android:textSize="11sp"
+                        android:textStyle="bold"
+                        app:drawableStartCompat="@drawable/ic_shield_check_small"
+                        app:drawableTint="#0284C7"
+                        tools:ignore="HardcodedText" />
+                </LinearLayout>
             </LinearLayout>
 
-            <!-- Chat with Donor Button -->
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnChatWithDonor"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="Chat with Donor"
-                android:textAllCaps="false"
-                android:textSize="15sp"
-                app:icon="@drawable/ic_chat"
-                app:iconTint="@color/primary_red_dark"
-                app:strokeColor="@color/primary_red_dark"
-                app:strokeWidth="1dp"
-                android:textColor="@color/primary_red_dark"
-                app:backgroundTint="@color/white"
-                android:layout_marginTop="8dp" />
+            <!-- CLOSE BUTTON -->
+            <ImageView
+                android:id="@+id/ivClose"
+                android:layout_width="34dp"
+                android:layout_height="34dp"
+                android:src="@drawable/ic_close"
+                android:background="@drawable/bg_icon_button_2026"
+                android:padding="8.5dp"
+                app:tint="#64748B"
+                android:clickable="true"
+                android:focusable="true"
+                android:contentDescription="Close details sheet"
+                tools:ignore="HardcodedText" />
+        </LinearLayout>
 
-            <!-- Request Donate Blood Button -->
-            <Button
-                android:id="@+id/btnRequestDonate"
+        <!-- ================= PRIVACY POLICY CALLOUT ================= -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="14dp"
+            android:background="@drawable/bg_tag_compatibility_2026"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingHorizontal="12dp"
+            android:paddingVertical="9dp">
+
+            <ImageView
+                android:layout_width="17dp"
+                android:layout_height="17dp"
+                android:src="@drawable/ic_shield_check_small"
+                app:tint="#0284C7"
+                tools:ignore="ContentDescription" />
+
+            <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Request Donate Blood"
-                android:textAllCaps="false"
-                android:textSize="16sp"
-                android:backgroundTint="@color/primary_red_dark"
-                android:textColor="@color/white"
-                android:layout_marginTop="8dp"
-                app:iconGravity="textStart"
-                app:iconPadding="8dp"
-                app:iconTint="@color/white" />
+                android:layout_marginStart="8dp"
+                android:text="Donor Privacy Protected: Connect responsibly for genuine emergencies. Donors volunteer their time and blood."
+                android:textColor="#0284C7"
+                android:textSize="11.5sp"
+                android:lineSpacingExtra="1.5dp" />
+        </LinearLayout>
+
+        <!-- ================= METADATA DETAILS CONTAINER ================= -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="14dp"
+            android:background="@drawable/bg_meta_container_2026"
+            android:orientation="vertical"
+            android:padding="16dp">
+
+            <!-- ADDRESS / LOCATION -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="top">
+
+                <ImageView
+                    android:layout_width="16dp"
+                    android:layout_height="16dp"
+                    android:layout_marginTop="2dp"
+                    android:src="@drawable/ic_location_pin"
+                    app:tint="#64748B"
+                    tools:ignore="ContentDescription" />
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_marginStart="10dp"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="DONOR LOCATION &amp; DISTRICT"
+                        android:textColor="#94A3B8"
+                        android:textSize="10.5sp"
+                        android:textStyle="bold"
+                        android:letterSpacing="0.05" />
+
+                    <TextView
+                        android:id="@+id/tvAddressLine1"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:textColor="#1E293B"
+                        android:textSize="14sp"
+                        android:textStyle="bold"
+                        tools:text="Mohakhali" />
+
+                    <TextView
+                        android:id="@+id/tvAddressLine2"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="1dp"
+                        android:textColor="#64748B"
+                        android:textSize="12.5sp"
+                        tools:text="Dhaka Sadar, Dhaka" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- DIVIDER -->
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:layout_marginVertical="10dp"
+                android:background="#F1F5F9" />
+
+            <!-- MOBILE NUMBER (PROTECTED) -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="top">
+
+                <ImageView
+                    android:layout_width="16dp"
+                    android:layout_height="16dp"
+                    android:layout_marginTop="2dp"
+                    android:src="@drawable/ic_call"
+                    app:tint="#64748B"
+                    tools:ignore="ContentDescription" />
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_marginStart="10dp"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="CONTACT NUMBER (MASKED FOR PRIVACY)"
+                        android:textColor="#94A3B8"
+                        android:textSize="10.5sp"
+                        android:textStyle="bold"
+                        android:letterSpacing="0.05" />
+
+                    <TextView
+                        android:id="@+id/tvMobileNumber"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:textColor="#1E293B"
+                        android:textSize="14sp"
+                        android:textStyle="bold"
+                        android:background="?attr/selectableItemBackground"
+                        android:clickable="true"
+                        android:focusable="true"
+                        tools:text="+880 161•• ••54" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:text="Tap to initiate emergency call notice"
+                        android:textColor="#94A3B8"
+                        android:textSize="11sp" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- DIVIDER -->
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:layout_marginVertical="10dp"
+                android:background="#F1F5F9" />
+
+            <!-- DONATION READINESS -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="top">
+
+                <ImageView
+                    android:layout_width="16dp"
+                    android:layout_height="16dp"
+                    android:layout_marginTop="2dp"
+                    android:src="@drawable/ic_blood_drop"
+                    app:tint="@color/primary_red"
+                    tools:ignore="ContentDescription" />
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_marginStart="10dp"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="VOLUNTEER READINESS"
+                        android:textColor="#94A3B8"
+                        android:textSize="10.5sp"
+                        android:textStyle="bold"
+                        android:letterSpacing="0.05" />
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:text="Registered Volunteer · Ready to respond to blood requests"
+                        android:textColor="#475569"
+                        android:textSize="13sp" />
+                </LinearLayout>
+            </LinearLayout>
 
         </LinearLayout>
-    </ScrollView>
 
-</androidx.cardview.widget.CardView>
+        <!-- ================= PRIMARY & SECONDARY ACTION BUTTONS ================= -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+            <!-- CALL BUTTON -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnCallDonor"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                android:layout_width="0dp"
+                android:layout_height="44dp"
+                android:layout_weight="1"
+                android:layout_marginEnd="6dp"
+                android:text="Call"
+                android:textColor="#1E293B"
+                android:textSize="13sp"
+                android:textStyle="bold"
+                app:cornerRadius="22dp"
+                app:strokeColor="#CBD5E1"
+                app:strokeWidth="1dp"
+                app:icon="@drawable/ic_call"
+                app:iconSize="15dp"
+                app:iconTint="@color/primary_red"
+                app:iconGravity="textStart"
+                android:textAllCaps="false"
+                tools:ignore="HardcodedText" />
+
+            <!-- CHAT WITH DONOR BUTTON -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnChatWithDonor"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                android:layout_width="0dp"
+                android:layout_height="44dp"
+                android:layout_weight="1"
+                android:layout_marginStart="6dp"
+                android:text="Chat"
+                android:textColor="@color/primary_red"
+                android:textSize="13sp"
+                android:textStyle="bold"
+                app:cornerRadius="22dp"
+                app:strokeColor="@color/primary_red"
+                app:strokeWidth="1dp"
+                app:icon="@drawable/ic_chat"
+                app:iconSize="15dp"
+                app:iconTint="@color/primary_red"
+                app:iconGravity="textStart"
+                android:textAllCaps="false"
+                tools:ignore="HardcodedText" />
+        </LinearLayout>
+
+        <!-- REQUEST BLOOD BUTTON -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnRequestDonate"
+            android:layout_width="match_parent"
+            android:layout_height="44dp"
+            android:layout_marginTop="8dp"
+            android:text="Request Blood"
+            android:textColor="@color/white"
+            android:textSize="13sp"
+            android:textStyle="bold"
+            app:cornerRadius="22dp"
+            app:backgroundTint="@color/primary_red"
+            app:icon="@drawable/ic_blood_drop"
+            app:iconSize="15dp"
+            app:iconTint="@color/white"
+            app:iconGravity="textStart"
+            android:textAllCaps="false"
+            tools:ignore="HardcodedText" />
+
+    </LinearLayout>
+</androidx.core.widget.NestedScrollView>

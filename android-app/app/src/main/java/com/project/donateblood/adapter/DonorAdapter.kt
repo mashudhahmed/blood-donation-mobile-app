@@ -92,8 +92,10 @@ class DonorAdapter(
                 btnRequest.setOnClickListener(null)
             }
 
-            // Disable item click on root
-            itemView.setOnClickListener(null)
+            // Item click on root
+            itemView.setOnClickListener {
+                onViewDetailsClick(donor)
+            }
         }
 
         private fun maskPhoneNumber(phone: String): String {

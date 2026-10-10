@@ -150,5 +150,37 @@
 # Keep line numbers for stack traces (optional but helpful for debugging)
 -keepattributes SourceFile,LineNumberTable
 
-# If you want to obfuscate source file names in release builds
-#-renamesourcefileattribute SourceFile
+# ==============================================
+# APP DATA MODELS & DTOs (CRITICAL FOR GSON / FIRESTORE)
+# ==============================================
+-keep class com.project.donateblood.models.** { *; }
+-keepclassmembers class com.project.donateblood.models.** { *; }
+-keep class com.project.donateblood.network.** { *; }
+-keepclassmembers class com.project.donateblood.network.** { *; }
+
+# ==============================================
+# RETROFIT & OKHTTP
+# ==============================================
+-dontwarn retrofit2.**
+-keep class retrofit2.** { *; }
+-keepclasseswithmembers class * {
+    @retrofit2.http.* <methods>;
+}
+-dontwarn okhttp3.**
+-dontwarn okio.**
+-keep class okhttp3.** { *; }
+-keep interface okhttp3.** { *; }
+
+# ==============================================
+# GSON
+# ==============================================
+-keepclassmembers class * {
+    @com.google.gson.annotations.SerializedName <fields>;
+}
+-keep class com.google.gson.** { *; }
+
+# ==============================================
+# TIMBER
+# ==============================================
+-dontwarn timber.log.**
+-keep class timber.log.** { *; }

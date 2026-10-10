@@ -30,7 +30,6 @@ import com.project.donateblood.adapter.DonorAdapter
 import com.project.donateblood.databinding.FragmentHomeBinding
 import com.project.donateblood.models.Donor
 import com.project.donateblood.utils.FirebaseUtils
-import com.project.donateblood.viewmodels.BottomNavViewModel
 import com.project.donateblood.viewmodels.UserViewModel
 import timber.log.Timber
 
@@ -48,7 +47,6 @@ class HomeFragment : Fragment() {
 
     // Add ViewModels for data management
     private lateinit var userViewModel: UserViewModel
-    private lateinit var bottomNavViewModel: BottomNavViewModel
 
     // Auto-refresh properties
     companion object {
@@ -70,6 +68,8 @@ class HomeFragment : Fragment() {
     private var refreshAttempts = 0
     private val maxRefreshAttempts = 3
     private var networkAvailable = true
+    private var selectedBloodGroup: String = "All"
+    private var currentSearchQuery: String = ""
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -88,7 +88,6 @@ class HomeFragment : Fragment() {
 
         // Initialize ViewModels
         userViewModel = ViewModelProvider(requireActivity())[UserViewModel::class.java]
-        bottomNavViewModel = ViewModelProvider(requireActivity())[BottomNavViewModel::class.java]
 
         setupViews()
         setupRecyclerView()
@@ -97,7 +96,6 @@ class HomeFragment : Fragment() {
         setupPullToRefresh()
         setupNavigationViewHeader()
         setupNetworkMonitor()
-        setupBottomNavObserver()
 
         // Load initial data
         loadInitialData()
@@ -106,16 +104,6 @@ class HomeFragment : Fragment() {
         testFirestoreConnection()
 
         checkPrivacyPolicyAcceptance()
-    }
-
-    private fun setupBottomNavObserver() {
-        // Observe bottom nav selection changes
-        bottomNavViewModel.selectedItemId.observe(viewLifecycleOwner) { itemId ->
-            binding.bottomNavigationView.selectedItemId = itemId
-        }
-
-        // Set initial selection
-        bottomNavViewModel.setSelectedItem(R.id.nav_home)
     }
 
     override fun onResume() {
@@ -129,9 +117,6 @@ class HomeFragment : Fragment() {
         }
 
         startAutoRefresh()
-
-        // Update bottom nav selection
-        bottomNavViewModel.setSelectedItem(R.id.nav_home)
     }
 
     override fun onPause() {
@@ -181,6 +166,24 @@ class HomeFragment : Fragment() {
 
         // Initialize empty state
         binding.errorLayout.visibility = View.GONE
+
+        // Setup blood group quick filter chips
+        setupBloodGroupChips()
+    }
+
+    private fun showLoading(show: Boolean) {
+        if (!isAdded || _binding == null) return
+        if (show) {
+            binding.shimmerLayout.visibility = View.VISIBLE
+            binding.shimmerLayout.startShimmer()
+            binding.rvDonors.visibility = View.GONE
+            binding.errorLayout.visibility = View.GONE
+            binding.progressBar.visibility = View.GONE
+        } else {
+            binding.shimmerLayout.stopShimmer()
+            binding.shimmerLayout.visibility = View.GONE
+            binding.progressBar.visibility = View.GONE
+        }
     }
 
     // ---------------- RECYCLER VIEW ----------------
@@ -195,6 +198,9 @@ class HomeFragment : Fragment() {
             },
             onViewDetailsClick = { donor ->
                 showDonorDetailsDialog(donor)
+            },
+            onChatClick = { donor ->
+                openChatWithDonor(donor)
             }
         )
 
@@ -253,12 +259,12 @@ class HomeFragment : Fragment() {
 
     @SuppressLint("SetTextI18n")
     private fun showOfflineMode() {
-        if (isAdded) {
+        if (isAdded && _binding != null) {
+            showLoading(false)
             binding.tvNoDonors.text = "📵 No internet connection"
             binding.errorLayout.visibility = View.VISIBLE
             binding.btnRetry.visibility = View.VISIBLE
             binding.rvDonors.visibility = View.GONE
-            binding.progressBar.visibility = View.GONE
 
             binding.btnRetry.setOnClickListener {
                 if (networkAvailable) {
@@ -272,12 +278,7 @@ class HomeFragment : Fragment() {
 
     // ---------------- INITIAL DATA LOAD ----------------
     private fun loadInitialData() {
-        // Show loading state
-        binding.progressBar.visibility = View.VISIBLE
-        binding.errorLayout.visibility = View.GONE
-        binding.rvDonors.visibility = View.GONE
-
-        // Load fresh data
+        showLoading(true)
         loadRealDonorsFromFirestore()
     }
 
@@ -343,9 +344,9 @@ class HomeFragment : Fragment() {
         refreshAttempts++
         lastRefreshTime = System.currentTimeMillis()
 
-        binding.progressBar.visibility = View.VISIBLE
-        binding.errorLayout.visibility = View.GONE
-        binding.rvDonors.visibility = View.GONE
+        if (!binding.swipeRefreshLayout.isRefreshing) {
+            showLoading(true)
+        }
 
         // Cancel any existing listener first
         donorListener?.remove()
@@ -365,6 +366,7 @@ class HomeFragment : Fragment() {
         donorListener = firestore.collection(FirebaseUtils.Collections.DONORS)
             .whereEqualTo("isAvailable", true)
             .orderBy("name", Query.Direction.ASCENDING)
+            .limit(100)
             .addSnapshotListener { snapshot, error ->
                 handleQueryResult(snapshot, error, "ordered")
             }
@@ -377,6 +379,7 @@ class HomeFragment : Fragment() {
 
         donorListener = firestore.collection(FirebaseUtils.Collections.DONORS)
             .whereEqualTo("isAvailable", true)
+            .limit(100)
             .addSnapshotListener { snapshot, error ->
                 handleQueryResult(snapshot, error, "unordered")
             }
@@ -388,13 +391,14 @@ class HomeFragment : Fragment() {
         donorListener?.remove()
 
         donorListener = firestore.collection(FirebaseUtils.Collections.DONORS)
+            .limit(100)
             .addSnapshotListener { snapshot, error ->
                 if (error != null) {
                     Timber.tag("HomeFragment").e("Manual filtering failed: ${error.message}")
                     showNoDonorsMessage("❌ Failed to load donors", showRetry = true)
                     isRefreshing = false
                     binding.swipeRefreshLayout.isRefreshing = false
-                    binding.progressBar.visibility = View.GONE
+                    showLoading(false)
                     return@addSnapshotListener
                 }
 
@@ -431,7 +435,7 @@ class HomeFragment : Fragment() {
                                   error: Exception?, queryType: String) {
         isRefreshing = false
         binding.swipeRefreshLayout.isRefreshing = false
-        binding.progressBar.visibility = View.GONE
+        showLoading(false)
 
         if (error != null) {
             Timber.tag("HomeFragment").e("$queryType query error: ${error.message}")
@@ -564,12 +568,8 @@ class HomeFragment : Fragment() {
             // Update donor count in UI
             binding.tvTitle.text = "Available Donors (${donorList.size})"
 
-            // Submit list to adapter
-            donorAdapter.submitList(ArrayList(donorList))
-
-            // Force UI update
-            binding.rvDonors.visibility = View.VISIBLE
-            binding.errorLayout.visibility = View.GONE
+            // Submit filtered list to adapter
+            applyFilters()
 
             // Optional: add animation
             binding.rvDonors.scheduleLayoutAnimation()
@@ -595,27 +595,59 @@ class HomeFragment : Fragment() {
         }
     }
 
-    @SuppressLint("SetTextI18n")
-    private fun filterDonors(query: String) {
-        if (query.isEmpty()) {
-            donorAdapter.submitList(ArrayList(donorList))
-            updateEmptyState()
-            return
+    private fun setupBloodGroupChips() {
+        binding.chipGroupBlood.setOnCheckedStateChangeListener { _, checkedIds ->
+            selectedBloodGroup = if (checkedIds.isEmpty()) {
+                "All"
+            } else {
+                when (checkedIds.first()) {
+                    binding.chipAPos.id -> "A+"
+                    binding.chipANeg.id -> "A-"
+                    binding.chipBPos.id -> "B+"
+                    binding.chipBNeg.id -> "B-"
+                    binding.chipOPos.id -> "O+"
+                    binding.chipONeg.id -> "O-"
+                    binding.chipABPos.id -> "AB+"
+                    binding.chipABNeg.id -> "AB-"
+                    else -> "All"
+                }
+            }
+            applyFilters()
         }
+    }
 
-        val filtered = donorList.filter { donor ->
-            donor.name.contains(query, true) ||
-                    donor.bloodGroup.contains(query, true) ||
-                    donor.location.contains(query, true) ||
-                    donor.district.contains(query, true) ||
-                    donor.phone.contains(query, true)
+    @SuppressLint("SetTextI18n")
+    private fun applyFilters() {
+        if (!isAdded || _binding == null) return
+
+        var filtered = donorList.toList()
+        if (selectedBloodGroup != "All") {
+            filtered = filtered.filter { it.bloodGroup.equals(selectedBloodGroup, ignoreCase = true) }
+        }
+        if (currentSearchQuery.isNotBlank()) {
+            val q = currentSearchQuery.trim()
+            filtered = filtered.filter { donor ->
+                donor.name.contains(q, true) ||
+                donor.bloodGroup.contains(q, true) ||
+                donor.location.contains(q, true) ||
+                donor.district.contains(q, true) ||
+                donor.phone.contains(q, true)
+            }
         }
 
         donorAdapter.submitList(ArrayList(filtered))
 
-        // Show empty state if filtered results are empty
         if (filtered.isEmpty()) {
-            binding.tvNoDonors.text = "🔍 No donors found for \"$query\""
+            binding.tvNoDonors.text = when {
+                selectedBloodGroup != "All" && currentSearchQuery.isNotBlank() ->
+                    "🔍 No $selectedBloodGroup donors found for \"$currentSearchQuery\""
+                selectedBloodGroup != "All" ->
+                    "🔍 No $selectedBloodGroup donors available"
+                currentSearchQuery.isNotBlank() ->
+                    "🔍 No donors found for \"$currentSearchQuery\""
+                else ->
+                    "🤷‍♂️ No available donors at the moment"
+            }
             binding.errorLayout.visibility = View.VISIBLE
             binding.btnRetry.visibility = View.GONE
             binding.rvDonors.visibility = View.GONE
@@ -623,6 +655,11 @@ class HomeFragment : Fragment() {
             binding.errorLayout.visibility = View.GONE
             binding.rvDonors.visibility = View.VISIBLE
         }
+    }
+
+    private fun filterDonors(query: String) {
+        currentSearchQuery = query
+        applyFilters()
     }
 
     @SuppressLint("SetTextI18n")
@@ -693,25 +730,6 @@ class HomeFragment : Fragment() {
 
         binding.etSearch.addTextChangedListener {
             filterDonors(it.toString())
-        }
-
-        binding.bottomNavigationView.setOnItemSelectedListener { item ->
-            when (item.itemId) {
-                R.id.nav_home -> {
-                    // Already on home, do nothing
-                    true
-                }
-                R.id.nav_request_donate -> {
-                    navigateToRequestBloodFragment()
-                    true
-                }
-                R.id.nav_history -> {
-                    // This is the "Activity" tab in bottom nav
-                    navigateToHistoryFragment()
-                    true
-                }
-                else -> false
-            }
         }
     }
 
@@ -844,6 +862,57 @@ class HomeFragment : Fragment() {
         }
         val sanitized = phone.replace(" ", "")
         startActivity(Intent(Intent.ACTION_DIAL, "tel:$sanitized".toUri()))
+    }
+
+    private fun openChatWithDonor(donor: Donor) {
+        val currentUser = auth.currentUser
+        if (currentUser == null) {
+            toast("Please sign in to chat with donors")
+            findNavController().navigate(R.id.loginFragment)
+            return
+        }
+
+        val targetRecipientId = donor.userId.ifBlank { donor.id }
+        if (targetRecipientId == currentUser.uid) {
+            toast("You cannot message your own profile")
+            return
+        }
+
+        if (targetRecipientId.isNotBlank()) {
+            val bundle = ConversationFragment.newBundle(
+                recipientId = targetRecipientId,
+                recipientName = donor.name,
+                recipientBloodGroup = donor.bloodGroup,
+                recipientPhone = donor.phone,
+                recipientImage = donor.imageUrl
+            )
+            try {
+                findNavController().navigate(R.id.action_homeFragment_to_conversationFragment, bundle)
+            } catch (e: Exception) {
+                Timber.e(e, "Failed to navigate to conversation")
+                fallbackSmsChat(donor)
+            }
+        } else {
+            fallbackSmsChat(donor)
+        }
+    }
+
+    private fun fallbackSmsChat(donor: Donor) {
+        if (donor.phone.isEmpty()) {
+            toast("Donor contact number not available")
+            return
+        }
+        val sanitized = donor.phone.replace(" ", "")
+        val prefilledMsg = "Hello ${donor.name}, I found your contact on BloodLink for blood group ${donor.bloodGroup}. Are you currently available to donate?"
+        try {
+            val intent = Intent(Intent.ACTION_VIEW).apply {
+                data = "smsto:$sanitized".toUri()
+                putExtra("sms_body", prefilledMsg)
+            }
+            startActivity(intent)
+        } catch (_: Exception) {
+            toast("Unable to open messaging app")
+        }
     }
 
     // Updated logout function to use MainActivity's logout

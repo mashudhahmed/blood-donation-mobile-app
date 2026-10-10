@@ -18,7 +18,6 @@ import com.project.donateblood.R
 import com.project.donateblood.adapter.HistoryAdapter
 import com.project.donateblood.databinding.FragmentHistoryBinding
 import com.project.donateblood.models.HistoryItem
-import com.project.donateblood.viewmodels.BottomNavViewModel
 import java.text.SimpleDateFormat
 import java.util.Locale
 
@@ -29,7 +28,6 @@ class HistoryFragment : Fragment() {
 
     private lateinit var firestore: FirebaseFirestore
     private lateinit var auth: FirebaseAuth
-    private lateinit var bottomNavViewModel: BottomNavViewModel
     private var historyListener: ListenerRegistration? = null
 
     private val historyList = mutableListOf<HistoryItem>()
@@ -55,24 +53,11 @@ class HistoryFragment : Fragment() {
 
         auth = FirebaseAuth.getInstance()
         firestore = FirebaseFirestore.getInstance()
-        bottomNavViewModel = ViewModelProvider(requireActivity())[BottomNavViewModel::class.java]
 
         setupViews()
         setupRecyclerView()
         setupClickListeners()
-        setupBottomNavigation()
-        setupBottomNavObserver()
         loadHistoryData()
-    }
-
-    private fun setupBottomNavObserver() {
-        // Observe bottom nav selection changes
-        bottomNavViewModel.selectedItemId.observe(viewLifecycleOwner) { itemId ->
-            binding.bottomNavigationView.selectedItemId = itemId
-        }
-
-        // Set initial selection
-        bottomNavViewModel.setSelectedItem(R.id.nav_history)
     }
 
     private fun setupViews() {
@@ -102,29 +87,6 @@ class HistoryFragment : Fragment() {
 
         binding.rvHistory.layoutManager = LinearLayoutManager(requireContext())
         binding.rvHistory.adapter = historyAdapter
-    }
-
-    private fun setupBottomNavigation() {
-        binding.bottomNavigationView.setOnItemSelectedListener { item ->
-            when (item.itemId) {
-                R.id.nav_home -> {
-                    try {
-                        findNavController().navigate(R.id.action_historyFragment_to_homeFragment)
-                    } catch (_: Exception) {
-                        toast("Navigation failed")
-                    }
-                    true
-                }
-                R.id.nav_request_donate -> {
-                    navigateToRequestBloodFragment()
-                    true
-                }
-                R.id.nav_history -> {
-                    true
-                }
-                else -> false
-            }
-        }
     }
 
     private fun setupClickListeners() {

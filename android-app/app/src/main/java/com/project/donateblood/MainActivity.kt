@@ -8,9 +8,11 @@ import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
 import android.widget.Toast
+import android.view.View
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
 import androidx.navigation.findNavController
+import androidx.navigation.fragment.NavHostFragment
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.messaging.FirebaseMessaging
@@ -43,6 +45,7 @@ class MainActivity : BaseActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        setupBottomNavigation()
         requestNotificationPermission()
         initializeFcmTokenSync()
         handleUserLoginStatus()
@@ -72,6 +75,73 @@ class MainActivity : BaseActivity() {
             } else {
                 Timber.d("👤 No user authenticated")
                 onUserLoggedOut()
+            }
+        }
+    }
+
+    private fun setupBottomNavigation() {
+        val navHostFragment = supportFragmentManager
+            .findFragmentById(R.id.nav_host_fragment) as? NavHostFragment ?: return
+        val navController = navHostFragment.navController
+
+        binding.bottomNavigationView.setOnItemSelectedListener { item ->
+            val currentId = navController.currentDestination?.id
+            val targetDestinationId = when (item.itemId) {
+                R.id.nav_home -> R.id.homeFragment
+                R.id.nav_request_donate -> R.id.requestBloodFragment
+                R.id.nav_chat -> R.id.chatFragment
+                R.id.nav_history -> R.id.historyFragment
+                R.id.nav_profile -> R.id.profileFragment
+                else -> null
+            }
+
+            Timber.d("BottomNav selected: ${item.title}, target: $targetDestinationId, currentId: $currentId")
+
+            if (targetDestinationId != null && currentId != targetDestinationId) {
+                val navOptions = androidx.navigation.NavOptions.Builder()
+                    .setLaunchSingleTop(true)
+                    .setPopUpTo(R.id.homeFragment, false)
+                    .build()
+                try {
+                    navController.navigate(targetDestinationId, null, navOptions)
+                } catch (e: Exception) {
+                    Timber.e(e, "Bottom nav failed to navigate to $targetDestinationId")
+                }
+                true
+            } else {
+                targetDestinationId != null
+            }
+        }
+
+        binding.bottomNavigationView.setOnItemReselectedListener {
+            // Smooth re-selection without reloading
+        }
+
+        navController.addOnDestinationChangedListener { _, destination, _ ->
+            when (destination.id) {
+                R.id.homeFragment -> {
+                    binding.bottomNavigationView.visibility = View.VISIBLE
+                    binding.bottomNavigationView.menu.findItem(R.id.nav_home)?.isChecked = true
+                }
+                R.id.requestBloodFragment -> {
+                    binding.bottomNavigationView.visibility = View.VISIBLE
+                    binding.bottomNavigationView.menu.findItem(R.id.nav_request_donate)?.isChecked = true
+                }
+                R.id.chatFragment -> {
+                    binding.bottomNavigationView.visibility = View.VISIBLE
+                    binding.bottomNavigationView.menu.findItem(R.id.nav_chat)?.isChecked = true
+                }
+                R.id.historyFragment -> {
+                    binding.bottomNavigationView.visibility = View.VISIBLE
+                    binding.bottomNavigationView.menu.findItem(R.id.nav_history)?.isChecked = true
+                }
+                R.id.profileFragment -> {
+                    binding.bottomNavigationView.visibility = View.VISIBLE
+                    binding.bottomNavigationView.menu.findItem(R.id.nav_profile)?.isChecked = true
+                }
+                else -> {
+                    binding.bottomNavigationView.visibility = View.GONE
+                }
             }
         }
     }

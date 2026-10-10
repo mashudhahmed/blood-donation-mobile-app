@@ -1,11 +1,15 @@
 package com.project.donateblood.fragments
 
+import android.content.Intent
 import android.os.Build
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.core.net.toUri
 import androidx.fragment.app.DialogFragment
+import androidx.navigation.fragment.findNavController
+import com.project.donateblood.R
 import com.project.donateblood.databinding.FragmentDonorDetailsBinding
 import com.project.donateblood.models.Donor
 
@@ -36,12 +40,43 @@ class DonorDetailsDialogFragment : DialogFragment() {
         binding.tvCurrentStatus.text =
             if (donor.isAvailable) "Available" else "Not Available"
 
+        binding.tvMobileNumber.setOnClickListener {
+            if (donor.phone.isNotEmpty()) {
+                val sanitized = donor.phone.replace(" ", "")
+                startActivity(Intent(Intent.ACTION_DIAL, "tel:$sanitized".toUri()))
+
+                
+            }
+        }
+
         binding.ivClose.setOnClickListener {
             dismiss()
         }
 
+        binding.btnChatWithDonor.setOnClickListener {
+            dismiss()
+            val targetRecipientId = donor.userId.ifBlank { donor.id }
+            if (targetRecipientId.isNotBlank()) {
+                val bundle = ConversationFragment.newBundle(
+                    recipientId = targetRecipientId,
+                    recipientName = donor.name,
+                    recipientBloodGroup = donor.bloodGroup,
+                    recipientPhone = donor.phone,
+                    recipientImage = donor.imageUrl
+                )
+                try {
+                    findNavController().navigate(R.id.conversationFragment, bundle)
+                } catch (_: Exception) {
+                }
+            }
+        }
+
         binding.btnRequestDonate.setOnClickListener {
             dismiss()
+            try {
+                findNavController().navigate(R.id.requestBloodFragment)
+            } catch (_: Exception) {
+            }
         }
     }
 

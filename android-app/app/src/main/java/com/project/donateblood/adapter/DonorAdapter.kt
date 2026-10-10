@@ -14,8 +14,8 @@ import com.project.donateblood.models.Donor
 
 class DonorAdapter(
     private val onCallClick: (Donor) -> Unit,
-    private val onViewDetailsClick: (Donor) -> Unit
-    // REMOVED: onLongClick parameter
+    private val onViewDetailsClick: (Donor) -> Unit,
+    private val onChatClick: ((Donor) -> Unit)? = null
 ) : ListAdapter<Donor, DonorAdapter.DonorViewHolder>(DonorDiffCallback()) {
 
     class DonorViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
@@ -32,7 +32,8 @@ class DonorAdapter(
         fun bind(
             donor: Donor,
             onCallClick: (Donor) -> Unit,
-            onViewDetailsClick: (Donor) -> Unit
+            onViewDetailsClick: (Donor) -> Unit,
+            onChatClick: ((Donor) -> Unit)? = null
         ) {
             val context = itemView.context
 
@@ -59,9 +60,11 @@ class DonorAdapter(
                 if (donor.phone.isNotEmpty()) View.VISIBLE else View.GONE
             btnCall.setOnClickListener { onCallClick(donor) }
 
-            // Chat button (kept – no feature loss)
+            // Chat button
+            btnChat.visibility =
+                if (donor.phone.isNotEmpty()) View.VISIBLE else View.GONE
             btnChat.setOnClickListener {
-                // Future chat feature
+                onChatClick?.invoke(donor)
             }
 
             // ✅ ONLY View Details button opens details
@@ -90,7 +93,7 @@ class DonorAdapter(
     }
 
     override fun onBindViewHolder(holder: DonorViewHolder, position: Int) {
-        holder.bind(getItem(position), onCallClick, onViewDetailsClick)
+        holder.bind(getItem(position), onCallClick, onViewDetailsClick, onChatClick)
     }
 }
 

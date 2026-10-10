@@ -11,7 +11,9 @@ object FirebaseUtils {
         const val DONORS = "donors"
         const val USERS = "users"
         const val REQUESTS = "blood_requests"
-        const val NOTIFICATIONS = "notifications" // Optional: add if you use notifications
+        const val NOTIFICATIONS = "notifications"
+        const val CHATS = "chats"
+        const val MESSAGES = "messages"
     }
 
     object UserFields {

@@ -48,7 +48,7 @@
     <string name="verify">Verify</string>
     <string name="didnt_receive_code">Didn\'t receive code?</string>
     <string name="resend">Resend</string>
-    <string name="time_left">%d:%02d Sec left</string>
+    <string name="time_left">%1$d:%2$02d Sec left</string>
     <string name="time_expired">Time expired</string>
 
     <!-- ================= SIGNUP PERSONAL FRAGMENT ================= -->

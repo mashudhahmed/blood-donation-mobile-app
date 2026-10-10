@@ -243,6 +243,22 @@
                     android:layout_marginTop="4dp" /> -->
             </LinearLayout>
 
+            <!-- Chat with Donor Button -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnChatWithDonor"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Chat with Donor"
+                android:textAllCaps="false"
+                android:textSize="15sp"
+                app:icon="@drawable/ic_chat"
+                app:iconTint="@color/primary_red_dark"
+                app:strokeColor="@color/primary_red_dark"
+                app:strokeWidth="1dp"
+                android:textColor="@color/primary_red_dark"
+                app:backgroundTint="@color/white"
+                android:layout_marginTop="8dp" />
+
             <!-- Request Donate Blood Button -->
             <Button
                 android:id="@+id/btnRequestDonate"

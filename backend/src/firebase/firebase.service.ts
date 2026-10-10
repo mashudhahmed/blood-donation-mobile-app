@@ -5,6 +5,7 @@ import * as admin from 'firebase-admin';
 export class FirebaseService implements OnModuleInit {
   public firestore: admin.firestore.Firestore;
   public messaging: admin.messaging.Messaging;
+  public auth: admin.auth.Auth;
   public admin: typeof admin;
 
   constructor() {
@@ -22,6 +23,7 @@ export class FirebaseService implements OnModuleInit {
         console.log('✅ Firebase already initialized');
         this.firestore = admin.firestore();
         this.messaging = admin.messaging();
+        this.auth = admin.auth();
         return;
       }
 
@@ -70,6 +72,7 @@ export class FirebaseService implements OnModuleInit {
       // Initialize services
       this.firestore = admin.firestore();
       this.messaging = admin.messaging();
+      this.auth = admin.auth();
       this.admin = admin;
 
       // Optional: Configure Firestore settings

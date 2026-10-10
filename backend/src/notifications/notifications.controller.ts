@@ -5,10 +5,13 @@ import {
   Get,
   HttpException,
   HttpStatus,
+  UseGuards,
+  Req,
 } from '@nestjs/common';
 import { NotificationsService } from './notifications.service';
 import { BloodCompatibilityService } from '../blood/blood-compatibility.service';
 import { DonorMatchingService } from '../matching/donor-matching.service';
+import { FirebaseAuthGuard } from '../firebase/firebase-auth.guard';
 
 @Controller('notifications')
 export class NotificationsController {
@@ -19,7 +22,9 @@ export class NotificationsController {
   ) {}
 
   @Post('blood-request')
+  @UseGuards(FirebaseAuthGuard)
   async sendBloodRequestNotification(
+    @Req() req: any,
     @Body()
     body: {
       requestId?: string;
@@ -92,6 +97,7 @@ export class NotificationsController {
   }
 
   @Post('save-token')
+  @UseGuards(FirebaseAuthGuard)
   async saveFCMToken(
     @Body()
     body: {
@@ -139,6 +145,7 @@ export class NotificationsController {
   }
 
   @Post('register-token')
+  @UseGuards(FirebaseAuthGuard)
   async registerFCMToken(
     @Body()
     body: {
@@ -343,6 +350,7 @@ export class NotificationsController {
   }
 
   @Post('logout')
+  @UseGuards(FirebaseAuthGuard)
   async markUserAsLoggedOut(
     @Body() body: { userId: string, deviceId?: string }
   ) {
@@ -363,6 +371,7 @@ export class NotificationsController {
   }
 
   @Post('login')
+  @UseGuards(FirebaseAuthGuard)
   async markUserAsLoggedIn(
     @Body() body: { userId: string, deviceId?: string }
   ) {

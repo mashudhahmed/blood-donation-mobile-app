@@ -1,3 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
 
     <item
@@ -8,12 +9,21 @@
     <item
         android:id="@+id/nav_request_donate"
         android:icon="@drawable/ic_blood_drop_small"
-        android:title="Request Blood" />
+        android:title="Request" />
 
-    <!-- Replaced Profile with Activity/History -->
+    <item
+        android:id="@+id/nav_chat"
+        android:icon="@drawable/ic_chat"
+        android:title="Chat" />
+
     <item
         android:id="@+id/nav_history"
         android:icon="@drawable/ic_activity"
         android:title="Activity" />
+
+    <item
+        android:id="@+id/nav_profile"
+        android:icon="@drawable/ic_user"
+        android:title="Profile" />
 
 </menu>

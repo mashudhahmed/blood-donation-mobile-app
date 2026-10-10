@@ -39,6 +39,8 @@ class MyApplication : Application() {
         // Initialize Timber for logging
         if (BuildConfig.DEBUG) {
             Timber.plant(TimberDebugTree())
+        } else {
+            Timber.plant(com.project.donateblood.utils.CrashReportingTree())
         }
 
         Timber.d("🚀 Application starting...")

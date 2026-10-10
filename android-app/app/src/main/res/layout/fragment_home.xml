@@ -153,8 +153,91 @@
                     tools:ignore="HardcodedText" />
             </LinearLayout>
 
+            <!-- ========== BLOOD GROUP FILTER CHIPS (QUICK ACCESS) ========== -->
+            <HorizontalScrollView
+                android:id="@+id/hsvBloodGroups"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:scrollbars="none"
+                android:paddingHorizontal="16dp"
+                android:paddingBottom="8dp"
+                android:clipToPadding="false">
+
+                <com.google.android.material.chip.ChipGroup
+                    android:id="@+id/chipGroupBlood"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    app:singleSelection="true"
+                    app:selectionRequired="false">
+
+                    <com.google.android.material.chip.Chip
+                        android:id="@+id/chipAll"
+                        style="@style/Widget.Material3.Chip.Filter"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="All"
+                        android:checked="true" />
+
+                    <com.google.android.material.chip.Chip
+                        android:id="@+id/chipAPos"
+                        style="@style/Widget.Material3.Chip.Filter"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="A+" />
+
+                    <com.google.android.material.chip.Chip
+                        android:id="@+id/chipANeg"
+                        style="@style/Widget.Material3.Chip.Filter"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="A-" />
+
+                    <com.google.android.material.chip.Chip
+                        android:id="@+id/chipBPos"
+                        style="@style/Widget.Material3.Chip.Filter"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="B+" />
+
+                    <com.google.android.material.chip.Chip
+                        android:id="@+id/chipBNeg"
+                        style="@style/Widget.Material3.Chip.Filter"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="B-" />
+
+                    <com.google.android.material.chip.Chip
+                        android:id="@+id/chipOPos"
+                        style="@style/Widget.Material3.Chip.Filter"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="O+" />
+
+                    <com.google.android.material.chip.Chip
+                        android:id="@+id/chipONeg"
+                        style="@style/Widget.Material3.Chip.Filter"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="O-" />
+
+                    <com.google.android.material.chip.Chip
+                        android:id="@+id/chipABPos"
+                        style="@style/Widget.Material3.Chip.Filter"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="AB+" />
+
+                    <com.google.android.material.chip.Chip
+                        android:id="@+id/chipABNeg"
+                        style="@style/Widget.Material3.Chip.Filter"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="AB-" />
+
+                </com.google.android.material.chip.ChipGroup>
+            </HorizontalScrollView>
+
             <!-- ========== DONOR LIST WITH PULL TO REFRESH ========== -->
-            <!-- CHANGED: SwipeRefreshLayout now uses weight -->
             <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
                 android:id="@+id/swipeRefreshLayout"
                 android:layout_width="match_parent"
@@ -165,11 +248,33 @@
                     android:layout_width="match_parent"
                     android:layout_height="match_parent">
 
+                    <!-- Shimmer skeleton loading placeholder -->
+                    <com.facebook.shimmer.ShimmerFrameLayout
+                        android:id="@+id/shimmerLayout"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:visibility="gone"
+                        app:shimmer_auto_start="false"
+                        app:shimmer_duration="1200">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="vertical"
+                            android:padding="4dp">
+
+                            <include layout="@layout/shimmer_item_donor" />
+                            <include layout="@layout/shimmer_item_donor" />
+                            <include layout="@layout/shimmer_item_donor" />
+                            <include layout="@layout/shimmer_item_donor" />
+                        </LinearLayout>
+                    </com.facebook.shimmer.ShimmerFrameLayout>
+
                     <!-- RecyclerView for donor list -->
                     <androidx.recyclerview.widget.RecyclerView
                         android:id="@+id/rvDonors"
                         android:layout_width="match_parent"
-                        android:layout_height="493dp"
+                        android:layout_height="match_parent"
                         android:background="@color/cardview_light_background"
                         android:clipToPadding="false"
                         android:padding="8dp"
@@ -223,20 +328,6 @@
             android:layout_height="wrap_content"
             android:layout_gravity="center"
             android:visibility="gone" />
-
-        <!-- ================= BOTTOM NAV ================= -->
-        <!-- UPDATED: Added color selectors for icon and text -->
-        <com.google.android.material.bottomnavigation.BottomNavigationView
-            android:id="@+id/bottomNavigationView"
-            android:layout_width="match_parent"
-            android:layout_height="70dp"
-            android:layout_gravity="bottom"
-            android:background="@color/surface_white"
-            app:elevation="8dp"
-            app:itemIconTint="@drawable/bottom_nav_icon_color_selector"
-            app:itemTextColor="@drawable/bottom_nav_text_color_selector"
-            app:labelVisibilityMode="labeled"
-            app:menu="@menu/bottom_nav_menu" />
 
     </FrameLayout>
 

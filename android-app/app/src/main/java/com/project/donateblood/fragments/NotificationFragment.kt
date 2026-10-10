@@ -19,7 +19,6 @@ import com.project.donateblood.R
 import com.project.donateblood.adapter.NotificationAdapter
 import com.project.donateblood.models.NotificationItem
 import com.project.donateblood.databinding.FragmentNotificationBinding
-import com.project.donateblood.viewmodels.BottomNavViewModel
 import timber.log.Timber
 import java.text.SimpleDateFormat
 import java.util.*
@@ -40,8 +39,6 @@ class NotificationFragment : Fragment() {
     private var notificationListener: ListenerRegistration? = null
     private val notificationsList = ArrayList<NotificationItem>()
 
-    private lateinit var bottomNavViewModel: BottomNavViewModel
-
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
@@ -54,8 +51,6 @@ class NotificationFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         Timber.d("onViewCreated")
-
-        bottomNavViewModel = ViewModelProvider(requireActivity())[BottomNavViewModel::class.java]
 
         setupToolbar()
         setupRecyclerView()

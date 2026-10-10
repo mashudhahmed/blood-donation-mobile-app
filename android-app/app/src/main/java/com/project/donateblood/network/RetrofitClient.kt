@@ -11,7 +11,7 @@ import java.util.concurrent.TimeUnit
 object RetrofitClient {
 
     // ✅ IMPORTANT: Update this to your actual Render backend URL
-    private const val BASE_URL = "https://donate-blood-app.onrender.com/api/"
+    private val BASE_URL = BuildConfig.BASE_URL
 
     private const val TIMEOUT_SECONDS = 60L  // Increased timeout for Render.com
 
@@ -26,6 +26,7 @@ object RetrofitClient {
 
     // ✅ Client for notification server
     private val notificationClient = OkHttpClient.Builder()
+        .addInterceptor(AuthInterceptor())
         .addInterceptor(loggingInterceptor)
         .addInterceptor { chain ->
             val request = chain.request()

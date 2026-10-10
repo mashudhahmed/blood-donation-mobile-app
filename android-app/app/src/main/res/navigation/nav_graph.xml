@@ -145,6 +145,16 @@
         <action
             android:id="@+id/action_homeFragment_to_settingsFragment"
             app:destination="@id/settingsFragment" />
+
+        <!-- Action to Conversation Fragment -->
+        <action
+            android:id="@+id/action_homeFragment_to_conversationFragment"
+            app:destination="@id/conversationFragment" />
+
+        <!-- Action to Chat Fragment -->
+        <action
+            android:id="@+id/action_homeFragment_to_chatFragment"
+            app:destination="@id/chatFragment" />
     </fragment>
 
     <!-- About Fragment -->
@@ -220,6 +230,29 @@
             android:id="@+id/action_requestBloodFragment_to_notificationFragment"
             app:destination="@id/notificationFragment" />
     </fragment>
+
+    <!-- Chat Fragment -->
+    <fragment
+        android:id="@+id/chatFragment"
+        android:name="com.project.donateblood.fragments.ChatFragment"
+        android:label="Messages"
+        tools:layout="@layout/fragment_chat">
+
+        <action
+            android:id="@+id/action_chatFragment_to_homeFragment"
+            app:destination="@id/homeFragment" />
+
+        <action
+            android:id="@+id/action_chatFragment_to_conversationFragment"
+            app:destination="@id/conversationFragment" />
+    </fragment>
+
+    <!-- Conversation Fragment (1-on-1 Realtime Chat) -->
+    <fragment
+        android:id="@+id/conversationFragment"
+        android:name="com.project.donateblood.fragments.ConversationFragment"
+        android:label="Chat"
+        tools:layout="@layout/fragment_conversation" />
 
     <!-- Profile Fragment -->
     <fragment

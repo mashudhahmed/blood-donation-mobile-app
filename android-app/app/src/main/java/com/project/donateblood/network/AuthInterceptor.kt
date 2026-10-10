@@ -8,8 +8,12 @@ import okhttp3.Response
 class AuthInterceptor : Interceptor {
     override fun intercept(chain: Interceptor.Chain): Response {
         val user = FirebaseAuth.getInstance().currentUser
-        val token = user?.let {
-            Tasks.await(it.getIdToken(false)).token
+        val token = try {
+            user?.let {
+                Tasks.await(it.getIdToken(false)).token
+            }
+        } catch (e: Exception) {
+            null
         }
 
         val request = chain.request().newBuilder().apply {

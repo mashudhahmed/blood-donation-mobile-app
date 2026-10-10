@@ -2,6 +2,7 @@ plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
     id("com.google.gms.google-services")
+    id("com.google.firebase.crashlytics")
     id("kotlin-parcelize")
     // Add if using Room:
     // id("kotlin-kapt")
@@ -24,7 +25,7 @@ android {
         buildConfigField(
             "String",
             "BASE_URL",
-            "\"https://donate-blood-app.onrender.com/\""
+            "\"https://donate-blood-app.onrender.com/api/\""
         )
     }
 
@@ -63,9 +64,10 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
-    // REPLACED: Old kotlinOptions with new compilerOptions DSL
     kotlin {
-        jvmToolchain(17)
+        compilerOptions {
+            jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
+        }
     }
 
     // Alternative solution for jvmTarget using compilerOptions:
@@ -122,6 +124,7 @@ dependencies {
     implementation("com.google.firebase:firebase-storage-ktx")
     implementation("com.google.firebase:firebase-analytics-ktx")
     implementation("com.google.firebase:firebase-messaging-ktx")
+    implementation("com.google.firebase:firebase-crashlytics-ktx")
 
     // ================= UI =================
     implementation("io.coil-kt:coil:2.5.0")  // For image loading

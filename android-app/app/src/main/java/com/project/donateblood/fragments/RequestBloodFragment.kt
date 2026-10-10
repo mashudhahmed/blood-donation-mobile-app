@@ -23,7 +23,6 @@ import com.project.donateblood.R
 import com.project.donateblood.databinding.FragmentRequestBloodBinding
 import com.project.donateblood.models.BloodRequest
 import com.project.donateblood.network.*
-import com.project.donateblood.viewmodels.BottomNavViewModel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import timber.log.Timber
@@ -36,7 +35,6 @@ class RequestBloodFragment : Fragment() {
     private val binding get() = _binding!!
 
     private lateinit var auth: FirebaseAuth
-    private lateinit var bottomNavViewModel: BottomNavViewModel
     private val firestore: FirebaseFirestore = Firebase.firestore
     private val calendar = Calendar.getInstance()
     private val gson = Gson()
@@ -63,25 +61,9 @@ class RequestBloodFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        bottomNavViewModel = ViewModelProvider(requireActivity())[BottomNavViewModel::class.java]
-
         setupUI()
         setupToolbar()
-        setupBottomNavObserver()
         setDefaultDateTime()
-    }
-
-    private fun setupBottomNavObserver() {
-        // Observe bottom nav selection changes
-        bottomNavViewModel.selectedItemId.observe(viewLifecycleOwner) { itemId ->
-            // Find bottom nav in the activity
-            val bottomNav = requireActivity().findViewById<com.google.android.material.bottomnavigation.BottomNavigationView>(
-                R.id.bottomNavigationView)
-            bottomNav.selectedItemId = itemId
-        }
-
-        // Set initial selection
-        bottomNavViewModel.setSelectedItem(R.id.nav_request_donate)
     }
 
     override fun onDestroyView() {
@@ -261,14 +243,22 @@ class RequestBloodFragment : Fragment() {
                 // 2. Send notification through backend
                 val notificationSuccess = sendNotificationToBackend(bloodRequest, requestId, user.uid)
 
-                // 3. Show simple success message (ALL DETAILS REMOVED FROM USER VIEW)
+                // Update notification delivery status in Firestore
+                bloodRequestRef.update("notificationStatus", if (notificationSuccess) "sent" else "pending").await()
+
+                // 3. Show user-friendly success message
                 requireActivity().runOnUiThread {
                     setLoading(false)
 
-                    // ✅ SIMPLE SUCCESS MESSAGE ONLY - No technical details shown to user
+                    val toastMessage = if (notificationSuccess) {
+                        "Blood request submitted! Compatible donors are being notified."
+                    } else {
+                        "Blood request posted successfully. Matching donors will be notified shortly."
+                    }
+
                     Toast.makeText(
                         requireContext(),
-                        "Blood request submitted",
+                        toastMessage,
                         Toast.LENGTH_LONG
                     ).show()
 

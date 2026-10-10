@@ -71,6 +71,11 @@
     <color name="green_dark">#388E3C</color>
     <color name="success_color">#4CAF50</color>
 
+    <!-- WhatsApp Chat Delivery Indicators -->
+    <color name="chat_status_blue">#34B7F1</color>
+    <color name="chat_status_grey">#E0E0E0</color>
+    <color name="chat_status_pending">#B0BEC5</color>
+
     <color name="error">#F44336</color>
     <color name="error_red">#F44336</color>
     <color name="red">#F44336</color>

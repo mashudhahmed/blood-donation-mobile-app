@@ -24,13 +24,6 @@
             android:focusable="true"
             android:visibility="gone" />
 
-        <!-- ================= CRIMSON TOP HEADER BACKGROUND ================= -->
-        <View
-            android:id="@+id/dark_red_background"
-            android:layout_width="match_parent"
-            android:layout_height="140dp"
-            android:background="@color/primary_red_dark" />
-
         <!-- ================= MAIN VERTICAL LAYOUT ================= -->
         <LinearLayout
             android:id="@+id/mainContentLayout"
@@ -106,18 +99,29 @@
                         android:orientation="vertical"
                         android:paddingBottom="36dp">
 
-                        <!-- ================= 1. HERO USER DASHBOARD ================= -->
-                        <com.google.android.material.card.MaterialCardView
-                            android:id="@+id/cardHeroDashboard"
+                        <!-- ================= 1. HERO USER DASHBOARD WITH SCROLLING CRIMSON CURVE ================= -->
+                        <FrameLayout
                             android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_marginHorizontal="16dp"
-                            android:layout_marginTop="4dp"
-                            app:cardCornerRadius="18dp"
-                            app:cardElevation="3dp"
-                            app:strokeWidth="1dp"
-                            app:strokeColor="#F0F0F0"
-                            app:cardBackgroundColor="@color/surface_white">
+                            android:layout_height="wrap_content">
+
+                            <!-- Crimson curved banner that scrolls naturally with content -->
+                            <View
+                                android:layout_width="match_parent"
+                                android:layout_height="90dp"
+                                android:background="@drawable/bg_header_crimson_curved" />
+
+                            <com.google.android.material.card.MaterialCardView
+                                android:id="@+id/cardHeroDashboard"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginHorizontal="16dp"
+                                android:layout_marginTop="8dp"
+                                android:layout_marginBottom="4dp"
+                                app:cardCornerRadius="18dp"
+                                app:cardElevation="3dp"
+                                app:strokeWidth="1dp"
+                                app:strokeColor="#F0F0F0"
+                                app:cardBackgroundColor="@color/surface_white">
 
                             <LinearLayout
                                 android:layout_width="match_parent"
@@ -233,6 +237,7 @@
 
                             </LinearLayout>
                         </com.google.android.material.card.MaterialCardView>
+                        </FrameLayout>
 
                         <!-- ================= 2. URGENT BLOOD REQUESTS FEED ================= -->
                         <LinearLayout
@@ -447,6 +452,46 @@
                             android:layout_height="wrap_content"
                             android:orientation="vertical"
                             android:visibility="visible">
+
+                            <!-- Donor Privacy Shield Notice Banner -->
+                            <com.google.android.material.card.MaterialCardView
+                                android:id="@+id/cardDonorPrivacyBanner"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginHorizontal="16dp"
+                                android:layout_marginTop="10dp"
+                                app:cardBackgroundColor="#F0F9FF"
+                                app:cardCornerRadius="12dp"
+                                app:cardElevation="0dp"
+                                app:strokeWidth="1dp"
+                                app:strokeColor="#BAE6FD">
+
+                                <LinearLayout
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    android:gravity="center_vertical"
+                                    android:orientation="horizontal"
+                                    android:paddingHorizontal="12dp"
+                                    android:paddingVertical="9dp">
+
+                                    <ImageView
+                                        android:layout_width="18dp"
+                                        android:layout_height="18dp"
+                                        android:src="@drawable/ic_shield_check_small"
+                                        app:tint="#0284C7"
+                                        tools:ignore="ContentDescription" />
+
+                                    <TextView
+                                        android:layout_width="match_parent"
+                                        android:layout_height="wrap_content"
+                                        android:layout_marginStart="8dp"
+                                        android:text="Donor Privacy Protected: Personal contact details are protected to ensure donor safety. Connect responsibly for emergencies via BloodLink."
+                                        android:textColor="#0369A1"
+                                        android:textSize="11sp"
+                                        android:lineSpacingExtra="2dp"
+                                        tools:ignore="HardcodedText" />
+                                </LinearLayout>
+                            </com.google.android.material.card.MaterialCardView>
 
                             <!-- Blood Group Filter Chips -->
                             <HorizontalScrollView

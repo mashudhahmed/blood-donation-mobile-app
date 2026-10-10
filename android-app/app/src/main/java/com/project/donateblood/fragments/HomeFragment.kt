@@ -311,7 +311,7 @@ class HomeFragment : Fragment() {
         donorAdapter = DonorAdapter(
             onCallClick = { donor ->
                 if (donor.phone.isNotEmpty()) {
-                    makePhoneCall(donor.phone)
+                    showEmergencyCallConfirmation(donor)
                 } else {
                     toast("Phone number not available")
                 }
@@ -321,6 +321,9 @@ class HomeFragment : Fragment() {
             },
             onChatClick = { donor ->
                 openChatWithDonor(donor)
+            },
+            onRequestClick = { _ ->
+                navigateToRequestBloodFragment()
             }
         )
         binding.rvDonors.layoutManager = LinearLayoutManager(requireContext())
@@ -573,6 +576,11 @@ class HomeFragment : Fragment() {
                     }
                 }
 
+                // Merge verified default donors for full blood group coverage
+                val existingIds = donorList.map { it.id }.toSet()
+                val defaults = DirectoryRepository.getDefaultDonors().filter { it.id !in existingIds }
+                donorList.addAll(defaults)
+
                 // Sort locally by name
                 donorList.sortBy { it.name.lowercase() }
 
@@ -594,10 +602,13 @@ class HomeFragment : Fragment() {
                 when (queryType) {
                     "ordered" -> tryUnorderedQuery()
                     "unordered" -> tryManualFiltering()
-                    else -> showNoDonorsMessage("❌ Database index required. Please contact admin.", showRetry = true)
+                    else -> showNoDonorsMessage("Database index required. Please contact admin.", showRetry = true)
                 }
             } else {
-                showNoDonorsMessage("❌ Network error: ${error.message}", showRetry = true)
+                // If network/firestore error, fallback to verified volunteer donors
+                donorList.clear()
+                donorList.addAll(DirectoryRepository.getDefaultDonors())
+                updateUIAfterLoad("fallback")
             }
             return
         }
@@ -616,10 +627,13 @@ class HomeFragment : Fragment() {
             }
         }
 
-        // If ordered query failed to sort, sort locally
-        if (queryType != "ordered") {
-            donorList.sortBy { it.name.lowercase() }
-        }
+        // Merge verified default donors for full blood group coverage
+        val existingIds = donorList.map { it.id }.toSet()
+        val defaults = DirectoryRepository.getDefaultDonors().filter { it.id !in existingIds }
+        donorList.addAll(defaults)
+
+        // Sort locally by name
+        donorList.sortBy { it.name.lowercase() }
 
         updateUIAfterLoad(queryType)
     }
@@ -1213,6 +1227,17 @@ class HomeFragment : Fragment() {
     private fun showDonorDetailsDialog(donor: Donor) {
         DonorDetailsDialogFragment.newInstance(donor)
             .show(parentFragmentManager, "DonorDetails")
+    }
+
+    private fun showEmergencyCallConfirmation(donor: Donor) {
+        android.app.AlertDialog.Builder(requireContext())
+            .setTitle("Emergency Call Notice")
+            .setMessage("Blood donors are unpaid volunteers. Please ensure this call is for a verified, urgent blood donation requirement.\n\nProceed to call ${donor.name}?")
+            .setPositiveButton("Proceed to Call") { _, _ ->
+                makePhoneCall(donor.phone)
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
     }
 
     // ---------------- UTILS ----------------

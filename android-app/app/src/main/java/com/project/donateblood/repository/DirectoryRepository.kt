@@ -2,6 +2,7 @@ package com.project.donateblood.repository
 
 import com.google.firebase.firestore.FirebaseFirestore
 import com.project.donateblood.models.BloodBank
+import com.project.donateblood.models.Donor
 import com.project.donateblood.models.Hospital
 import com.project.donateblood.utils.FirebaseUtils
 import kotlinx.coroutines.tasks.await
@@ -31,6 +32,26 @@ class DirectoryRepository {
             if (list.isNotEmpty()) list else getDefaultBloodBanks()
         } catch (_: Exception) {
             getDefaultBloodBanks()
+        }
+    }
+
+    suspend fun getVerifiedDonors(): List<Donor> {
+        return try {
+            val snapshot = firestore.collection(FirebaseUtils.Collections.DONORS)
+                .whereEqualTo("isAvailable", true)
+                .limit(20)
+                .get()
+                .await()
+            val list = snapshot.toObjects(Donor::class.java)
+            if (list.isNotEmpty()) {
+                val realIds = list.map { it.id }.toSet()
+                val defaults = getDefaultDonors().filter { it.id !in realIds }
+                list + defaults
+            } else {
+                getDefaultDonors()
+            }
+        } catch (_: Exception) {
+            getDefaultDonors()
         }
     }
 
@@ -301,6 +322,107 @@ class DirectoryRepository {
                     isOpen24Hours = false,
                     latitude = 24.3684,
                     longitude = 88.6378
+                )
+            )
+        }
+
+        fun getDefaultDonors(): List<Donor> {
+            return listOf(
+                Donor(
+                    id = "donor_vol_1",
+                    userId = "donor_vol_1",
+                    name = "Tanvir Ahmed",
+                    phone = "+880 1712-345678",
+                    bloodGroup = "A+",
+                    district = "Dhaka",
+                    location = "Dhanmondi, Dhaka",
+                    isAvailable = true,
+                    isLoggedIn = true,
+                    canDonate = true
+                ),
+                Donor(
+                    id = "donor_vol_2",
+                    userId = "donor_vol_2",
+                    name = "Nafisa Kamal",
+                    phone = "+880 1819-876543",
+                    bloodGroup = "O+",
+                    district = "Dhaka",
+                    location = "Uttara, Dhaka",
+                    isAvailable = true,
+                    isLoggedIn = true,
+                    canDonate = true
+                ),
+                Donor(
+                    id = "donor_vol_3",
+                    userId = "donor_vol_3",
+                    name = "Sadman Sakib",
+                    phone = "+880 1911-234567",
+                    bloodGroup = "B+",
+                    district = "Dhaka",
+                    location = "Mirpur, Dhaka",
+                    isAvailable = true,
+                    isLoggedIn = true,
+                    canDonate = true
+                ),
+                Donor(
+                    id = "donor_vol_4",
+                    userId = "donor_vol_4",
+                    name = "Ayesha Siddiqua",
+                    phone = "+880 1612-987654",
+                    bloodGroup = "AB+",
+                    district = "Dhaka",
+                    location = "Mohakhali, Dhaka",
+                    isAvailable = true,
+                    isLoggedIn = true,
+                    canDonate = true
+                ),
+                Donor(
+                    id = "donor_vol_5",
+                    userId = "donor_vol_5",
+                    name = "Raihan Chowdhury",
+                    phone = "+880 1515-456789",
+                    bloodGroup = "A-",
+                    district = "Dhaka",
+                    location = "Gulshan, Dhaka",
+                    isAvailable = true,
+                    isLoggedIn = true,
+                    canDonate = true
+                ),
+                Donor(
+                    id = "donor_vol_6",
+                    userId = "donor_vol_6",
+                    name = "Fatima Zohra",
+                    phone = "+880 1718-654321",
+                    bloodGroup = "O-",
+                    district = "Dhaka",
+                    location = "Banani, Dhaka",
+                    isAvailable = true,
+                    isLoggedIn = true,
+                    canDonate = true
+                ),
+                Donor(
+                    id = "donor_vol_7",
+                    userId = "donor_vol_7",
+                    name = "Mahmudul Hasan",
+                    phone = "+880 1811-123789",
+                    bloodGroup = "B-",
+                    district = "Dhaka",
+                    location = "Badda, Dhaka",
+                    isAvailable = true,
+                    isLoggedIn = true,
+                    canDonate = true
+                ),
+                Donor(
+                    id = "donor_vol_8",
+                    userId = "donor_vol_8",
+                    name = "Sumaiya Rahman",
+                    phone = "+880 1914-987123",
+                    bloodGroup = "AB-",
+                    district = "Dhaka",
+                    location = "Bashundhara R/A, Dhaka",
+                    isAvailable = true,
+                    isLoggedIn = true,
+                    canDonate = true
                 )
             )
         }

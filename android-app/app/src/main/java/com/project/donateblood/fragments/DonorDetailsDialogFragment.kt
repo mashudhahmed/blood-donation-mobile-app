@@ -38,16 +38,21 @@ class DonorDetailsDialogFragment : DialogFragment() {
         binding.tvBloodGroup.text = donor.bloodGroup
         binding.tvAddressLine1.text = donor.location
         binding.tvAddressLine2.text = donor.district
-        binding.tvMobileNumber.text = donor.phone
+        binding.tvMobileNumber.text = maskPhoneNumber(donor.phone)
         binding.tvCurrentStatus.text =
             if (donor.isAvailable) "Available" else "Not Available"
 
         binding.tvMobileNumber.setOnClickListener {
             if (donor.phone.isNotEmpty()) {
-                val sanitized = donor.phone.replace(" ", "")
-                startActivity(Intent(Intent.ACTION_DIAL, "tel:$sanitized".toUri()))
-
-                
+                android.app.AlertDialog.Builder(requireContext())
+                    .setTitle("Emergency Call Notice")
+                    .setMessage("Please ensure this call is for a verified, urgent blood donation requirement.\n\nProceed to call ${donor.name}?")
+                    .setPositiveButton("Proceed to Call") { _, _ ->
+                        val sanitized = donor.phone.replace(" ", "")
+                        startActivity(Intent(Intent.ACTION_DIAL, "tel:$sanitized".toUri()))
+                    }
+                    .setNegativeButton("Cancel", null)
+                    .show()
             }
         }
 
@@ -79,6 +84,23 @@ class DonorDetailsDialogFragment : DialogFragment() {
                 findNavController().navigate(R.id.requestBloodFragment)
             } catch (_: Exception) {
             }
+        }
+    }
+
+    private fun maskPhoneNumber(phone: String): String {
+        if (phone.isBlank()) return "Protected"
+        val clean = phone.trim()
+        val digits = clean.filter { it.isDigit() }
+        if (digits.length < 7) return "Protected"
+        return if (clean.startsWith("+880")) {
+            val rest = clean.removePrefix("+880").trim()
+            val start = rest.take(3)
+            val end = rest.takeLast(2)
+            "+880 $start•• ••$end"
+        } else {
+            val start = clean.take(3)
+            val end = clean.takeLast(2)
+            "$start•• ••$end"
         }
     }
 

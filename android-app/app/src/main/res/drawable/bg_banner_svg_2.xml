@@ -1,0 +1,59 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/apk/res-auto"
+    android:width="360dp"
+    android:height="140dp"
+    android:viewportWidth="360"
+    android:viewportHeight="140">
+
+    <!-- Background Card Rectangle with rx=22 -->
+    <path
+        android:pathData="M 22,0 L 338,0 A 22,22 0 0,1 360,22 L 360,118 A 22,22 0 0,1 338,140 L 22,140 A 22,22 0 0,1 0,118 L 0,22 A 22,22 0 0,1 22,0 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:type="linear"
+                android:startX="0"
+                android:startY="140"
+                android:endX="360"
+                android:endY="0">
+                <item android:offset="0.0" android:color="#FFFFFF" />
+                <item android:offset="1.0" android:color="#FFF1F2" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- Shadow for circle 1 -->
+    <path
+        android:fillColor="#33FDA4AF"
+        android:pathData="M 285,38 A 36,36 0 1,0 285,110 A 36,36 0 1,0 285,38 Z" />
+
+    <!-- Overlapping Community Circle 1 (cx=285, cy=70, r=36) opacity 0.25 -->
+    <path
+        android:fillColor="#40FB7185"
+        android:pathData="M 285,34 A 36,36 0 1,0 285,106 A 36,36 0 1,0 285,34 Z" />
+
+    <!-- Shadow for circle 2 -->
+    <path
+        android:fillColor="#33FDA4AF"
+        android:pathData="M 318,28 A 28,28 0 1,0 318,84 A 28,28 0 1,0 318,28 Z" />
+
+    <!-- Overlapping Community Circle 2 (cx=318, cy=52, r=28) opacity 0.3 -->
+    <path
+        android:fillColor="#4DF43F5E"
+        android:pathData="M 318,24 A 28,28 0 1,0 318,80 A 28,28 0 1,0 318,24 Z" />
+
+    <!-- Shadow for circle 3 -->
+    <path
+        android:fillColor="#33FDA4AF"
+        android:pathData="M 305,75 A 24,24 0 1,0 305,123 A 24,24 0 1,0 305,75 Z" />
+
+    <!-- Overlapping Community Circle 3 (cx=305, cy=95, r=24) opacity 0.25 -->
+    <path
+        android:fillColor="#40E11D48"
+        android:pathData="M 305,71 A 24,24 0 1,0 305,119 A 24,24 0 1,0 305,71 Z" />
+
+    <!-- Overlapping Community Circle 4 (cx=340, cy=80, r=18) opacity 0.4 -->
+    <path
+        android:fillColor="#66FDA4AF"
+        android:pathData="M 340,62 A 18,18 0 1,0 340,98 A 18,18 0 1,0 340,62 Z" />
+
+</vector>

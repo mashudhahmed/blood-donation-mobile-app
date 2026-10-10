@@ -1,0 +1,55 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/apk/res-auto"
+    android:width="360dp"
+    android:height="140dp"
+    android:viewportWidth="360"
+    android:viewportHeight="140">
+
+    <!-- Background Card Rectangle with rx=22 -->
+    <path
+        android:pathData="M 22,0 L 338,0 A 22,22 0 0,1 360,22 L 360,118 A 22,22 0 0,1 338,140 L 22,140 A 22,22 0 0,1 0,118 L 0,22 A 22,22 0 0,1 22,0 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:type="linear"
+                android:startX="0"
+                android:startY="0"
+                android:endX="360"
+                android:endY="140">
+                <item android:offset="0.0" android:color="#FFFFFF" />
+                <item android:offset="1.0" android:color="#FFF1F2" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- Outer Soft Circle r=58 (cx=300, cy=70) -->
+    <path
+        android:fillColor="#FFE4E6"
+        android:pathData="M 300,12 A 58,58 0 1,0 300,128 A 58,58 0 1,0 300,12 Z" />
+
+    <!-- Inner Soft Circle r=38 (cx=300, cy=70) -->
+    <path
+        android:fillColor="#FECDD3"
+        android:pathData="M 300,32 A 38,38 0 1,0 300,108 A 38,38 0 1,0 300,32 Z" />
+
+    <!-- Blood Drop Shadow -->
+    <path
+        android:fillColor="#4DF43F5E"
+        android:pathData="M 300,42 C 300,42 270,76 270,96 C 270,116 282,130 300,130 C 318,130 330,116 330,96 C 330,76 300,42 300,42 Z" />
+
+    <!-- Blood Drop with Gradient -->
+    <path
+        android:pathData="M 300,38 C 300,38 272,72 272,92 C 272,112 284,124 300,124 C 316,124 328,112 328,92 C 328,72 300,38 300,38 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:type="linear"
+                android:startX="300"
+                android:startY="38"
+                android:endX="300"
+                android:endY="124">
+                <item android:offset="0.0" android:color="#FB7185" />
+                <item android:offset="1.0" android:color="#E11D48" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+</vector>

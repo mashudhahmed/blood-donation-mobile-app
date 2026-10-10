@@ -29,14 +29,19 @@ import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.firestore.Query
 import com.project.donateblood.MainActivity
 import com.project.donateblood.R
+import androidx.viewpager2.widget.ViewPager2
+import android.widget.LinearLayout
 import com.project.donateblood.adapter.BloodBankAdapter
 import com.project.donateblood.adapter.DonorAdapter
+import com.project.donateblood.adapter.HomeBannerAdapter
 import com.project.donateblood.adapter.HomeUrgentRequestAdapter
 import com.project.donateblood.adapter.HospitalAdapter
 import com.project.donateblood.databinding.FragmentHomeBinding
+import com.project.donateblood.models.BannerAction
 import com.project.donateblood.models.BloodBank
 import com.project.donateblood.models.BloodRequest
 import com.project.donateblood.models.Donor
+import com.project.donateblood.models.HomeBanner
 import com.project.donateblood.models.Hospital
 import com.project.donateblood.repository.DirectoryRepository
 import com.project.donateblood.utils.BloodRequestDetailsSheet
@@ -99,6 +104,58 @@ class HomeFragment : Fragment() {
     private var selectedBloodGroup: String = "All"
     private var currentSearchQuery: String = ""
 
+    // 2026 Slideable SVG Banners
+    private val homeBanners = listOf(
+        HomeBanner(
+            id = 1,
+            title = "Donate Blood Today",
+            subtitle = "Your blood type could be someone’s hope",
+            backgroundResId = R.drawable.bg_banner_svg_1,
+            action = BannerAction.FIND_DONORS
+        ),
+        HomeBanner(
+            id = 2,
+            title = "Together We Save",
+            subtitle = "Join thousands of donors\nmaking a difference every day",
+            backgroundResId = R.drawable.bg_banner_svg_2,
+            action = BannerAction.COMMUNITY
+        ),
+        HomeBanner(
+            id = 3,
+            title = "Urgent Requests",
+            subtitle = "Help patients who need blood now",
+            backgroundResId = R.drawable.bg_banner_svg_3,
+            action = BannerAction.URGENT_REQUESTS
+        ),
+        HomeBanner(
+            id = 4,
+            title = "Be Someone’s Hero",
+            subtitle = "Donate blood. Change a life today.",
+            backgroundResId = R.drawable.bg_banner_svg_4,
+            action = BannerAction.REQUEST_BLOOD
+        ),
+        HomeBanner(
+            id = 5,
+            title = "Every Drop Counts",
+            subtitle = "1 donation can save up to 3 lives",
+            backgroundResId = R.drawable.bg_banner_svg_5,
+            action = BannerAction.REQUEST_BLOOD
+        )
+    )
+
+    private val bannerAutoSlideInterval = 4000L
+    private val bannerHandler = Handler(Looper.getMainLooper())
+    private val bannerSlideRunnable = object : Runnable {
+        override fun run() {
+            if (_binding != null && isAdded && homeBanners.isNotEmpty()) {
+                val currentItem = binding.vpHomeBanners.currentItem
+                val nextItem = (currentItem + 1) % homeBanners.size
+                binding.vpHomeBanners.setCurrentItem(nextItem, true)
+                bannerHandler.postDelayed(this, bannerAutoSlideInterval)
+            }
+        }
+    }
+
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
@@ -148,18 +205,23 @@ class HomeFragment : Fragment() {
         }
 
         startAutoRefresh()
+        startBannerAutoSlide()
     }
 
     override fun onPause() {
         super.onPause()
         stopAutoRefresh()
+        stopBannerAutoSlide()
     }
 
     override fun onDestroyView() {
         donorListener?.remove()
         urgentRequestsListener?.remove()
         stopAutoRefresh()
+        stopBannerAutoSlide()
         handler.removeCallbacksAndMessages(null)
+        bannerHandler.removeCallbacksAndMessages(null)
+        _binding?.vpHomeBanners?.adapter = null
         _binding = null
         super.onDestroyView()
     }
@@ -215,6 +277,9 @@ class HomeFragment : Fragment() {
 
     @SuppressLint("SetTextI18n")
     private fun setupHeroDashboard() {
+        // Setup 2026 slideable SVG banner carousel
+        setupHomeBannerCarousel()
+
         // Live update hero name
         userViewModel.userName.observe(viewLifecycleOwner) { name ->
             if (!name.isNullOrBlank() && name != "Guest") {
@@ -249,6 +314,117 @@ class HomeFragment : Fragment() {
                 findNavController().navigate(R.id.action_homeFragment_to_urgentRequestsFragment)
             } catch (e: Exception) {
                 Timber.e(e, "Failed to navigate to urgentRequestsFragment")
+            }
+        }
+    }
+
+    private fun setupHomeBannerCarousel() {
+        val bannerAdapter = HomeBannerAdapter(homeBanners) { banner ->
+            handleBannerClick(banner)
+        }
+        binding.vpHomeBanners.adapter = bannerAdapter
+
+        // Setup indicators
+        setupBannerIndicators(homeBanners.size)
+        updateBannerIndicators(0)
+
+        binding.vpHomeBanners.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
+            override fun onPageSelected(position: Int) {
+                super.onPageSelected(position)
+                updateBannerIndicators(position)
+            }
+
+            override fun onPageScrollStateChanged(state: Int) {
+                super.onPageScrollStateChanged(state)
+                when (state) {
+                    ViewPager2.SCROLL_STATE_DRAGGING -> stopBannerAutoSlide()
+                    ViewPager2.SCROLL_STATE_IDLE -> {
+                        stopBannerAutoSlide()
+                        startBannerAutoSlide()
+                    }
+                }
+            }
+        })
+    }
+
+    private fun setupBannerIndicators(count: Int) {
+        val container = binding.layoutBannerIndicators
+        container.removeAllViews()
+        val context = requireContext()
+        val density = resources.displayMetrics.density
+
+        for (i in 0 until count) {
+            val indicator = View(context).apply {
+                val widthPx = if (i == 0) (20 * density).toInt() else (6 * density).toInt()
+                val heightPx = (6 * density).toInt()
+                val params = LinearLayout.LayoutParams(widthPx, heightPx).apply {
+                    if (i < count - 1) marginEnd = (6 * density).toInt()
+                }
+                layoutParams = params
+                setBackgroundResource(
+                    if (i == 0) R.drawable.bg_banner_indicator_active
+                    else R.drawable.bg_banner_indicator_inactive
+                )
+            }
+            container.addView(indicator)
+        }
+    }
+
+    private fun updateBannerIndicators(selectedPosition: Int) {
+        val container = binding.layoutBannerIndicators
+        val density = resources.displayMetrics.density
+        val childCount = container.childCount
+
+        for (i in 0 until childCount) {
+            val view = container.getChildAt(i) ?: continue
+            val isSelected = (i == selectedPosition)
+            val targetWidth = if (isSelected) (20 * density).toInt() else (6 * density).toInt()
+            val targetHeight = (6 * density).toInt()
+
+            val params = view.layoutParams as LinearLayout.LayoutParams
+            if (params.width != targetWidth) {
+                params.width = targetWidth
+                params.height = targetHeight
+                view.layoutParams = params
+            }
+            view.setBackgroundResource(
+                if (isSelected) R.drawable.bg_banner_indicator_active
+                else R.drawable.bg_banner_indicator_inactive
+            )
+        }
+    }
+
+    private fun startBannerAutoSlide() {
+        bannerHandler.removeCallbacks(bannerSlideRunnable)
+        bannerHandler.postDelayed(bannerSlideRunnable, bannerAutoSlideInterval)
+    }
+
+    private fun stopBannerAutoSlide() {
+        bannerHandler.removeCallbacks(bannerSlideRunnable)
+    }
+
+    private fun handleBannerClick(banner: HomeBanner) {
+        when (banner.action) {
+            BannerAction.FIND_DONORS -> {
+                binding.nestedScrollViewHome.smoothScrollTo(0, binding.tabLayoutDirectory.top)
+                binding.etSearch.requestFocus()
+            }
+            BannerAction.COMMUNITY -> {
+                try {
+                    findNavController().navigate(R.id.action_homeFragment_to_aboutFragment)
+                } catch (e: Exception) {
+                    binding.nestedScrollViewHome.smoothScrollTo(0, binding.tabLayoutDirectory.top)
+                }
+            }
+            BannerAction.URGENT_REQUESTS -> {
+                try {
+                    findNavController().navigate(R.id.action_homeFragment_to_urgentRequestsFragment)
+                } catch (e: Exception) {
+                    Timber.e(e, "Failed to navigate to urgent requests fragment")
+                }
+            }
+            BannerAction.REQUEST_BLOOD -> {
+                navigateToRequestBloodFragment()
             }
         }
     }

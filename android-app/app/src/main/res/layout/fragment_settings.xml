@@ -341,6 +341,7 @@
                             android:id="@+id/switchDonorAvailability"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
+                            android:checked="true"
                             app:trackTint="@color/primary_red" />
                     </LinearLayout>
 
@@ -454,6 +455,7 @@
                             android:id="@+id/switchNotifications"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
+                            android:checked="true"
                             app:trackTint="@color/primary_red" />
                     </LinearLayout>
 
@@ -510,6 +512,7 @@
                             android:id="@+id/switchEmergencySound"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
+                            android:checked="true"
                             app:trackTint="@color/primary_red" />
                     </LinearLayout>
 

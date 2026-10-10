@@ -1,6 +1,7 @@
 package com.project.donateblood.fragments
 
 import android.app.Activity
+import android.content.Context
 import android.net.Uri
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -9,6 +10,7 @@ import android.view.ViewGroup
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
+import androidx.core.content.edit
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
 import com.github.dhaval2404.imagepicker.ImagePicker
@@ -376,6 +378,7 @@ class ProfileFragment : Fragment() {
             binding.switchAvailability.setOnCheckedChangeListener(null)
 
             binding.switchAvailability.isChecked = isAvailable
+            binding.switchAvailability.jumpDrawablesToCurrentState()
             binding.switchAvailability.isEnabled = true
 
             // Restore listener
@@ -626,6 +629,10 @@ class ProfileFragment : Fragment() {
 
                         // Update local user object
                         user?.isAvailable = isAvailable
+
+                        // Cache in preferences for instant sync across tabs
+                        context?.getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
+                            ?.edit { putBoolean("donor_availability_enabled", isAvailable) }
 
                         // Update initial state for future comparisons
                         initialSwitchState = isAvailable

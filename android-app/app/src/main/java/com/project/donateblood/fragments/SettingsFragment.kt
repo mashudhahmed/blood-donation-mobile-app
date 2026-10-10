@@ -65,8 +65,8 @@ class SettingsFragment : Fragment() {
 
         setupToolbar()
         observeUserData()
-        setupClickListeners()
         loadLocalPreferences()
+        setupClickListeners()
         loadRemoteSettings()
         updateCacheSizeDisplay()
     }
@@ -105,6 +105,13 @@ class SettingsFragment : Fragment() {
     // CLICK LISTENERS & USER INTERACTIONS
     // =========================================================================
 
+    private fun setSwitchSilently(switch: androidx.appcompat.widget.SwitchCompat, checked: Boolean) {
+        if (switch.isChecked != checked) {
+            switch.isChecked = checked
+        }
+        switch.jumpDrawablesToCurrentState()
+    }
+
     private fun setupClickListeners() {
         // Hero card and Profile settings navigate to profile
         binding.cardUserProfile.setOnClickListener { navigateToProfile() }
@@ -113,21 +120,30 @@ class SettingsFragment : Fragment() {
         // Change Password
         binding.layoutChangePassword.setOnClickListener { showChangePasswordBottomSheet() }
 
-        // Donor Availability switch
+        // Donor Availability row & switch
+        binding.layoutDonorAvailability.setOnClickListener {
+            binding.switchDonorAvailability.toggle()
+        }
         binding.switchDonorAvailability.setOnCheckedChangeListener { _, isChecked ->
             if (!isProgrammaticUpdate) {
                 updateDonorAvailability(isChecked)
             }
         }
 
-        // Push Notifications switch
+        // Push Notifications row & switch
+        binding.layoutPushNotifications.setOnClickListener {
+            binding.switchNotifications.toggle()
+        }
         binding.switchNotifications.setOnCheckedChangeListener { _, isChecked ->
             if (!isProgrammaticUpdate) {
                 updatePushNotificationStatus(isChecked)
             }
         }
 
-        // Emergency Alert Sound switch
+        // Emergency Alert Sound row & switch
+        binding.layoutEmergencySound.setOnClickListener {
+            binding.switchEmergencySound.toggle()
+        }
         binding.switchEmergencySound.setOnCheckedChangeListener { _, isChecked ->
             if (!isProgrammaticUpdate) {
                 prefs.edit { putBoolean(KEY_EMERGENCY_SOUND, isChecked) }
@@ -145,7 +161,10 @@ class SettingsFragment : Fragment() {
         // Clear Cache
         binding.layoutClearCache.setOnClickListener { confirmClearCache() }
 
-        // Data Saver switch
+        // Data Saver row & switch
+        binding.layoutDataSaver.setOnClickListener {
+            binding.switchDataSaver.toggle()
+        }
         binding.switchDataSaver.setOnCheckedChangeListener { _, isChecked ->
             if (!isProgrammaticUpdate) {
                 prefs.edit { putBoolean(KEY_DATA_SAVER, isChecked) }
@@ -172,13 +191,21 @@ class SettingsFragment : Fragment() {
     private fun loadLocalPreferences() {
         isProgrammaticUpdate = true
 
+        // Donor Availability from cached prefs (defaults to true)
+        val donorAvailable = prefs.getBoolean(KEY_DONOR_AVAILABILITY, true)
+        setSwitchSilently(binding.switchDonorAvailability, donorAvailable)
+
+        // Push Notifications from cached prefs (defaults to true)
+        val notificationsEnabled = prefs.getBoolean(KEY_NOTIFICATIONS_ENABLED, true)
+        setSwitchSilently(binding.switchNotifications, notificationsEnabled)
+
         // Emergency alert sounds
         val soundEnabled = prefs.getBoolean(KEY_EMERGENCY_SOUND, true)
-        binding.switchEmergencySound.isChecked = soundEnabled
+        setSwitchSilently(binding.switchEmergencySound, soundEnabled)
 
         // Data Saver
         val dataSaverEnabled = prefs.getBoolean(KEY_DATA_SAVER, false)
-        binding.switchDataSaver.isChecked = dataSaverEnabled
+        setSwitchSilently(binding.switchDataSaver, dataSaverEnabled)
 
         // Current Theme display
         val themeMode = prefs.getInt(KEY_APP_THEME, AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM)
@@ -215,8 +242,14 @@ class SettingsFragment : Fragment() {
                     val notificationEnabled = donorDoc.getBoolean("notificationEnabled") ?: true
                     val bloodGroup = donorDoc.getString(FirebaseUtils.DonorFields.BLOOD_GROUP) ?: ""
 
-                    binding.switchDonorAvailability.isChecked = isAvailable
-                    binding.switchNotifications.isChecked = notificationEnabled
+                    // Cache in preferences for immediate zero-jump sync on future screen loads
+                    prefs.edit {
+                        putBoolean(KEY_DONOR_AVAILABILITY, isAvailable)
+                        putBoolean(KEY_NOTIFICATIONS_ENABLED, notificationEnabled)
+                    }
+
+                    setSwitchSilently(binding.switchDonorAvailability, isAvailable)
+                    setSwitchSilently(binding.switchNotifications, notificationEnabled)
 
                     binding.tvDonorBadge.visibility = View.VISIBLE
                     if (isAvailable) {
@@ -232,10 +265,13 @@ class SettingsFragment : Fragment() {
                     }
                 } else {
                     // Non-donor registered user
+                    prefs.edit {
+                        putBoolean(KEY_DONOR_AVAILABILITY, false)
+                    }
                     binding.tvDonorBadge.text = "Registered User"
                     binding.tvDonorBadge.setBackgroundResource(R.drawable.bg_badge_pill)
                     binding.tvDonorBadge.setTextColor(requireContext().getColor(R.color.text_secondary))
-                    binding.switchDonorAvailability.isChecked = false
+                    setSwitchSilently(binding.switchDonorAvailability, false)
                     binding.tvDonorAvailabilitySubtitle.text = "Register as a donor in Profile to receive requests"
                 }
 
@@ -248,6 +284,28 @@ class SettingsFragment : Fragment() {
 
     private fun updateDonorAvailability(isAvailable: Boolean) {
         val currentUser = auth.currentUser ?: return
+
+        // Update local cache immediately
+        prefs.edit { putBoolean(KEY_DONOR_AVAILABILITY, isAvailable) }
+
+        // Update UI badge & subtitle instantly without reloading from network
+        if (isAvailable) {
+            binding.tvDonorBadge.setBackgroundResource(R.drawable.bg_donor_status_active)
+            binding.tvDonorBadge.setTextColor(requireContext().getColor(R.color.text_donation))
+            val currentText = binding.tvDonorBadge.text.toString()
+            if (!currentText.contains("•")) {
+                binding.tvDonorBadge.text = "Active Donor"
+            }
+            binding.tvDonorAvailabilitySubtitle.text = "Available to receive emergency donation requests"
+        } else {
+            binding.tvDonorBadge.setBackgroundResource(R.drawable.bg_donor_status_inactive)
+            binding.tvDonorBadge.setTextColor(requireContext().getColor(R.color.text_secondary))
+            val currentText = binding.tvDonorBadge.text.toString()
+            if (!currentText.contains("•")) {
+                binding.tvDonorBadge.text = "Inactive Donor"
+            }
+            binding.tvDonorAvailabilitySubtitle.text = "Currently paused from donation requests"
+        }
 
         firestore.collection(FirebaseUtils.Collections.DONORS)
             .document(currentUser.uid)
@@ -264,19 +322,22 @@ class SettingsFragment : Fragment() {
 
                 val msg = if (isAvailable) "You are now active for blood donations" else "Donation availability paused"
                 Toast.makeText(requireContext(), msg, Toast.LENGTH_SHORT).show()
-                loadRemoteSettings()
             }
             .addOnFailureListener { e ->
                 Timber.e(e, "Failed to update donor availability")
                 Toast.makeText(requireContext(), "Failed to update availability", Toast.LENGTH_SHORT).show()
                 isProgrammaticUpdate = true
-                binding.switchDonorAvailability.isChecked = !isAvailable
+                setSwitchSilently(binding.switchDonorAvailability, !isAvailable)
+                prefs.edit { putBoolean(KEY_DONOR_AVAILABILITY, !isAvailable) }
                 isProgrammaticUpdate = false
             }
     }
 
     private fun updatePushNotificationStatus(isEnabled: Boolean) {
         val currentUser = auth.currentUser ?: return
+
+        // Update local cache immediately
+        prefs.edit { putBoolean(KEY_NOTIFICATIONS_ENABLED, isEnabled) }
 
         firestore.collection(FirebaseUtils.Collections.DONORS)
             .document(currentUser.uid)
@@ -293,7 +354,8 @@ class SettingsFragment : Fragment() {
                 Timber.e(e, "Failed to update push notifications")
                 Toast.makeText(requireContext(), "Failed to update settings", Toast.LENGTH_SHORT).show()
                 isProgrammaticUpdate = true
-                binding.switchNotifications.isChecked = !isEnabled
+                setSwitchSilently(binding.switchNotifications, !isEnabled)
+                prefs.edit { putBoolean(KEY_NOTIFICATIONS_ENABLED, !isEnabled) }
                 isProgrammaticUpdate = false
             }
     }
@@ -628,6 +690,8 @@ class SettingsFragment : Fragment() {
 
     companion object {
         private const val PREFS_NAME = "app_prefs"
+        private const val KEY_DONOR_AVAILABILITY = "donor_availability_enabled"
+        private const val KEY_NOTIFICATIONS_ENABLED = "push_notifications_enabled"
         private const val KEY_EMERGENCY_SOUND = "emergency_sound_enabled"
         private const val KEY_DATA_SAVER = "data_saver_mode"
         private const val KEY_APP_THEME = "app_theme"

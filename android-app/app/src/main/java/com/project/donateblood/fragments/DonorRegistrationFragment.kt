@@ -1,14 +1,15 @@
 package com.project.donateblood.fragments
 
 import android.annotation.SuppressLint
-import android.app.DatePickerDialog
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.ArrayAdapter
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
+import com.google.android.material.datepicker.CalendarConstraints
+import com.google.android.material.datepicker.DateValidatorPointBackward
+import com.google.android.material.datepicker.MaterialDatePicker
 import com.google.android.material.snackbar.Snackbar
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
@@ -18,10 +19,13 @@ import com.project.donateblood.R
 import com.project.donateblood.databinding.FragmentDonorRegistrationBinding
 import com.project.donateblood.models.Donor
 import com.project.donateblood.network.FcmTokenSyncManager
+import com.project.donateblood.utils.DistrictPickerHelper
 import com.project.donateblood.utils.FirebaseUtils
 import timber.log.Timber
 import java.text.SimpleDateFormat
-import java.util.*
+import java.util.Calendar
+import java.util.Locale
+import java.util.TimeZone
 
 @Suppress("DEPRECATION")
 class DonorRegistrationFragment : Fragment() {
@@ -31,6 +35,7 @@ class DonorRegistrationFragment : Fragment() {
 
     private lateinit var auth: FirebaseAuth
     private lateinit var firestore: FirebaseFirestore
+    private var isEditMode: Boolean = false
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -48,14 +53,14 @@ class DonorRegistrationFragment : Fragment() {
         try {
             auth = FirebaseAuth.getInstance()
             firestore = FirebaseFirestore.getInstance()
+            isEditMode = arguments?.getBoolean("isEditMode", false) ?: false
 
             setupToolbar()
-            setupBloodGroupAutoComplete()
-            setupDatePicker()
+            setupPickers()
             loadUserData()
             setupClickListeners()
 
-            Timber.tag("DonorRegistration").d("Setup completed successfully")
+            Timber.tag("DonorRegistration").d("Setup completed successfully. EditMode=$isEditMode")
         } catch (e: Exception) {
             Timber.tag("DonorRegistration").e(e, "Error in setup: ${e.message}")
             Snackbar.make(view, "Setup error: ${e.message}", Snackbar.LENGTH_LONG).show()
@@ -66,82 +71,140 @@ class DonorRegistrationFragment : Fragment() {
         binding.toolbar.setNavigationOnClickListener {
             findNavController().navigateUp()
         }
-        binding.toolbar.title = "Donor Registration"
+
+        if (isEditMode) {
+            binding.toolbar.title = "Edit Donor Info"
+            binding.toolbar.subtitle = "Update your blood donation & location details"
+            binding.tvSectionTitle.text = "Update Donor Profile"
+            binding.tvSectionSubtitle.text = "Keep your donation status and address up to date"
+            binding.btnRegister.text = "Update Donor Info"
+        } else {
+            binding.toolbar.title = "Donor Registration"
+            binding.toolbar.subtitle = "Join as an active blood donor"
+            binding.tvSectionTitle.text = "Donor Information"
+            binding.tvSectionSubtitle.text = "Help save lives by keeping your info accurate"
+            binding.btnRegister.text = "Register as Donor"
+        }
     }
 
-    private fun setupBloodGroupAutoComplete() {
-        try {
-            val bloodGroups = arrayOf(
-                "Select Blood Group", "A+", "A-", "B+", "B-", "O+", "O-", "AB+", "AB-"
-            )
-
-            val adapter = ArrayAdapter(
+    private fun setupPickers() {
+        // Blood Group Chooser
+        val openBloodGroupPicker = {
+            DistrictPickerHelper.showBloodGroupPicker(
                 requireContext(),
-                android.R.layout.simple_dropdown_item_1line,
-                bloodGroups
-            )
-
-            binding.spinnerBloodGroup.setAdapter(adapter)
-            binding.spinnerBloodGroup.threshold = 1
-
-            Timber.tag("DonorRegistration").d("Blood group adapter setup complete")
-        } catch (e: Exception) {
-            Timber.tag("DonorRegistration").e(e, "Error setting up blood group: ${e.message}")
+                binding.spinnerBloodGroup.text?.toString() ?: ""
+            ) { selected ->
+                binding.spinnerBloodGroup.setText(selected, false)
+                binding.tilBloodGroup.error = null
+            }
         }
-    }
+        binding.spinnerBloodGroup.setOnClickListener { openBloodGroupPicker() }
+        binding.tilBloodGroup.setOnClickListener { openBloodGroupPicker() }
+        binding.tilBloodGroup.setEndIconOnClickListener { openBloodGroupPicker() }
 
-    private fun setupDatePicker() {
-        binding.etLastDonation.setOnClickListener {
-            showDatePicker()
+        // Date of last donation picker
+        val openDatePicker = { showDatePicker() }
+        binding.etLastDonation.setOnClickListener { openDatePicker() }
+        binding.tilLastDonation.setOnClickListener { openDatePicker() }
+        binding.tilLastDonation.setEndIconOnClickListener { openDatePicker() }
+
+        // District Searchable Modal Picker
+        val openDistrictPicker = {
+            DistrictPickerHelper.showDistrictPicker(
+                requireContext(),
+                layoutInflater,
+                binding.etDistrict.text?.toString() ?: ""
+            ) { selectedDistrict ->
+                binding.etDistrict.setText(selectedDistrict)
+                binding.tilDistrict.error = null
+            }
         }
+        binding.etDistrict.setOnClickListener { openDistrictPicker() }
+        binding.tilDistrict.setOnClickListener { openDistrictPicker() }
+        binding.tilDistrict.setEndIconOnClickListener { openDistrictPicker() }
     }
 
     private fun showDatePicker() {
-        val calendar = Calendar.getInstance()
-        DatePickerDialog(
-            requireContext(),
-            { _, year, month, day ->
-                calendar.set(year, month, day)
-                val dateFormat = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
-                binding.etLastDonation.setText(dateFormat.format(calendar.time))
-            },
-            calendar.get(Calendar.YEAR),
-            calendar.get(Calendar.MONTH),
-            calendar.get(Calendar.DAY_OF_MONTH)
-        ).show()
+        if (!isAdded) return
+
+        val constraints = CalendarConstraints.Builder()
+            .setValidator(DateValidatorPointBackward.now())
+            .build()
+
+        val builder = MaterialDatePicker.Builder.datePicker()
+            .setTitleText("Select Last Donation Date")
+            .setTheme(R.style.ThemeOverlay_BloodLink_MaterialCalendar)
+            .setCalendarConstraints(constraints)
+
+        val currentText = binding.etLastDonation.text?.toString()?.trim()
+        if (!currentText.isNullOrEmpty()) {
+            try {
+                val format = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).apply {
+                    timeZone = TimeZone.getTimeZone("UTC")
+                }
+                format.parse(currentText)?.let {
+                    builder.setSelection(it.time)
+                }
+            } catch (_: Exception) {}
+        }
+
+        val datePicker = builder.build()
+        datePicker.addOnPositiveButtonClickListener { selectionMillis ->
+            val calendar = Calendar.getInstance(TimeZone.getTimeZone("UTC")).apply {
+                timeInMillis = selectionMillis
+            }
+            val format = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).apply {
+                timeZone = TimeZone.getTimeZone("UTC")
+            }
+            binding.etLastDonation.setText(format.format(calendar.time))
+            binding.tilLastDonation.error = null
+        }
+        datePicker.show(childFragmentManager, "DONATION_DATE_PICKER")
     }
 
     private fun loadUserData() {
         val currentUser = auth.currentUser ?: return
 
+        // 1. Load from users collection
         firestore.collection(FirebaseUtils.Collections.USERS)
             .document(currentUser.uid)
             .get()
             .addOnSuccessListener { document ->
                 if (document.exists()) {
                     document.getString(FirebaseUtils.UserFields.BLOOD_GROUP)?.let {
-                        setBloodGroupSelection(it)
+                        if (it.isNotEmpty()) binding.spinnerBloodGroup.setText(it, false)
                     }
                     document.getString(FirebaseUtils.UserFields.DISTRICT)?.let {
-                        binding.etDistrict.setText(it)
+                        if (it.isNotEmpty()) binding.etDistrict.setText(it)
                     }
-                    document.getString(FirebaseUtils.UserFields.LOCATION)?.let {
-                        binding.etLocation.setText(it)
+                    val loc = document.getString(FirebaseUtils.UserFields.LOCATION)
+                        ?: document.getString(FirebaseUtils.UserFields.POLICE_STATION)
+                    if (!loc.isNullOrEmpty()) {
+                        binding.etLocation.setText(loc)
                     }
                 }
             }
-    }
 
-    private fun setBloodGroupSelection(bloodGroup: String) {
-        val adapter = binding.spinnerBloodGroup.adapter as? ArrayAdapter<*>
-        adapter?.let {
-            for (i in 0 until it.count) {
-                if ((it.getItem(i) as? String) == bloodGroup) {
-                    binding.spinnerBloodGroup.setText(bloodGroup, false)
-                    break
+        // 2. Also load from donors collection (critical for lastDonation date)
+        firestore.collection(FirebaseUtils.Collections.DONORS)
+            .document(currentUser.uid)
+            .get()
+            .addOnSuccessListener { donorDoc ->
+                if (donorDoc.exists()) {
+                    donorDoc.getString("lastDonation")?.let { date ->
+                        if (date.isNotEmpty()) binding.etLastDonation.setText(date)
+                    }
+                    donorDoc.getString("bloodGroup")?.let { bg ->
+                        if (bg.isNotEmpty()) binding.spinnerBloodGroup.setText(bg, false)
+                    }
+                    donorDoc.getString("district")?.let { dist ->
+                        if (dist.isNotEmpty()) binding.etDistrict.setText(dist)
+                    }
+                    donorDoc.getString("location")?.let { loc ->
+                        if (loc.isNotEmpty()) binding.etLocation.setText(loc)
+                    }
                 }
             }
-        }
     }
 
     private fun setupClickListeners() {
@@ -173,7 +236,7 @@ class DonorRegistrationFragment : Fragment() {
         val district = binding.etDistrict.text.toString().trim()
 
         Timber.tag("DonorRegistration")
-            .d("Registering with: BloodGroup=$bloodGroup, Location=$location, District=$district")
+            .d("Registering with: BloodGroup=$bloodGroup, Location=$location, District=$district, EditMode=$isEditMode")
 
         // Validation
         if (bloodGroup == "Select Blood Group" || bloodGroup.isEmpty()) {
@@ -223,7 +286,6 @@ class DonorRegistrationFragment : Fragment() {
                     val userPhone = document.getString(FirebaseUtils.UserFields.PHONE) ?: ""
                     val profileImage = document.getString(FirebaseUtils.UserFields.PROFILE_IMAGE) ?: ""
 
-                    // ✅ CREATE DONOR WITH ALL REQUIRED FIELDS
                     val donor = Donor(
                         id = currentUser.uid,
                         userId = currentUser.uid,
@@ -236,21 +298,18 @@ class DonorRegistrationFragment : Fragment() {
                         lastDonation = lastDonation.ifEmpty { "" },
                         imageUrl = profileImage,
 
-                        // ✅ TIMESTAMPS
                         updatedAt = System.currentTimeMillis(),
-                        createdAt = System.currentTimeMillis(),
+                        createdAt = if (isEditMode) (document.getLong("createdAt") ?: System.currentTimeMillis()) else System.currentTimeMillis(),
                         lastActive = System.currentTimeMillis(),
                         lastDonationDate = parseDateToLong(lastDonation),
 
-                        // ✅ STATUS FIELDS
                         isAvailable = true,
                         isActive = true,
                         canDonate = true,
                         hasFcmToken = true,
                         notificationEnabled = true,
-                        isLoggedIn = true, // ✅ CRITICAL: Set to true on registration
+                        isLoggedIn = true,
 
-                        // ✅ FCM TOKEN & DEVICE MANAGEMENT
                         fcmToken = fcmToken,
                         deviceId = deviceId,
                         compoundTokenId = compoundTokenId,
@@ -258,14 +317,12 @@ class DonorRegistrationFragment : Fragment() {
                         appVersion = BuildConfig.VERSION_NAME,
                         userType = "donor",
 
-                        // Optional
                         daysSinceLastDonation = 0
                     )
 
                     // Save to Firestore
                     saveDonorToFirestore(currentUser.uid, donor, bloodGroup, district, location)
 
-                    // ✅ SYNC TOKEN WITH BACKEND
                     if (fcmToken.isNotEmpty()) {
                         FcmTokenSyncManager.syncTokenWithBackend(
                             token = fcmToken,
@@ -276,7 +333,6 @@ class DonorRegistrationFragment : Fragment() {
                     }
                 }
                 .addOnFailureListener {
-                    // Create with basic info if user doc doesn't exist
                     val donor = createBasicDonor(
                         currentUser = currentUser,
                         bloodGroup = bloodGroup,
@@ -289,7 +345,6 @@ class DonorRegistrationFragment : Fragment() {
                     )
                     saveDonorToFirestore(currentUser.uid, donor, bloodGroup, district, location)
 
-                    // ✅ SYNC TOKEN WITH BACKEND
                     if (fcmToken.isNotEmpty()) {
                         FcmTokenSyncManager.syncTokenWithBackend(
                             token = fcmToken,
@@ -337,21 +392,18 @@ class DonorRegistrationFragment : Fragment() {
             lastDonation = lastDonation.ifEmpty { "" },
             imageUrl = "",
 
-            // ✅ TIMESTAMPS
             updatedAt = System.currentTimeMillis(),
             createdAt = System.currentTimeMillis(),
             lastActive = System.currentTimeMillis(),
             lastDonationDate = parseDateToLong(lastDonation),
 
-            // ✅ STATUS FIELDS
             isAvailable = true,
             isActive = true,
             canDonate = true,
             hasFcmToken = true,
             notificationEnabled = true,
-            isLoggedIn = true, // ✅ CRITICAL
+            isLoggedIn = true,
 
-            // ✅ FCM TOKEN & DEVICE MANAGEMENT
             fcmToken = fcmToken,
             deviceId = deviceId,
             compoundTokenId = compoundTokenId,
@@ -359,7 +411,6 @@ class DonorRegistrationFragment : Fragment() {
             appVersion = BuildConfig.VERSION_NAME,
             userType = "donor",
 
-            // Optional
             daysSinceLastDonation = 0
         )
     }
@@ -375,7 +426,6 @@ class DonorRegistrationFragment : Fragment() {
             .document(userId)
             .set(donor)
             .addOnSuccessListener {
-                // Update user document with donor information
                 val updates = mapOf<String, Any>(
                     FirebaseUtils.UserFields.BLOOD_GROUP to bloodGroup,
                     FirebaseUtils.UserFields.DISTRICT to district,
@@ -400,13 +450,25 @@ class DonorRegistrationFragment : Fragment() {
     }
 
     private fun showSuccessMessage() {
-        Snackbar.make(binding.root, "Successfully registered as donor!", Snackbar.LENGTH_LONG)
+        val message = if (isEditMode) {
+            "Donor information updated successfully!"
+        } else {
+            "Successfully registered as donor!"
+        }
+
+        Snackbar.make(binding.root, message, Snackbar.LENGTH_LONG)
             .setBackgroundTint(requireContext().getColor(R.color.success_green))
             .setAction("OK") {
-                // Go back to profile
                 findNavController().navigateUp()
             }
             .show()
+
+        // Also navigate back automatically after delay
+        binding.root.postDelayed({
+            if (isAdded) {
+                findNavController().navigateUp()
+            }
+        }, 1200)
     }
 
     private fun handleError(e: Exception) {
@@ -414,7 +476,8 @@ class DonorRegistrationFragment : Fragment() {
         binding.progressBar.visibility = View.GONE
         binding.btnRegister.isEnabled = true
         binding.btnCancel.isEnabled = true
-        Snackbar.make(binding.root, "Registration failed: ${e.message}", Snackbar.LENGTH_LONG)
+        val errorMsg = if (isEditMode) "Update failed: ${e.message}" else "Registration failed: ${e.message}"
+        Snackbar.make(binding.root, errorMsg, Snackbar.LENGTH_LONG)
             .setBackgroundTint(requireContext().getColor(R.color.primary_red_dark))
             .show()
     }

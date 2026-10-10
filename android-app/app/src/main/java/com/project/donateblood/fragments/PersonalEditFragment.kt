@@ -8,13 +8,20 @@ import android.view.ViewGroup
 import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
+import com.google.android.material.datepicker.MaterialDatePicker
 import com.google.android.material.snackbar.Snackbar
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import com.project.donateblood.R
 import com.project.donateblood.databinding.FragmentPersonalEditBinding
 import com.project.donateblood.models.User
+import com.project.donateblood.utils.DistrictPickerHelper
 import com.project.donateblood.utils.FirebaseUtils
 import timber.log.Timber
+import java.text.SimpleDateFormat
+import java.util.Calendar
+import java.util.Locale
+import java.util.TimeZone
 
 class PersonalEditFragment : Fragment() {
 
@@ -47,11 +54,10 @@ class PersonalEditFragment : Fragment() {
 
     private fun setupToolbar() {
         binding.toolbar.setNavigationOnClickListener {
-            // Navigate back to profile
             findNavController().navigateUp()
         }
-
         binding.toolbar.title = "Edit Personal Information"
+        binding.toolbar.subtitle = "Update your name, contact & personal info"
     }
 
     private fun setupClickListeners() {
@@ -60,28 +66,84 @@ class PersonalEditFragment : Fragment() {
         }
 
         binding.btnCancel.setOnClickListener {
-            // Navigate back to profile
             findNavController().navigateUp()
         }
+
+        // Date of birth picker
+        val openDatePicker = { showDatePicker() }
+        binding.etDateOfBirth.setOnClickListener { openDatePicker() }
+        binding.inputLayoutDateOfBirth.setOnClickListener { openDatePicker() }
+        binding.inputLayoutDateOfBirth.setEndIconOnClickListener { openDatePicker() }
+
+        // Blood group chooser
+        val openBloodGroupPicker = { showBloodGroupPicker() }
+        binding.etBloodGroup.setOnClickListener { openBloodGroupPicker() }
+        binding.inputLayoutBloodGroup.setOnClickListener { openBloodGroupPicker() }
+        binding.inputLayoutBloodGroup.setEndIconOnClickListener { openBloodGroupPicker() }
 
         // Clear error on text change
         setupTextChangeListeners()
     }
 
+    private fun showDatePicker() {
+        if (!isAdded) return
+
+        val builder = MaterialDatePicker.Builder.datePicker()
+            .setTitleText("Select Date of Birth")
+            .setTheme(R.style.ThemeOverlay_BloodLink_MaterialCalendar)
+
+        // Preselect current date if valid
+        val currentText = binding.etDateOfBirth.text?.toString()?.trim()
+        if (!currentText.isNullOrEmpty()) {
+            try {
+                val format = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).apply {
+                    timeZone = TimeZone.getTimeZone("UTC")
+                }
+                format.parse(currentText)?.let {
+                    builder.setSelection(it.time)
+                }
+            } catch (_: Exception) {}
+        }
+
+        val datePicker = builder.build()
+        datePicker.addOnPositiveButtonClickListener { selectionMillis ->
+            val calendar = Calendar.getInstance(TimeZone.getTimeZone("UTC")).apply {
+                timeInMillis = selectionMillis
+            }
+            val format = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).apply {
+                timeZone = TimeZone.getTimeZone("UTC")
+            }
+            binding.etDateOfBirth.setText(format.format(calendar.time))
+            binding.inputLayoutDateOfBirth.error = null
+        }
+        datePicker.show(childFragmentManager, "DOB_PICKER")
+    }
+
+    private fun showBloodGroupPicker() {
+        if (!isAdded) return
+        DistrictPickerHelper.showBloodGroupPicker(
+            requireContext(),
+            binding.etBloodGroup.text?.toString() ?: ""
+        ) { selectedGroup ->
+            binding.etBloodGroup.setText(selectedGroup)
+            binding.inputLayoutBloodGroup.error = null
+        }
+    }
+
     private fun setupTextChangeListeners() {
         binding.etName.setOnFocusChangeListener { _, hasFocus ->
             if (!hasFocus && binding.etName.text.isNullOrEmpty()) {
-                binding.etName.error = "Name is required"
+                binding.inputLayoutName.error = "Name is required"
             } else {
-                binding.etName.error = null
+                binding.inputLayoutName.error = null
             }
         }
 
         binding.etPhone.setOnFocusChangeListener { _, hasFocus ->
             if (!hasFocus && binding.etPhone.text.isNullOrEmpty()) {
-                binding.etPhone.error = "Phone number is required"
+                binding.inputLayoutPhone.error = "Phone number is required"
             } else {
-                binding.etPhone.error = null
+                binding.inputLayoutPhone.error = null
             }
         }
 
@@ -175,13 +237,29 @@ class PersonalEditFragment : Fragment() {
             .addOnSuccessListener {
                 Timber.d("Personal info updated successfully for user: $userId")
 
+                // Also update donors collection if user is a donor
+                firestore.collection(FirebaseUtils.Collections.DONORS)
+                    .document(userId)
+                    .update(
+                        mapOf(
+                            "name" to name,
+                            "phone" to phone,
+                            "bloodGroup" to bloodGroup,
+                            "updatedAt" to System.currentTimeMillis()
+                        )
+                    )
+                    .addOnFailureListener {
+                        // User might not be a registered donor yet, non-fatal
+                        Timber.d("Not updating donor doc: ${it.message}")
+                    }
+
                 // Show success message
                 showSuccessMessage()
 
                 // Navigate back to profile after a short delay
                 binding.root.postDelayed({
                     findNavController().navigateUp()
-                }, 1500)
+                }, 1200)
             }
             .addOnFailureListener { e ->
                 showLoading(false)
@@ -194,26 +272,32 @@ class PersonalEditFragment : Fragment() {
         var isValid = true
 
         if (name.isEmpty()) {
-            binding.etName.error = "Name is required"
+            binding.inputLayoutName.error = "Name is required"
             binding.etName.requestFocus()
             isValid = false
+        } else {
+            binding.inputLayoutName.error = null
         }
 
         if (phone.isEmpty()) {
-            binding.etPhone.error = "Phone number is required"
+            binding.inputLayoutPhone.error = "Phone number is required"
             if (isValid) {
                 binding.etPhone.requestFocus()
             }
             isValid = false
+        } else {
+            binding.inputLayoutPhone.error = null
         }
 
         if (dateOfBirth.isNotEmpty()) {
             if (!validateDateOfBirth(dateOfBirth)) {
-                binding.etDateOfBirth.error = "Date must be in DD/MM/YYYY format"
+                binding.inputLayoutDateOfBirth.error = "Date must be in DD/MM/YYYY format"
                 if (isValid) {
                     binding.etDateOfBirth.requestFocus()
                 }
                 isValid = false
+            } else {
+                binding.inputLayoutDateOfBirth.error = null
             }
         }
 
@@ -225,7 +309,6 @@ class PersonalEditFragment : Fragment() {
             return true // Empty is allowed
         }
 
-        // Validate date format (dd/MM/yyyy)
         val dateRegex = Regex("""^(0[1-9]|[12][0-9]|3[01])/(0[1-9]|1[0-2])/\d{4}$""")
         return dateRegex.matches(dateOfBirth)
     }
@@ -235,15 +318,13 @@ class PersonalEditFragment : Fragment() {
         binding.btnSave.isEnabled = true
         binding.btnCancel.isEnabled = true
 
-        // Show success message
         Toast.makeText(
             requireContext(),
             "Personal information updated successfully!",
             Toast.LENGTH_SHORT
         ).show()
 
-        // Also show a snackbar for better visibility
-        showSnackbar("Personal information has been updated", Snackbar.LENGTH_LONG)
+        showSnackbar("Personal information has been updated", Snackbar.LENGTH_SHORT)
     }
 
     private fun showSnackbar(message: String, duration: Int = Snackbar.LENGTH_SHORT) {

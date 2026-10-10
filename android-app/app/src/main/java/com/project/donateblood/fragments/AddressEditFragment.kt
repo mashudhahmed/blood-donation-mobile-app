@@ -13,6 +13,7 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.project.donateblood.databinding.FragmentAddressEditBinding
 import com.project.donateblood.models.User
+import com.project.donateblood.utils.DistrictPickerHelper
 import com.project.donateblood.utils.FirebaseUtils
 import timber.log.Timber
 
@@ -47,11 +48,10 @@ class AddressEditFragment : Fragment() {
 
     private fun setupToolbar() {
         binding.toolbar.setNavigationOnClickListener {
-            // Navigate back to profile
             findNavController().navigateUp()
         }
-
         binding.toolbar.title = "Edit Address"
+        binding.toolbar.subtitle = "Update your location & residential details"
     }
 
     private fun setupClickListeners() {
@@ -60,36 +60,53 @@ class AddressEditFragment : Fragment() {
         }
 
         binding.btnCancel.setOnClickListener {
-            // Navigate back to profile
             findNavController().navigateUp()
         }
+
+        // Searchable District Picker modal
+        val openDistrictPicker = { showDistrictPicker() }
+        binding.etDistrict.setOnClickListener { openDistrictPicker() }
+        binding.inputLayoutDistrict.setOnClickListener { openDistrictPicker() }
+        binding.inputLayoutDistrict.setEndIconOnClickListener { openDistrictPicker() }
 
         // Clear error on text change
         setupTextChangeListeners()
     }
 
-    private fun setupTextChangeListeners() {
-        binding.etDistrict.setOnFocusChangeListener { _, hasFocus ->
-            if (!hasFocus && binding.etDistrict.text.isNullOrEmpty()) {
-                binding.etDistrict.error = "District is required"
-            } else {
-                binding.etDistrict.error = null
-            }
+    private fun showDistrictPicker() {
+        if (!isAdded) return
+        DistrictPickerHelper.showDistrictPicker(
+            requireContext(),
+            layoutInflater,
+            binding.etDistrict.text?.toString() ?: ""
+        ) { selectedDistrict ->
+            binding.etDistrict.setText(selectedDistrict)
+            binding.inputLayoutDistrict.error = null
         }
+    }
 
+    private fun setupTextChangeListeners() {
         binding.etPoliceStation.setOnFocusChangeListener { _, hasFocus ->
             if (!hasFocus && binding.etPoliceStation.text.isNullOrEmpty()) {
-                binding.etPoliceStation.error = "Police station is required"
+                binding.inputLayoutPoliceStation.error = "Police station is required"
             } else {
-                binding.etPoliceStation.error = null
+                binding.inputLayoutPoliceStation.error = null
             }
         }
 
         binding.etPostOffice.setOnFocusChangeListener { _, hasFocus ->
             if (!hasFocus && binding.etPostOffice.text.isNullOrEmpty()) {
-                binding.etPostOffice.error = "Post office is required"
+                binding.inputLayoutPostOffice.error = "Post office is required"
             } else {
-                binding.etPostOffice.error = null
+                binding.inputLayoutPostOffice.error = null
+            }
+        }
+
+        binding.etVillage.setOnFocusChangeListener { _, hasFocus ->
+            if (!hasFocus && binding.etVillage.text.isNullOrEmpty()) {
+                binding.inputLayoutVillage.error = "Village / Area is required"
+            } else {
+                binding.inputLayoutVillage.error = null
             }
         }
     }
@@ -152,7 +169,7 @@ class AddressEditFragment : Fragment() {
         val road = binding.etRoad.text.toString().trim()
 
         // Validate inputs
-        if (!validateInputs(district, policeStation, postOffice)) {
+        if (!validateInputs(district, policeStation, postOffice, village)) {
             return
         }
 
@@ -177,13 +194,29 @@ class AddressEditFragment : Fragment() {
             .addOnSuccessListener {
                 Timber.d("Address updated successfully for user: $userId")
 
+                // Also sync with donors collection if user is a donor
+                val donorLocation = if (village.isNotEmpty()) "$village, $policeStation" else policeStation
+                firestore.collection(FirebaseUtils.Collections.DONORS)
+                    .document(userId)
+                    .update(
+                        mapOf(
+                            "district" to district,
+                            "location" to donorLocation,
+                            "updatedAt" to System.currentTimeMillis()
+                        )
+                    )
+                    .addOnFailureListener {
+                        // User might not be a registered donor, non-fatal
+                        Timber.d("Not updating donor doc address: ${it.message}")
+                    }
+
                 // Show success message
                 showSuccessMessage()
 
                 // Navigate back to profile after a short delay
                 binding.root.postDelayed({
                     findNavController().navigateUp()
-                }, 1500)
+                }, 1200)
             }
             .addOnFailureListener { e ->
                 showLoading(false)
@@ -192,29 +225,50 @@ class AddressEditFragment : Fragment() {
             }
     }
 
-    private fun validateInputs(district: String, policeStation: String, postOffice: String): Boolean {
+    private fun validateInputs(
+        district: String,
+        policeStation: String,
+        postOffice: String,
+        village: String
+    ): Boolean {
         var isValid = true
 
         if (district.isEmpty()) {
-            binding.etDistrict.error = "District is required"
+            binding.inputLayoutDistrict.error = "District is required"
             binding.etDistrict.requestFocus()
             isValid = false
+        } else {
+            binding.inputLayoutDistrict.error = null
         }
 
         if (policeStation.isEmpty()) {
-            binding.etPoliceStation.error = "Police station is required"
+            binding.inputLayoutPoliceStation.error = "Police station is required"
             if (isValid) {
                 binding.etPoliceStation.requestFocus()
             }
             isValid = false
+        } else {
+            binding.inputLayoutPoliceStation.error = null
         }
 
         if (postOffice.isEmpty()) {
-            binding.etPostOffice.error = "Post office is required"
+            binding.inputLayoutPostOffice.error = "Post office is required"
             if (isValid) {
                 binding.etPostOffice.requestFocus()
             }
             isValid = false
+        } else {
+            binding.inputLayoutPostOffice.error = null
+        }
+
+        if (village.isEmpty()) {
+            binding.inputLayoutVillage.error = "Village / Area is required"
+            if (isValid) {
+                binding.etVillage.requestFocus()
+            }
+            isValid = false
+        } else {
+            binding.inputLayoutVillage.error = null
         }
 
         return isValid
@@ -225,15 +279,13 @@ class AddressEditFragment : Fragment() {
         binding.btnSave.isEnabled = true
         binding.btnCancel.isEnabled = true
 
-        // Show success message
         Toast.makeText(
             requireContext(),
             "Address updated successfully!",
             Toast.LENGTH_SHORT
         ).show()
 
-        // Also show a snackbar for better visibility
-        showSnackbar("Address information has been updated", Snackbar.LENGTH_LONG)
+        showSnackbar("Address information has been updated", Snackbar.LENGTH_SHORT)
     }
 
     private fun showSnackbar(message: String, duration: Int = Snackbar.LENGTH_SHORT) {

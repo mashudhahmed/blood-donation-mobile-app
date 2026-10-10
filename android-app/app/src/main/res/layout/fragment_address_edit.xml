@@ -5,221 +5,323 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:padding="16dp">
+    android:background="#F8F9FA">
 
-    <!-- Toolbar -->
+    <!-- Top Crimson Toolbar -->
     <com.google.android.material.appbar.MaterialToolbar
         android:id="@+id/toolbar"
         android:layout_width="match_parent"
         android:layout_height="?attr/actionBarSize"
+        android:background="@color/primary_red_dark"
+        app:elevation="3dp"
         app:navigationIcon="@drawable/ic_arrow_back_white"
-        app:title="Edit Address" />
+        app:title="Edit Address"
+        app:titleTextColor="@color/white"
+        app:subtitle="Update your location &amp; residential details"
+        app:subtitleTextColor="#FFCDD2" />
 
-    <!-- Content -->
-    <ScrollView
+    <!-- Scrollable Form -->
+    <androidx.core.widget.NestedScrollView
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="1">
+        android:layout_weight="1"
+        android:fillViewport="true">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:gravity="center_horizontal"
-            android:paddingTop="16dp">
+            android:padding="16dp">
 
-            <!-- District -->
-            <com.google.android.material.textfield.TextInputLayout
-                android:id="@+id/inputLayoutDistrict"
-                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
-                android:layout_width="310dp"
+            <!-- Card Container -->
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="16dp"
-                app:boxCornerRadiusTopStart="16dp"
-                app:boxCornerRadiusTopEnd="16dp"
-                app:boxCornerRadiusBottomStart="16dp"
-                app:boxCornerRadiusBottomEnd="16dp"
-                app:boxStrokeColor="@color/border_color"
-                app:boxStrokeWidth="1dp"
-                app:boxStrokeWidthFocused="2dp"
-                app:boxBackgroundColor="@color/border_light"
-                app:startIconDrawable="@drawable/ic_location"
-                app:startIconTint="@color/text_secondary"
-                app:hintEnabled="false">
+                app:cardCornerRadius="16dp"
+                app:cardElevation="0dp"
+                app:strokeColor="#EDEDED"
+                app:strokeWidth="1dp"
+                app:cardBackgroundColor="@color/white">
 
-                <com.google.android.material.textfield.TextInputEditText
-                    android:id="@+id/etDistrict"
+                <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:hint="District"
-                    android:padding="16dp"
-                    android:textSize="16sp"
-                    android:textColor="@color/text_primary" />
-            </com.google.android.material.textfield.TextInputLayout>
+                    android:orientation="vertical"
+                    android:padding="20dp">
 
-            <!-- Police Station -->
-            <com.google.android.material.textfield.TextInputLayout
-                android:id="@+id/inputLayoutPoliceStation"
-                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
-                android:layout_width="310dp"
+                    <!-- Section Header -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:layout_marginBottom="16dp">
+
+                        <FrameLayout
+                            android:layout_width="40dp"
+                            android:layout_height="40dp"
+                            android:background="@drawable/bg_circle_icon">
+
+                            <ImageView
+                                android:layout_width="22dp"
+                                android:layout_height="22dp"
+                                android:layout_gravity="center"
+                                android:src="@drawable/ic_location"
+                                app:tint="@color/primary_red_dark"
+                                tools:ignore="ContentDescription" />
+                        </FrameLayout>
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="12dp"
+                            android:layout_weight="1"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Address Details"
+                                android:textColor="@color/text_primary"
+                                android:textSize="17sp"
+                                android:textStyle="bold" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="2dp"
+                                android:text="Accurate location helps find nearby donors"
+                                android:textColor="@color/text_secondary"
+                                android:textSize="12sp" />
+                        </LinearLayout>
+                    </LinearLayout>
+
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:background="#F0F0F0"
+                        android:layout_marginBottom="16dp" />
+
+                    <!-- District (Searchable Dropdown Modal) -->
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:id="@+id/inputLayoutDistrict"
+                        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="16dp"
+                        android:hint="District *"
+                        app:boxCornerRadiusTopStart="14dp"
+                        app:boxCornerRadiusTopEnd="14dp"
+                        app:boxCornerRadiusBottomStart="14dp"
+                        app:boxCornerRadiusBottomEnd="14dp"
+                        app:boxStrokeColor="@color/primary_red_dark"
+                        app:boxStrokeWidth="1dp"
+                        app:boxStrokeWidthFocused="2dp"
+                        app:boxBackgroundColor="#FAFAFA"
+                        app:startIconDrawable="@drawable/ic_location"
+                        app:startIconTint="@color/primary_red_dark"
+                        app:endIconMode="custom"
+                        app:endIconDrawable="@drawable/ic_chevron_down"
+                        app:endIconTint="@color/primary_red_dark">
+
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/etDistrict"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:focusable="false"
+                            android:clickable="true"
+                            android:cursorVisible="false"
+                            android:maxLines="1"
+                            android:paddingVertical="14dp"
+                            android:textSize="15sp"
+                            android:textColor="@color/text_primary" />
+                    </com.google.android.material.textfield.TextInputLayout>
+
+                    <!-- Police Station (Thana) -->
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:id="@+id/inputLayoutPoliceStation"
+                        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="16dp"
+                        android:hint="Police Station (Thana) *"
+                        app:boxCornerRadiusTopStart="14dp"
+                        app:boxCornerRadiusTopEnd="14dp"
+                        app:boxCornerRadiusBottomStart="14dp"
+                        app:boxCornerRadiusBottomEnd="14dp"
+                        app:boxStrokeColor="@color/primary_red_dark"
+                        app:boxStrokeWidth="1dp"
+                        app:boxStrokeWidthFocused="2dp"
+                        app:boxBackgroundColor="#FAFAFA"
+                        app:startIconDrawable="@drawable/ic_police"
+                        app:startIconTint="@color/primary_red_dark">
+
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/etPoliceStation"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:inputType="textCapWords"
+                            android:maxLines="1"
+                            android:paddingVertical="14dp"
+                            android:textSize="15sp"
+                            android:textColor="@color/text_primary" />
+                    </com.google.android.material.textfield.TextInputLayout>
+
+                    <!-- Post Office -->
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:id="@+id/inputLayoutPostOffice"
+                        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="16dp"
+                        android:hint="Post Office *"
+                        app:boxCornerRadiusTopStart="14dp"
+                        app:boxCornerRadiusTopEnd="14dp"
+                        app:boxCornerRadiusBottomStart="14dp"
+                        app:boxCornerRadiusBottomEnd="14dp"
+                        app:boxStrokeColor="@color/primary_red_dark"
+                        app:boxStrokeWidth="1dp"
+                        app:boxStrokeWidthFocused="2dp"
+                        app:boxBackgroundColor="#FAFAFA"
+                        app:startIconDrawable="@drawable/ic_post_office"
+                        app:startIconTint="@color/primary_red_dark">
+
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/etPostOffice"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:inputType="textCapWords"
+                            android:maxLines="1"
+                            android:paddingVertical="14dp"
+                            android:textSize="15sp"
+                            android:textColor="@color/text_primary" />
+                    </com.google.android.material.textfield.TextInputLayout>
+
+                    <!-- Village / Area -->
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:id="@+id/inputLayoutVillage"
+                        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="16dp"
+                        android:hint="Village / Area *"
+                        app:boxCornerRadiusTopStart="14dp"
+                        app:boxCornerRadiusTopEnd="14dp"
+                        app:boxCornerRadiusBottomStart="14dp"
+                        app:boxCornerRadiusBottomEnd="14dp"
+                        app:boxStrokeColor="@color/primary_red_dark"
+                        app:boxStrokeWidth="1dp"
+                        app:boxStrokeWidthFocused="2dp"
+                        app:boxBackgroundColor="#FAFAFA"
+                        app:startIconDrawable="@drawable/ic_home"
+                        app:startIconTint="@color/primary_red_dark">
+
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/etVillage"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:inputType="textCapWords"
+                            android:maxLines="1"
+                            android:paddingVertical="14dp"
+                            android:textSize="15sp"
+                            android:textColor="@color/text_primary" />
+                    </com.google.android.material.textfield.TextInputLayout>
+
+                    <!-- Road / House No (Optional) -->
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:id="@+id/inputLayoutRoad"
+                        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:hint="Road / House No (Optional)"
+                        app:boxCornerRadiusTopStart="14dp"
+                        app:boxCornerRadiusTopEnd="14dp"
+                        app:boxCornerRadiusBottomStart="14dp"
+                        app:boxCornerRadiusBottomEnd="14dp"
+                        app:boxStrokeColor="@color/primary_red_dark"
+                        app:boxStrokeWidth="1dp"
+                        app:boxStrokeWidthFocused="2dp"
+                        app:boxBackgroundColor="#FAFAFA"
+                        app:startIconDrawable="@drawable/ic_location"
+                        app:startIconTint="@color/primary_red_dark">
+
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/etRoad"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:inputType="textCapWords"
+                            android:maxLines="1"
+                            android:paddingVertical="14dp"
+                            android:textSize="15sp"
+                            android:textColor="@color/text_primary" />
+                    </com.google.android.material.textfield.TextInputLayout>
+
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- Progress Bar -->
+            <ProgressBar
+                android:id="@+id/progressBar"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="16dp"
-                app:boxCornerRadiusTopStart="16dp"
-                app:boxCornerRadiusTopEnd="16dp"
-                app:boxCornerRadiusBottomStart="16dp"
-                app:boxCornerRadiusBottomEnd="16dp"
-                app:boxStrokeColor="@color/border_color"
-                app:boxStrokeWidth="1dp"
-                app:boxStrokeWidthFocused="2dp"
-                app:boxBackgroundColor="@color/border_light"
-                app:startIconDrawable="@drawable/ic_police"
-                app:startIconTint="@color/text_secondary"
-                app:hintEnabled="false">
-
-                <com.google.android.material.textfield.TextInputEditText
-                    android:id="@+id/etPoliceStation"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:hint="Police Station"
-                    android:padding="16dp"
-                    android:textSize="16sp"
-                    android:textColor="@color/text_primary"
-                    tools:ignore="HardcodedText" />
-            </com.google.android.material.textfield.TextInputLayout>
-
-            <!-- Post Office -->
-            <com.google.android.material.textfield.TextInputLayout
-                android:id="@+id/inputLayoutPostOffice"
-                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
-                android:layout_width="310dp"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="16dp"
-                app:boxCornerRadiusTopStart="16dp"
-                app:boxCornerRadiusTopEnd="16dp"
-                app:boxCornerRadiusBottomStart="16dp"
-                app:boxCornerRadiusBottomEnd="16dp"
-                app:boxStrokeColor="@color/border_color"
-                app:boxStrokeWidth="1dp"
-                app:boxStrokeWidthFocused="2dp"
-                app:boxBackgroundColor="@color/border_light"
-                app:startIconDrawable="@drawable/ic_post_office"
-                app:startIconTint="@color/text_secondary"
-                app:hintEnabled="false">
-
-                <com.google.android.material.textfield.TextInputEditText
-                    android:id="@+id/etPostOffice"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:hint="Post Office"
-
-                    android:textSize="16sp"
-                    android:textColor="@color/text_primary" />
-            </com.google.android.material.textfield.TextInputLayout>
-
-            <!-- Village -->
-            <com.google.android.material.textfield.TextInputLayout
-                android:id="@+id/inputLayoutVillage"
-                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
-                android:layout_width="310dp"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="16dp"
-                app:boxCornerRadiusTopStart="16dp"
-                app:boxCornerRadiusTopEnd="16dp"
-                app:boxCornerRadiusBottomStart="16dp"
-                app:boxCornerRadiusBottomEnd="16dp"
-                app:boxStrokeColor="@color/border_color"
-                app:boxStrokeWidth="1dp"
-                app:boxStrokeWidthFocused="2dp"
-                app:boxBackgroundColor="@color/border_light"
-                app:startIconDrawable="@drawable/ic_home"
-                app:startIconTint="@color/text_secondary"
-                app:hintEnabled="false">
-
-                <com.google.android.material.textfield.TextInputEditText
-                    android:id="@+id/etVillage"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:hint="Village / Area"
-                    android:padding="16dp"
-                    android:textSize="16sp"
-                    android:textColor="@color/text_primary" />
-            </com.google.android.material.textfield.TextInputLayout>
-
-            <!-- Road -->
-            <com.google.android.material.textfield.TextInputLayout
-                android:id="@+id/inputLayoutRoad"
-                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
-                android:layout_width="310dp"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="24dp"
-                app:boxCornerRadiusTopStart="16dp"
-                app:boxCornerRadiusTopEnd="16dp"
-                app:boxCornerRadiusBottomStart="16dp"
-                app:boxCornerRadiusBottomEnd="16dp"
-                app:boxStrokeColor="@color/border_color"
-                app:boxStrokeWidth="1dp"
-                app:boxStrokeWidthFocused="2dp"
-                app:boxBackgroundColor="@color/border_light"
-                app:hintEnabled="false">
-
-                <com.google.android.material.textfield.TextInputEditText
-                    android:id="@+id/etRoad"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:hint="Road / House No (Optional)"
-                    android:padding="16dp"
-                    android:textSize="16sp"
-                    android:textColor="@color/text_primary" />
-            </com.google.android.material.textfield.TextInputLayout>
+                android:layout_gravity="center_horizontal"
+                android:layout_marginTop="20dp"
+                android:indeterminateTint="@color/primary_red_dark"
+                android:visibility="gone" />
 
         </LinearLayout>
-    </ScrollView>
+    </androidx.core.widget.NestedScrollView>
 
-    <!-- Buttons -->
-    <LinearLayout
+    <!-- Bottom Actions Card -->
+    <com.google.android.material.card.MaterialCardView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:paddingTop="16dp">
+        app:cardElevation="8dp"
+        app:strokeWidth="1dp"
+        app:strokeColor="#EDEDED"
+        app:cardBackgroundColor="@color/white"
+        app:cardCornerRadius="0dp">
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnCancel"
-            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-            android:layout_width="0dp"
-            android:layout_height="60dp"
-            android:layout_weight="1"
-            android:layout_marginEnd="8dp"
-            android:text="Cancel"
-            android:textSize="16sp"
-            android:textStyle="bold"
-            android:textAllCaps="false"
-            app:cornerRadius="16dp"
-            app:strokeColor="@color/border_color"
-            app:strokeWidth="1dp"
-            android:stateListAnimator="@null" />
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:paddingHorizontal="16dp"
+            android:paddingVertical="12dp">
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnSave"
-            android:layout_width="0dp"
-            android:layout_height="60dp"
-            android:layout_weight="1"
-            android:layout_marginStart="8dp"
-            android:text="Save Changes"
-            android:textSize="16sp"
-            android:textStyle="bold"
-            android:textAllCaps="false"
-            app:cornerRadius="16dp"
-            app:elevation="4dp"
-            app:backgroundTint="@color/primary_red_dark"
-            android:stateListAnimator="@null" />
-    </LinearLayout>
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnCancel"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                android:layout_width="0dp"
+                android:layout_height="50dp"
+                android:layout_weight="1"
+                android:layout_marginEnd="8dp"
+                android:text="Cancel"
+                android:textColor="@color/text_secondary"
+                android:textSize="15sp"
+                android:textStyle="bold"
+                android:textAllCaps="false"
+                app:cornerRadius="25dp"
+                app:strokeColor="#DDDDDD"
+                app:strokeWidth="1.5dp"
+                android:stateListAnimator="@null" />
 
-    <!-- Progress -->
-    <ProgressBar
-        android:id="@+id/progressBar"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="center"
-        android:visibility="gone" />
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnSave"
+                android:layout_width="0dp"
+                android:layout_height="50dp"
+                android:layout_weight="1.2"
+                android:layout_marginStart="8dp"
+                android:text="Save Changes"
+                android:textColor="@color/white"
+                android:textSize="15sp"
+                android:textStyle="bold"
+                android:textAllCaps="false"
+                app:cornerRadius="25dp"
+                app:elevation="2dp"
+                app:backgroundTint="@color/primary_red_dark"
+                android:stateListAnimator="@null" />
+        </LinearLayout>
+    </com.google.android.material.card.MaterialCardView>
 
 </LinearLayout>

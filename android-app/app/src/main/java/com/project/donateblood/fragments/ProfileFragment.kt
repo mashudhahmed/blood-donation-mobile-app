@@ -1,19 +1,27 @@
 package com.project.donateblood.fragments
 
+import android.app.Activity
+import android.net.Uri
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
+import com.github.dhaval2404.imagepicker.ImagePicker
+import com.google.android.material.snackbar.Snackbar
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.project.donateblood.R
 import com.project.donateblood.databinding.FragmentProfileBinding
 import com.project.donateblood.models.User
 import com.project.donateblood.utils.FirebaseUtils
+import com.project.donateblood.utils.ProfileImageManager
+import androidx.lifecycle.ViewModelProvider
+import com.project.donateblood.viewmodels.UserViewModel
 import timber.log.Timber
 import java.text.SimpleDateFormat
 import java.util.*
@@ -25,13 +33,30 @@ class ProfileFragment : Fragment() {
 
     private lateinit var auth: FirebaseAuth
     private lateinit var firestore: FirebaseFirestore
+    private lateinit var userViewModel: UserViewModel
     private var user: User? = null
     private var isDonor = false
     private var donorDocumentId: String = ""
 
-    // ✅ FIX: Track initial switch state to prevent toast on refresh
+    // ✅ Track initial switch state to prevent toast on refresh
     private var initialSwitchState: Boolean? = null
     private var isInitialSetupComplete = false
+
+    private val imagePickerLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        val resultCode = result.resultCode
+        val data = result.data
+
+        if (resultCode == Activity.RESULT_OK) {
+            val fileUri: Uri? = data?.data
+            if (fileUri != null) {
+                uploadProfileImage(fileUri)
+            }
+        } else if (resultCode == ImagePicker.RESULT_ERROR) {
+            toast(ImagePicker.getError(data))
+        }
+    }
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -47,6 +72,16 @@ class ProfileFragment : Fragment() {
 
         auth = FirebaseAuth.getInstance()
         firestore = FirebaseFirestore.getInstance()
+        userViewModel = ViewModelProvider(requireActivity())[UserViewModel::class.java]
+
+        userViewModel.userProfileImage.observe(viewLifecycleOwner) { imageUrl ->
+            if (!imageUrl.isNullOrBlank()) {
+                ProfileImageManager.loadAvatar(binding.ivProfile, imageUrl)
+                user?.let {
+                    user = it.copy(profileImage = imageUrl)
+                }
+            }
+        }
 
         setupToolbar()
         setupClickListeners()
@@ -78,6 +113,14 @@ class ProfileFragment : Fragment() {
     }
 
     private fun setupClickListeners() {
+        binding.ivProfile.setOnClickListener {
+            showAvatarOptions()
+        }
+
+        binding.btnEditAvatar.setOnClickListener {
+            showAvatarOptions()
+        }
+
         binding.btnEditPersonal.setOnClickListener {
             navigateToPersonalEdit()
         }
@@ -107,6 +150,83 @@ class ProfileFragment : Fragment() {
                 showRegistrationPrompt()
             }
         }
+    }
+
+    private fun showAvatarOptions() {
+        val hasExistingPhoto = !user?.profileImage.isNullOrBlank()
+        ProfileImageManager.showAvatarOptionsDialog(
+            context = requireContext(),
+            hasExistingPhoto = hasExistingPhoto,
+            onTakePhoto = {
+                ProfileImageManager.launchCamera(this, imagePickerLauncher)
+            },
+            onChooseGallery = {
+                ProfileImageManager.launchGallery(this, imagePickerLauncher)
+            },
+            onRemovePhoto = {
+                removeProfileImage()
+            }
+        )
+    }
+
+    private fun uploadProfileImage(uri: Uri) {
+        val uid = auth.currentUser?.uid ?: return
+        binding.layoutAvatarProgress.visibility = View.VISIBLE
+        binding.btnEditAvatar.isEnabled = false
+
+        ProfileImageManager.uploadProfileImage(
+            userId = uid,
+            imageUri = uri,
+            onProgress = { _ -> },
+            onSuccess = { downloadUrl ->
+                if (!isAdded) return@uploadProfileImage
+                binding.layoutAvatarProgress.visibility = View.GONE
+                binding.btnEditAvatar.isEnabled = true
+                ProfileImageManager.loadAvatar(binding.ivProfile, downloadUrl)
+                user?.let {
+                    user = it.copy(profileImage = downloadUrl)
+                }
+                userViewModel.updateProfileImage(downloadUrl)
+                Snackbar.make(binding.root, "Profile photo updated successfully!", Snackbar.LENGTH_SHORT)
+                    .setBackgroundTint(requireContext().getColor(R.color.success_green))
+                    .show()
+            },
+            onFailure = { e ->
+                if (!isAdded) return@uploadProfileImage
+                binding.layoutAvatarProgress.visibility = View.GONE
+                binding.btnEditAvatar.isEnabled = true
+                Snackbar.make(binding.root, "Failed to upload photo: ${e.message}", Snackbar.LENGTH_LONG)
+                    .setBackgroundTint(requireContext().getColor(R.color.primary_red_dark))
+                    .show()
+            }
+        )
+    }
+
+    private fun removeProfileImage() {
+        val uid = auth.currentUser?.uid ?: return
+        binding.layoutAvatarProgress.visibility = View.VISIBLE
+        binding.btnEditAvatar.isEnabled = false
+
+        ProfileImageManager.removeProfileImage(
+            userId = uid,
+            onSuccess = {
+                if (!isAdded) return@removeProfileImage
+                binding.layoutAvatarProgress.visibility = View.GONE
+                binding.btnEditAvatar.isEnabled = true
+                binding.ivProfile.setImageResource(R.drawable.ic_user_placeholder)
+                user?.let {
+                    user = it.copy(profileImage = "")
+                }
+                userViewModel.updateProfileImage("")
+                Snackbar.make(binding.root, "Profile photo removed", Snackbar.LENGTH_SHORT).show()
+            },
+            onFailure = { e ->
+                if (!isAdded) return@removeProfileImage
+                binding.layoutAvatarProgress.visibility = View.GONE
+                binding.btnEditAvatar.isEnabled = true
+                Snackbar.make(binding.root, "Failed to remove photo: ${e.message}", Snackbar.LENGTH_LONG).show()
+            }
+        )
     }
 
     private fun navigateToPersonalEdit() {
@@ -389,6 +509,9 @@ class ProfileFragment : Fragment() {
 
     private fun updateUIWithProfile(user: User?) {
         user?.let {
+            // Load profile avatar
+            ProfileImageManager.loadAvatar(binding.ivProfile, it.profileImage)
+
             // Always update personal info
             binding.tvUserName.text = it.name.ifEmpty { "User" }
             binding.tvUserEmail.text = it.email.ifEmpty { "No email" }

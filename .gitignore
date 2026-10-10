@@ -14,6 +14,7 @@ backend/.env
 backend/node_modules/
 backend/venv/
 backend/__pycache__/
+backend/*backup*.json
 
 # ===== COMMON =====
 .idea/

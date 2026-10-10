@@ -16,6 +16,7 @@ import coil.load
 import com.project.donateblood.R
 import com.project.donateblood.models.ChatConversation
 import com.project.donateblood.models.ChatMessage
+import com.project.donateblood.utils.ProfileImageManager
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
@@ -80,14 +81,7 @@ class ConversationAdapter(
             }
 
             // Avatar loading
-            if (otherImage.isNotBlank()) {
-                ivAvatar.load(otherImage) {
-                    placeholder(R.drawable.ic_user_placeholder)
-                    error(R.drawable.ic_user_placeholder)
-                }
-            } else {
-                ivAvatar.setImageResource(R.drawable.ic_user_placeholder)
-            }
+            ProfileImageManager.loadAvatar(ivAvatar, otherImage)
 
             // Timestamp
             tvTimestamp.text = formatTimestamp(conversation.lastMessageTimestamp)

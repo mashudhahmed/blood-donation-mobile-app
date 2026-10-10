@@ -11,6 +11,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.button.MaterialButton
 import com.project.donateblood.R
 import com.project.donateblood.models.Donor
+import com.project.donateblood.utils.ProfileImageManager
 
 class DonorAdapter(
     private val onCallClick: (Donor) -> Unit,
@@ -20,6 +21,7 @@ class DonorAdapter(
 
     class DonorViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
 
+        val imgProfile: ImageView = itemView.findViewById(R.id.imgProfile)
         val tvName: TextView = itemView.findViewById(R.id.tvName)
         val tvBloodGroup: TextView = itemView.findViewById(R.id.tvBloodGroup)
         val tvAddress: TextView = itemView.findViewById(R.id.tvAddress)
@@ -37,6 +39,7 @@ class DonorAdapter(
         ) {
             val context = itemView.context
 
+            ProfileImageManager.loadAvatar(imgProfile, donor.imageUrl)
             tvName.text = donor.name
             tvBloodGroup.text = donor.bloodGroup
 

@@ -18,6 +18,7 @@ import com.project.donateblood.R
 import com.project.donateblood.adapter.MessageAdapter
 import com.project.donateblood.databinding.FragmentConversationBinding
 import com.project.donateblood.repository.ChatRepository
+import com.project.donateblood.utils.ProfileImageManager
 import timber.log.Timber
 
 class ConversationFragment : Fragment() {
@@ -111,14 +112,7 @@ class ConversationFragment : Fragment() {
             binding.tvHeaderBloodBadge.visibility = View.GONE
         }
 
-        if (recipientImage.isNotBlank()) {
-            binding.ivHeaderAvatar.load(recipientImage) {
-                placeholder(R.drawable.ic_user_placeholder)
-                error(R.drawable.ic_user_placeholder)
-            }
-        } else {
-            binding.ivHeaderAvatar.setImageResource(R.drawable.ic_user_placeholder)
-        }
+        ProfileImageManager.loadAvatar(binding.ivHeaderAvatar, recipientImage)
 
         binding.btnBack.setOnClickListener {
             findNavController().navigateUp()

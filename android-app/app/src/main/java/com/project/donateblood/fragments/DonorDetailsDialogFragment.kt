@@ -12,6 +12,7 @@ import androidx.navigation.fragment.findNavController
 import com.project.donateblood.R
 import com.project.donateblood.databinding.FragmentDonorDetailsBinding
 import com.project.donateblood.models.Donor
+import com.project.donateblood.utils.ProfileImageManager
 
 class DonorDetailsDialogFragment : DialogFragment() {
 
@@ -32,6 +33,7 @@ class DonorDetailsDialogFragment : DialogFragment() {
 
         val donor = getDonorFromArgs() ?: return
 
+        ProfileImageManager.loadAvatar(binding.ivProfilePicture, donor.imageUrl)
         binding.tvName.text = donor.name
         binding.tvBloodGroup.text = donor.bloodGroup
         binding.tvAddressLine1.text = donor.location

@@ -30,6 +30,7 @@ import com.project.donateblood.adapter.DonorAdapter
 import com.project.donateblood.databinding.FragmentHomeBinding
 import com.project.donateblood.models.Donor
 import com.project.donateblood.utils.FirebaseUtils
+import com.project.donateblood.utils.ProfileImageManager
 import com.project.donateblood.viewmodels.UserViewModel
 import timber.log.Timber
 
@@ -696,6 +697,12 @@ class HomeFragment : Fragment() {
         val header = binding.navigationView.getHeaderView(0)
         val tvUserName = header.findViewById<android.widget.TextView>(R.id.tvUserName)
         val tvUserEmail = header.findViewById<android.widget.TextView>(R.id.tvUserEmail)
+        val ivNavUserAvatar = header.findViewById<android.widget.ImageView>(R.id.ivNavUserAvatar)
+
+        // Observe user avatar changes live
+        userViewModel.userProfileImage.observe(viewLifecycleOwner) { imageUrl ->
+            ProfileImageManager.loadAvatar(ivNavUserAvatar, imageUrl)
+        }
 
         // Observe user name changes
         userViewModel.userName.observe(viewLifecycleOwner) { name ->
@@ -712,9 +719,16 @@ class HomeFragment : Fragment() {
         if (user != null) {
             tvUserEmail.text = user.email ?: "No email"
             tvUserName.text = user.displayName ?: user.email?.substringBefore("@") ?: "User"
+            userViewModel.loadUserData()
         } else {
             tvUserName.text = "Guest"
             tvUserEmail.text = "Not logged in"
+            ivNavUserAvatar?.setImageResource(R.drawable.ic_user_placeholder)
+        }
+
+        ivNavUserAvatar?.setOnClickListener {
+            binding.drawerLayout.closeDrawer(GravityCompat.START)
+            navigateToProfile()
         }
     }
 

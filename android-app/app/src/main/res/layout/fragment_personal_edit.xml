@@ -106,6 +106,60 @@
                         android:background="#F0F0F0"
                         android:layout_marginBottom="16dp" />
 
+                    <!-- Profile Avatar Center Header -->
+                    <FrameLayout
+                        android:id="@+id/layoutAvatarContainer"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center_horizontal"
+                        android:layout_marginBottom="18dp"
+                        android:clipChildren="false">
+
+                        <de.hdodenhof.circleimageview.CircleImageView
+                            android:id="@+id/ivProfile"
+                            android:layout_width="92dp"
+                            android:layout_height="92dp"
+                            android:src="@drawable/ic_user_placeholder"
+                            app:civ_border_color="@color/primary_red_dark"
+                            app:civ_border_width="2.5dp" />
+
+                        <!-- Dark Scrim & Progress Spinner during Upload -->
+                        <FrameLayout
+                            android:id="@+id/layoutAvatarProgress"
+                            android:layout_width="92dp"
+                            android:layout_height="92dp"
+                            android:background="@drawable/circle_scrim"
+                            android:visibility="gone">
+
+                            <ProgressBar
+                                android:id="@+id/progressAvatar"
+                                android:layout_width="34dp"
+                                android:layout_height="34dp"
+                                android:layout_gravity="center"
+                                android:indeterminateTint="@color/surface_white" />
+                        </FrameLayout>
+
+                        <!-- Camera Edit Badge Button -->
+                        <FrameLayout
+                            android:id="@+id/btnEditAvatar"
+                            android:layout_width="32dp"
+                            android:layout_height="32dp"
+                            android:layout_gravity="bottom|end"
+                            android:background="@drawable/bg_avatar_camera_badge"
+                            android:elevation="4dp"
+                            android:clickable="true"
+                            android:focusable="true">
+
+                            <ImageView
+                                android:layout_width="16dp"
+                                android:layout_height="16dp"
+                                android:layout_gravity="center"
+                                android:src="@drawable/ic_camera"
+                                app:tint="@color/primary_red_dark"
+                                tools:ignore="ContentDescription" />
+                        </FrameLayout>
+                    </FrameLayout>
+
                     <!-- Full Name -->
                     <com.google.android.material.textfield.TextInputLayout
                         android:id="@+id/inputLayoutName"

@@ -160,6 +160,21 @@
         <action
             android:id="@+id/action_homeFragment_to_urgentRequestsFragment"
             app:destination="@id/urgentRequestsFragment" />
+
+        <!-- Action to Donors Fragment -->
+        <action
+            android:id="@+id/action_homeFragment_to_donorsFragment"
+            app:destination="@id/donorsFragment" />
+
+        <!-- Action to Hospitals Fragment -->
+        <action
+            android:id="@+id/action_homeFragment_to_hospitalsFragment"
+            app:destination="@id/hospitalsFragment" />
+
+        <!-- Action to Blood Banks Fragment -->
+        <action
+            android:id="@+id/action_homeFragment_to_bloodBanksFragment"
+            app:destination="@id/bloodBanksFragment" />
     </fragment>
 
     <!-- About Fragment -->
@@ -408,5 +423,35 @@
             android:id="@+id/action_urgentRequestsFragment_to_loginFragment"
             app:destination="@id/loginFragment" />
     </fragment>
+
+    <!-- Donors Fragment -->
+    <fragment
+        android:id="@+id/donorsFragment"
+        android:name="com.project.donateblood.fragments.DonorsFragment"
+        android:label="Find Donors"
+        tools:layout="@layout/fragment_donors">
+
+        <action
+            android:id="@+id/action_donorsFragment_to_conversationFragment"
+            app:destination="@id/conversationFragment" />
+
+        <action
+            android:id="@+id/action_donorsFragment_to_requestBloodFragment"
+            app:destination="@id/requestBloodFragment" />
+    </fragment>
+
+    <!-- Hospitals Fragment -->
+    <fragment
+        android:id="@+id/hospitalsFragment"
+        android:name="com.project.donateblood.fragments.HospitalsFragment"
+        android:label="Emergency Hospitals"
+        tools:layout="@layout/fragment_hospitals" />
+
+    <!-- Blood Banks Fragment -->
+    <fragment
+        android:id="@+id/bloodBanksFragment"
+        android:name="com.project.donateblood.fragments.BloodBanksFragment"
+        android:label="Certified Blood Banks"
+        tools:layout="@layout/fragment_blood_banks" />
 
 </navigation>

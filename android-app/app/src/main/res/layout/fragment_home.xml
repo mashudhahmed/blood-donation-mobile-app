@@ -97,147 +97,82 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:orientation="vertical"
-                        android:paddingBottom="36dp">
+                        android:paddingBottom="80dp">
 
-                        <!-- ================= 1. HERO USER DASHBOARD & 2026 SLIDEABLE SVG BANNERS ================= -->
-                        <FrameLayout
+                        <!-- ================= 1. 2026 SLIDEABLE SVG BANNERS & QUICK ACTIONS ================= -->
+                        <LinearLayout
                             android:layout_width="match_parent"
-                            android:layout_height="wrap_content">
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="16dp"
+                            android:orientation="vertical">
 
-                            <!-- Crimson curved banner that scrolls naturally with content -->
-                            <View
+                            <!-- 2026 Slideable SVG Banner Carousel -->
+                            <androidx.viewpager2.widget.ViewPager2
+                                android:id="@+id/vpHomeBanners"
                                 android:layout_width="match_parent"
-                                android:layout_height="120dp"
-                                android:background="@drawable/bg_header_crimson_curved" />
+                                android:layout_height="140dp"
+                                android:clipChildren="false"
+                                android:clipToPadding="false"
+                                android:paddingHorizontal="16dp" />
 
+                            <!-- Smooth Dot Indicators -->
+                            <LinearLayout
+                                android:id="@+id/layoutBannerIndicators"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_gravity="center_horizontal"
+                                android:gravity="center"
+                                android:orientation="horizontal"
+                                android:layout_marginTop="10dp" />
+
+                            <!-- Quick Action Buttons: Request Blood & Find Donors -->
                             <LinearLayout
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
-                                android:orientation="vertical">
+                                android:layout_marginTop="14dp"
+                                android:layout_marginHorizontal="16dp"
+                                android:orientation="horizontal">
 
-                                <!-- Greeting & Persona Badge -->
-                                <LinearLayout
-                                    android:layout_width="match_parent"
-                                    android:layout_height="wrap_content"
-                                    android:orientation="horizontal"
-                                    android:gravity="center_vertical"
-                                    android:paddingHorizontal="20dp"
-                                    android:paddingTop="8dp"
-                                    android:paddingBottom="12dp">
+                                <com.google.android.material.button.MaterialButton
+                                    android:id="@+id/btnHeroRequestBlood"
+                                    android:layout_width="0dp"
+                                    android:layout_height="44dp"
+                                    android:layout_weight="1"
+                                    android:layout_marginEnd="6dp"
+                                    android:text="Request Blood"
+                                    android:textColor="@color/white"
+                                    android:textSize="13sp"
+                                    android:textStyle="bold"
+                                    app:cornerRadius="22dp"
+                                    app:backgroundTint="@color/primary_red"
+                                    app:icon="@drawable/ic_blood_drop"
+                                    app:iconTint="@color/white"
+                                    app:iconGravity="textStart"
+                                    android:textAllCaps="false"
+                                    tools:ignore="HardcodedText" />
 
-                                    <LinearLayout
-                                        android:layout_width="0dp"
-                                        android:layout_height="wrap_content"
-                                        android:layout_weight="1"
-                                        android:orientation="vertical">
-
-                                        <TextView
-                                            android:id="@+id/tvHeroGreetingSub"
-                                            android:layout_width="wrap_content"
-                                            android:layout_height="wrap_content"
-                                            android:text="Welcome back,"
-                                            android:textColor="#FFE4E6"
-                                            android:textSize="12sp"
-                                            tools:ignore="HardcodedText" />
-
-                                        <TextView
-                                            android:id="@+id/tvHeroGreetingName"
-                                            android:layout_width="wrap_content"
-                                            android:layout_height="wrap_content"
-                                            android:layout_marginTop="2dp"
-                                            android:text="User"
-                                            android:textColor="@color/white"
-                                            android:textSize="18sp"
-                                            android:textStyle="bold"
-                                            tools:ignore="HardcodedText" />
-                                    </LinearLayout>
-
-                                    <!-- Live Donor Status Badge -->
-                                    <TextView
-                                        android:id="@+id/tvHeroDonorBadge"
-                                        android:layout_width="wrap_content"
-                                        android:layout_height="wrap_content"
-                                        android:background="@drawable/bg_badge_pill_white"
-                                        android:text="Donor • Available"
-                                        android:textColor="@color/primary_red"
-                                        android:textSize="12sp"
-                                        android:textStyle="bold"
-                                        app:drawableStartCompat="@drawable/ic_blood_drop"
-                                        app:drawableTint="@color/primary_red"
-                                        android:drawablePadding="4dp"
-                                        android:paddingHorizontal="10dp"
-                                        android:paddingVertical="5dp"
-                                        tools:ignore="HardcodedText" />
-                                </LinearLayout>
-
-                                <!-- 2026 Slideable SVG Banner Carousel -->
-                                <androidx.viewpager2.widget.ViewPager2
-                                    android:id="@+id/vpHomeBanners"
-                                    android:layout_width="match_parent"
-                                    android:layout_height="140dp"
-                                    android:clipChildren="false"
-                                    android:clipToPadding="false"
-                                    android:paddingHorizontal="16dp" />
-
-                                <!-- Smooth Dot Indicators -->
-                                <LinearLayout
-                                    android:id="@+id/layoutBannerIndicators"
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:layout_gravity="center_horizontal"
-                                    android:gravity="center"
-                                    android:orientation="horizontal"
-                                    android:layout_marginTop="10dp" />
-
-                                <!-- Quick Action Buttons -->
-                                <LinearLayout
-                                    android:layout_width="match_parent"
-                                    android:layout_height="wrap_content"
-                                    android:layout_marginTop="12dp"
-                                    android:layout_marginHorizontal="16dp"
-                                    android:orientation="horizontal">
-
-                                    <com.google.android.material.button.MaterialButton
-                                        android:id="@+id/btnHeroRequestBlood"
-                                        android:layout_width="0dp"
-                                        android:layout_height="44dp"
-                                        android:layout_weight="1"
-                                        android:layout_marginEnd="6dp"
-                                        android:text="Request Blood"
-                                        android:textColor="@color/white"
-                                        android:textSize="13sp"
-                                        android:textStyle="bold"
-                                        app:cornerRadius="22dp"
-                                        app:backgroundTint="@color/primary_red"
-                                        app:icon="@drawable/ic_blood_drop"
-                                        app:iconTint="@color/white"
-                                        app:iconGravity="textStart"
-                                        android:textAllCaps="false"
-                                        tools:ignore="HardcodedText" />
-
-                                    <com.google.android.material.button.MaterialButton
-                                        android:id="@+id/btnHeroFindDonors"
-                                        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-                                        android:layout_width="0dp"
-                                        android:layout_height="44dp"
-                                        android:layout_weight="1"
-                                        android:layout_marginStart="6dp"
-                                        android:text="Find Donors"
-                                        android:textColor="@color/text_primary"
-                                        android:textSize="13sp"
-                                        android:textStyle="bold"
-                                        app:cornerRadius="22dp"
-                                        app:strokeColor="#D0D0D0"
-                                        app:strokeWidth="1dp"
-                                        app:icon="@drawable/ic_search"
-                                        app:iconTint="@color/primary_red"
-                                        app:iconGravity="textStart"
-                                        android:textAllCaps="false"
-                                        tools:ignore="HardcodedText" />
-                                </LinearLayout>
-
+                                <com.google.android.material.button.MaterialButton
+                                    android:id="@+id/btnHeroFindDonors"
+                                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                                    android:layout_width="0dp"
+                                    android:layout_height="44dp"
+                                    android:layout_weight="1"
+                                    android:layout_marginStart="6dp"
+                                    android:text="Find Donors"
+                                    android:textColor="@color/text_primary"
+                                    android:textSize="13sp"
+                                    android:textStyle="bold"
+                                    app:cornerRadius="22dp"
+                                    app:strokeColor="#D0D0D0"
+                                    app:strokeWidth="1dp"
+                                    app:icon="@drawable/ic_search"
+                                    app:iconTint="@color/primary_red"
+                                    app:iconGravity="textStart"
+                                    android:textAllCaps="false"
+                                    tools:ignore="HardcodedText" />
                             </LinearLayout>
-                        </FrameLayout>
+
+                        </LinearLayout>
 
                         <!-- ================= 2. URGENT BLOOD REQUESTS FEED ================= -->
                         <LinearLayout
@@ -367,533 +302,340 @@
                             </LinearLayout>
                         </com.google.android.material.card.MaterialCardView>
 
-                        <!-- ================= 3. DIRECTORY SECTION (DONORS | HOSPITALS | BLOOD BANKS) ================= -->
-                        <com.google.android.material.tabs.TabLayout
-                            android:id="@+id/tabLayoutDirectory"
-                            android:layout_width="match_parent"
-                            android:layout_height="44dp"
-                            android:layout_marginHorizontal="16dp"
-                            android:layout_marginTop="22dp"
-                            android:background="@drawable/bg_segmented_tabs"
-                            app:tabGravity="fill"
-                            app:tabMode="fixed"
-                            app:tabInlineLabel="true"
-                            app:tabPaddingStart="4dp"
-                            app:tabPaddingEnd="4dp"
-                            app:tabPaddingTop="0dp"
-                            app:tabPaddingBottom="0dp"
-                            app:tabIndicatorGravity="stretch"
-                            app:tabIndicator="@drawable/bg_tab_indicator_selected"
-                            app:tabIndicatorColor="@color/primary_red"
-                            app:tabIndicatorAnimationMode="elastic"
-                            app:tabSelectedTextColor="@color/white"
-                            app:tabTextColor="@color/text_secondary"
-                            app:tabIconTint="@drawable/selector_tab_text_color"
-                            app:tabRippleColor="@null"
-                            app:tabTextAppearance="@style/TextAppearance.BloodLink.Tab">
-
-                            <com.google.android.material.tabs.TabItem
-                                android:text="Donors"
-                                android:icon="@drawable/ic_tab_donors" />
-
-                            <com.google.android.material.tabs.TabItem
-                                android:text="Hospitals"
-                                android:icon="@drawable/ic_tab_hospitals" />
-
-                            <com.google.android.material.tabs.TabItem
-                                android:text="Blood Banks"
-                                android:icon="@drawable/ic_tab_bloodbanks" />
-                        </com.google.android.material.tabs.TabLayout>
-
-                        <!-- Search Bar (Shared across all 3 tabs) -->
-                        <com.google.android.material.card.MaterialCardView
-                            android:id="@+id/cardSearch"
-                            android:layout_width="match_parent"
-                            android:layout_height="48dp"
-                            android:layout_marginHorizontal="16dp"
-                            android:layout_marginTop="12dp"
-                            app:cardBackgroundColor="@color/white"
-                            app:cardCornerRadius="24dp"
-                            app:cardElevation="1dp"
-                            app:strokeWidth="1dp"
-                            app:strokeColor="#EDEDED">
-
-                            <LinearLayout
-                                android:layout_width="match_parent"
-                                android:layout_height="match_parent"
-                                android:gravity="center_vertical"
-                                android:orientation="horizontal"
-                                android:paddingHorizontal="16dp">
-
-                                <ImageView
-                                    android:layout_width="20dp"
-                                    android:layout_height="20dp"
-                                    android:src="@drawable/ic_search"
-                                    app:tint="@color/text_secondary"
-                                    tools:ignore="ContentDescription" />
-
-                                <EditText
-                                    android:id="@+id/etSearch"
-                                    android:layout_width="match_parent"
-                                    android:layout_height="wrap_content"
-                                    android:background="@android:color/transparent"
-                                    android:hint="Search donors by name, location, or district"
-                                    android:paddingStart="8dp"
-                                    android:textColor="@color/text_primary"
-                                    android:textSize="14sp"
-                                    tools:ignore="HardcodedText" />
-                            </LinearLayout>
-                        </com.google.android.material.card.MaterialCardView>
-
-                        <!-- TAB 1 CONTENT: DONORS -->
+                        <!-- ================= 3. MODERN 2026 DIRECTORY & SERVICES HUB ================= -->
                         <LinearLayout
-                            android:id="@+id/layoutDonorsTabContent"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:orientation="vertical"
-                            android:visibility="visible">
+                            android:layout_marginTop="24dp"
+                            android:layout_marginHorizontal="16dp"
+                            android:orientation="vertical">
 
-                            <!-- Donor Privacy Shield Notice Banner -->
-                            <com.google.android.material.card.MaterialCardView
-                                android:id="@+id/cardDonorPrivacyBanner"
+                            <!-- Section Header -->
+                            <LinearLayout
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
-                                android:layout_marginHorizontal="16dp"
-                                android:layout_marginTop="10dp"
-                                app:cardBackgroundColor="#F0F9FF"
-                                app:cardCornerRadius="12dp"
-                                app:cardElevation="0dp"
+                                android:orientation="vertical"
+                                android:layout_marginBottom="12dp">
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="Community Directory"
+                                    android:textColor="@color/text_primary"
+                                    android:textSize="18sp"
+                                    android:textStyle="bold"
+                                    tools:ignore="HardcodedText" />
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:layout_marginTop="2dp"
+                                    android:text="Explore verified blood donors, emergency hospitals &amp; certified blood banks"
+                                    android:textColor="@color/text_secondary"
+                                    android:textSize="12.5sp"
+                                    tools:ignore="HardcodedText" />
+                            </LinearLayout>
+
+                            <!-- CARD 1: FIND DONORS -->
+                            <com.google.android.material.card.MaterialCardView
+                                android:id="@+id/cardNavDonors"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginBottom="12dp"
+                                android:clickable="true"
+                                android:focusable="true"
+                                android:foreground="?attr/selectableItemBackground"
+                                app:cardBackgroundColor="@color/surface_white"
+                                app:cardCornerRadius="18dp"
+                                app:cardElevation="1dp"
                                 app:strokeWidth="1dp"
-                                app:strokeColor="#BAE6FD">
+                                app:strokeColor="#EDEDED">
 
                                 <LinearLayout
                                     android:layout_width="match_parent"
                                     android:layout_height="wrap_content"
                                     android:gravity="center_vertical"
                                     android:orientation="horizontal"
-                                    android:paddingHorizontal="12dp"
-                                    android:paddingVertical="9dp">
+                                    android:padding="16dp">
 
-                                    <ImageView
-                                        android:layout_width="18dp"
-                                        android:layout_height="18dp"
-                                        android:src="@drawable/ic_shield_check_small"
-                                        app:tint="#0284C7"
-                                        tools:ignore="ContentDescription" />
+                                    <!-- Crimson Icon Badge -->
+                                    <FrameLayout
+                                        android:layout_width="50dp"
+                                        android:layout_height="50dp"
+                                        android:background="@drawable/bg_icon_badge_red">
 
-                                    <TextView
-                                        android:layout_width="match_parent"
+                                        <ImageView
+                                            android:layout_width="26dp"
+                                            android:layout_height="26dp"
+                                            android:layout_gravity="center"
+                                            android:src="@drawable/ic_blood_drop"
+                                            app:tint="@color/primary_red"
+                                            tools:ignore="ContentDescription" />
+                                    </FrameLayout>
+
+                                    <!-- Content -->
+                                    <LinearLayout
+                                        android:layout_width="0dp"
                                         android:layout_height="wrap_content"
+                                        android:layout_marginStart="14dp"
+                                        android:layout_weight="1"
+                                        android:orientation="vertical">
+
+                                        <LinearLayout
+                                            android:layout_width="wrap_content"
+                                            android:layout_height="wrap_content"
+                                            android:gravity="center_vertical"
+                                            android:orientation="horizontal">
+
+                                            <TextView
+                                                android:layout_width="wrap_content"
+                                                android:layout_height="wrap_content"
+                                                android:text="Find Donors"
+                                                android:textColor="@color/text_primary"
+                                                android:textSize="16sp"
+                                                android:textStyle="bold"
+                                                tools:ignore="HardcodedText" />
+
+                                            <TextView
+                                                android:layout_width="wrap_content"
+                                                android:layout_height="wrap_content"
+                                                android:layout_marginStart="8dp"
+                                                android:background="@drawable/bg_urgent_tag"
+                                                android:paddingHorizontal="7dp"
+                                                android:paddingVertical="2dp"
+                                                android:text="Verified"
+                                                android:textColor="@color/primary_red"
+                                                android:textSize="10.5sp"
+                                                android:textStyle="bold"
+                                                tools:ignore="HardcodedText" />
+                                        </LinearLayout>
+
+                                        <TextView
+                                            android:layout_width="wrap_content"
+                                            android:layout_height="wrap_content"
+                                            android:layout_marginTop="3dp"
+                                            android:text="Search verified donors by blood group, location &amp; availability"
+                                            android:textColor="@color/text_secondary"
+                                            android:textSize="12sp"
+                                            android:lineSpacingExtra="1dp"
+                                            tools:ignore="HardcodedText" />
+                                    </LinearLayout>
+
+                                    <!-- Chevron Circle -->
+                                    <ImageView
+                                        android:layout_width="32dp"
+                                        android:layout_height="32dp"
                                         android:layout_marginStart="8dp"
-                                        android:text="Donor Privacy Protected: Personal contact details are protected to ensure donor safety. Connect responsibly for emergencies via BloodLink."
-                                        android:textColor="#0369A1"
-                                        android:textSize="11sp"
-                                        android:lineSpacingExtra="2dp"
-                                        tools:ignore="HardcodedText" />
+                                        android:background="@drawable/bg_badge_circle_gray"
+                                        android:padding="7dp"
+                                        android:src="@drawable/ic_arrow_forward"
+                                        app:tint="@color/text_secondary"
+                                        tools:ignore="ContentDescription" />
                                 </LinearLayout>
                             </com.google.android.material.card.MaterialCardView>
 
-                            <!-- Blood Group Filter Chips -->
-                            <HorizontalScrollView
-                                android:id="@+id/hsvBloodGroups"
+                            <!-- CARD 2: EMERGENCY HOSPITALS -->
+                            <com.google.android.material.card.MaterialCardView
+                                android:id="@+id/cardNavHospitals"
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
-                                android:layout_marginTop="10dp"
-                                android:scrollbars="none"
-                                android:paddingHorizontal="16dp"
-                                android:clipToPadding="false">
-
-                                <com.google.android.material.chip.ChipGroup
-                                    android:id="@+id/chipGroupBlood"
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    app:singleSelection="true"
-                                    app:selectionRequired="false">
-
-                                    <com.google.android.material.chip.Chip
-                                        android:id="@+id/chipAll"
-                                        style="@style/Widget.Material3.Chip.Filter"
-                                        android:layout_width="wrap_content"
-                                        android:layout_height="wrap_content"
-                                        android:text="All"
-                                        android:checked="true" />
-
-                                    <com.google.android.material.chip.Chip
-                                        android:id="@+id/chipAPos"
-                                        style="@style/Widget.Material3.Chip.Filter"
-                                        android:layout_width="wrap_content"
-                                        android:layout_height="wrap_content"
-                                        android:text="A+" />
-
-                                    <com.google.android.material.chip.Chip
-                                        android:id="@+id/chipANeg"
-                                        style="@style/Widget.Material3.Chip.Filter"
-                                        android:layout_width="wrap_content"
-                                        android:layout_height="wrap_content"
-                                        android:text="A-" />
-
-                                    <com.google.android.material.chip.Chip
-                                        android:id="@+id/chipBPos"
-                                        style="@style/Widget.Material3.Chip.Filter"
-                                        android:layout_width="wrap_content"
-                                        android:layout_height="wrap_content"
-                                        android:text="B+" />
-
-                                    <com.google.android.material.chip.Chip
-                                        android:id="@+id/chipBNeg"
-                                        style="@style/Widget.Material3.Chip.Filter"
-                                        android:layout_width="wrap_content"
-                                        android:layout_height="wrap_content"
-                                        android:text="B-" />
-
-                                    <com.google.android.material.chip.Chip
-                                        android:id="@+id/chipOPos"
-                                        style="@style/Widget.Material3.Chip.Filter"
-                                        android:layout_width="wrap_content"
-                                        android:layout_height="wrap_content"
-                                        android:text="O+" />
-
-                                    <com.google.android.material.chip.Chip
-                                        android:id="@+id/chipONeg"
-                                        style="@style/Widget.Material3.Chip.Filter"
-                                        android:layout_width="wrap_content"
-                                        android:layout_height="wrap_content"
-                                        android:text="O-" />
-
-                                    <com.google.android.material.chip.Chip
-                                        android:id="@+id/chipABPos"
-                                        style="@style/Widget.Material3.Chip.Filter"
-                                        android:layout_width="wrap_content"
-                                        android:layout_height="wrap_content"
-                                        android:text="AB+" />
-
-                                    <com.google.android.material.chip.Chip
-                                        android:id="@+id/chipABNeg"
-                                        style="@style/Widget.Material3.Chip.Filter"
-                                        android:layout_width="wrap_content"
-                                        android:layout_height="wrap_content"
-                                        android:text="AB-" />
-
-                                </com.google.android.material.chip.ChipGroup>
-                            </HorizontalScrollView>
-
-                            <!-- Sort & Filter Action Buttons -->
-                            <LinearLayout
-                                android:id="@+id/layoutSortFilter"
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:layout_marginTop="4dp"
-                                android:orientation="horizontal"
-                                android:paddingHorizontal="16dp"
-                                android:paddingBottom="6dp">
-
-                                <com.google.android.material.button.MaterialButton
-                                    android:id="@+id/btnSort"
-                                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-                                    android:layout_width="0dp"
-                                    android:layout_height="38dp"
-                                    android:layout_marginEnd="6dp"
-                                    android:layout_weight="1"
-                                    android:text="Sort"
-                                    android:textAllCaps="false"
-                                    android:textSize="12sp"
-                                    app:cornerRadius="19dp"
-                                    app:icon="@drawable/ic_sort"
-                                    app:iconGravity="textStart"
-                                    tools:ignore="HardcodedText" />
-
-                                <com.google.android.material.button.MaterialButton
-                                    android:id="@+id/btnFilter"
-                                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-                                    android:layout_width="0dp"
-                                    android:layout_height="38dp"
-                                    android:layout_marginStart="6dp"
-                                    android:layout_weight="1"
-                                    android:text="Filter"
-                                    android:textAllCaps="false"
-                                    android:textSize="12sp"
-                                    app:cornerRadius="19dp"
-                                    app:icon="@drawable/ic_filter_list"
-                                    app:iconGravity="textStart"
-                                    tools:ignore="HardcodedText" />
-                            </LinearLayout>
-
-                            <!-- Shimmer skeleton loading placeholder for Donors -->
-                            <com.facebook.shimmer.ShimmerFrameLayout
-                                android:id="@+id/shimmerLayout"
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:visibility="gone"
-                                app:shimmer_auto_start="false"
-                                app:shimmer_duration="1200">
+                                android:layout_marginBottom="12dp"
+                                android:clickable="true"
+                                android:focusable="true"
+                                android:foreground="?attr/selectableItemBackground"
+                                app:cardBackgroundColor="@color/surface_white"
+                                app:cardCornerRadius="18dp"
+                                app:cardElevation="1dp"
+                                app:strokeWidth="1dp"
+                                app:strokeColor="#EDEDED">
 
                                 <LinearLayout
                                     android:layout_width="match_parent"
                                     android:layout_height="wrap_content"
-                                    android:orientation="vertical"
-                                    android:padding="4dp">
+                                    android:gravity="center_vertical"
+                                    android:orientation="horizontal"
+                                    android:padding="16dp">
 
-                                    <include layout="@layout/shimmer_item_donor" />
-                                    <include layout="@layout/shimmer_item_donor" />
-                                    <include layout="@layout/shimmer_item_donor" />
+                                    <!-- Blue Icon Badge -->
+                                    <FrameLayout
+                                        android:layout_width="50dp"
+                                        android:layout_height="50dp"
+                                        android:background="@drawable/bg_icon_badge_blue">
+
+                                        <ImageView
+                                            android:layout_width="26dp"
+                                            android:layout_height="26dp"
+                                            android:layout_gravity="center"
+                                            android:src="@drawable/ic_hospital"
+                                            app:tint="#0284C7"
+                                            tools:ignore="ContentDescription" />
+                                    </FrameLayout>
+
+                                    <!-- Content -->
+                                    <LinearLayout
+                                        android:layout_width="0dp"
+                                        android:layout_height="wrap_content"
+                                        android:layout_marginStart="14dp"
+                                        android:layout_weight="1"
+                                        android:orientation="vertical">
+
+                                        <LinearLayout
+                                            android:layout_width="wrap_content"
+                                            android:layout_height="wrap_content"
+                                            android:gravity="center_vertical"
+                                            android:orientation="horizontal">
+
+                                            <TextView
+                                                android:layout_width="wrap_content"
+                                                android:layout_height="wrap_content"
+                                                android:text="Emergency Hospitals"
+                                                android:textColor="@color/text_primary"
+                                                android:textSize="16sp"
+                                                android:textStyle="bold"
+                                                tools:ignore="HardcodedText" />
+
+                                            <TextView
+                                                android:layout_width="wrap_content"
+                                                android:layout_height="wrap_content"
+                                                android:layout_marginStart="8dp"
+                                                android:background="@drawable/bg_badge_blue_tint"
+                                                android:paddingHorizontal="7dp"
+                                                android:paddingVertical="2dp"
+                                                android:text="24/7 Helplines"
+                                                android:textColor="#0284C7"
+                                                android:textSize="10.5sp"
+                                                android:textStyle="bold"
+                                                tools:ignore="HardcodedText" />
+                                        </LinearLayout>
+
+                                        <TextView
+                                            android:layout_width="wrap_content"
+                                            android:layout_height="wrap_content"
+                                            android:layout_marginTop="3dp"
+                                            android:text="Govt medical colleges, private clinics &amp; emergency helplines"
+                                            android:textColor="@color/text_secondary"
+                                            android:textSize="12sp"
+                                            android:lineSpacingExtra="1dp"
+                                            tools:ignore="HardcodedText" />
+                                    </LinearLayout>
+
+                                    <!-- Chevron Circle -->
+                                    <ImageView
+                                        android:layout_width="32dp"
+                                        android:layout_height="32dp"
+                                        android:layout_marginStart="8dp"
+                                        android:background="@drawable/bg_badge_circle_gray"
+                                        android:padding="7dp"
+                                        android:src="@drawable/ic_arrow_forward"
+                                        app:tint="@color/text_secondary"
+                                        tools:ignore="ContentDescription" />
                                 </LinearLayout>
-                            </com.facebook.shimmer.ShimmerFrameLayout>
+                            </com.google.android.material.card.MaterialCardView>
 
-                            <!-- RecyclerView for Donors -->
-                            <androidx.recyclerview.widget.RecyclerView
-                                android:id="@+id/rvDonors"
+                            <!-- CARD 3: CERTIFIED BLOOD BANKS -->
+                            <com.google.android.material.card.MaterialCardView
+                                android:id="@+id/cardNavBloodBanks"
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
-                                android:clipToPadding="false"
-                                android:nestedScrollingEnabled="false"
-                                android:paddingHorizontal="8dp"
-                                tools:listitem="@layout/item_donor" />
+                                android:clickable="true"
+                                android:focusable="true"
+                                android:foreground="?attr/selectableItemBackground"
+                                app:cardBackgroundColor="@color/surface_white"
+                                app:cardCornerRadius="18dp"
+                                app:cardElevation="1dp"
+                                app:strokeWidth="1dp"
+                                app:strokeColor="#EDEDED">
 
-                            <!-- Empty state / Error layout for Donors -->
-                            <LinearLayout
-                                android:id="@+id/errorLayout"
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:gravity="center"
-                                android:orientation="vertical"
-                                android:visibility="gone"
-                                android:padding="24dp">
-
-                                <TextView
-                                    android:id="@+id/tvNoDonors"
+                                <LinearLayout
                                     android:layout_width="match_parent"
                                     android:layout_height="wrap_content"
-                                    android:text="No donors available"
-                                    android:textAlignment="center"
-                                    android:textSize="15sp"
-                                    android:textColor="@color/text_secondary"
-                                    android:paddingTop="12dp"
-                                    android:paddingBottom="12dp" />
+                                    android:gravity="center_vertical"
+                                    android:orientation="horizontal"
+                                    android:padding="16dp">
 
-                                <com.google.android.material.button.MaterialButton
-                                    android:id="@+id/btnRetry"
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="40dp"
-                                    android:layout_marginTop="8dp"
-                                    android:text="Retry"
-                                    android:visibility="gone"
-                                    app:cornerRadius="20dp"
-                                    app:backgroundTint="@color/primary_red"
-                                    android:textColor="@android:color/white"
-                                    tools:ignore="HardcodedText" />
-                            </LinearLayout>
+                                    <!-- Amber/Rose Icon Badge -->
+                                    <FrameLayout
+                                        android:layout_width="50dp"
+                                        android:layout_height="50dp"
+                                        android:background="@drawable/bg_icon_badge_amber">
+
+                                        <ImageView
+                                            android:layout_width="26dp"
+                                            android:layout_height="26dp"
+                                            android:layout_gravity="center"
+                                            android:src="@drawable/ic_blood_bag"
+                                            app:tint="#D97706"
+                                            tools:ignore="ContentDescription" />
+                                    </FrameLayout>
+
+                                    <!-- Content -->
+                                    <LinearLayout
+                                        android:layout_width="0dp"
+                                        android:layout_height="wrap_content"
+                                        android:layout_marginStart="14dp"
+                                        android:layout_weight="1"
+                                        android:orientation="vertical">
+
+                                        <LinearLayout
+                                            android:layout_width="wrap_content"
+                                            android:layout_height="wrap_content"
+                                            android:gravity="center_vertical"
+                                            android:orientation="horizontal">
+
+                                            <TextView
+                                                android:layout_width="wrap_content"
+                                                android:layout_height="wrap_content"
+                                                android:text="Certified Blood Banks"
+                                                android:textColor="@color/text_primary"
+                                                android:textSize="16sp"
+                                                android:textStyle="bold"
+                                                tools:ignore="HardcodedText" />
+
+                                            <TextView
+                                                android:layout_width="wrap_content"
+                                                android:layout_height="wrap_content"
+                                                android:layout_marginStart="8dp"
+                                                android:background="@drawable/bg_badge_amber_tint"
+                                                android:paddingHorizontal="7dp"
+                                                android:paddingVertical="2dp"
+                                                android:text="Reserves"
+                                                android:textColor="#D97706"
+                                                android:textSize="10.5sp"
+                                                android:textStyle="bold"
+                                                tools:ignore="HardcodedText" />
+                                        </LinearLayout>
+
+                                        <TextView
+                                            android:layout_width="wrap_content"
+                                            android:layout_height="wrap_content"
+                                            android:layout_marginTop="3dp"
+                                            android:text="Red Crescent, Quantum Foundation &amp; certified blood banks"
+                                            android:textColor="@color/text_secondary"
+                                            android:textSize="12sp"
+                                            android:lineSpacingExtra="1dp"
+                                            tools:ignore="HardcodedText" />
+                                    </LinearLayout>
+
+                                    <!-- Chevron Circle -->
+                                    <ImageView
+                                        android:layout_width="32dp"
+                                        android:layout_height="32dp"
+                                        android:layout_marginStart="8dp"
+                                        android:background="@drawable/bg_badge_circle_gray"
+                                        android:padding="7dp"
+                                        android:src="@drawable/ic_arrow_forward"
+                                        app:tint="@color/text_secondary"
+                                        tools:ignore="ContentDescription" />
+                                </LinearLayout>
+                            </com.google.android.material.card.MaterialCardView>
 
                         </LinearLayout>
 
-                        <!-- TAB 2 CONTENT: HOSPITALS -->
-                        <LinearLayout
-                            android:id="@+id/layoutHospitalsTabContent"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:orientation="vertical"
-                            android:visibility="gone">
 
-                            <!-- Hospital Filter Chips -->
-                            <HorizontalScrollView
-                                android:id="@+id/hsvHospitalFilters"
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:layout_marginTop="10dp"
-                                android:scrollbars="none"
-                                android:paddingHorizontal="16dp"
-                                android:clipToPadding="false">
 
-                                <com.google.android.material.chip.ChipGroup
-                                    android:id="@+id/chipGroupHospital"
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    app:singleSelection="true"
-                                    app:selectionRequired="false">
 
-                                    <com.google.android.material.chip.Chip
-                                        android:id="@+id/chipHospitalAll"
-                                        style="@style/Widget.Material3.Chip.Filter"
-                                        android:layout_width="wrap_content"
-                                        android:layout_height="wrap_content"
-                                        android:text="All"
-                                        android:checked="true" />
 
-                                    <com.google.android.material.chip.Chip
-                                        android:id="@+id/chipHospitalGovt"
-                                        style="@style/Widget.Material3.Chip.Filter"
-                                        android:layout_width="wrap_content"
-                                        android:layout_height="wrap_content"
-                                        android:text="Govt Medical" />
 
-                                    <com.google.android.material.chip.Chip
-                                        android:id="@+id/chipHospitalPrivate"
-                                        style="@style/Widget.Material3.Chip.Filter"
-                                        android:layout_width="wrap_content"
-                                        android:layout_height="wrap_content"
-                                        android:text="Private" />
-
-                                    <com.google.android.material.chip.Chip
-                                        android:id="@+id/chipHospitalEmergency"
-                                        style="@style/Widget.Material3.Chip.Filter"
-                                        android:layout_width="wrap_content"
-                                        android:layout_height="wrap_content"
-                                        android:text="24/7 Emergency" />
-
-                                    <com.google.android.material.chip.Chip
-                                        android:id="@+id/chipHospitalSpecialized"
-                                        style="@style/Widget.Material3.Chip.Filter"
-                                        android:layout_width="wrap_content"
-                                        android:layout_height="wrap_content"
-                                        android:text="Specialized" />
-
-                                </com.google.android.material.chip.ChipGroup>
-                            </HorizontalScrollView>
-
-                            <!-- RecyclerView for Hospitals -->
-                            <androidx.recyclerview.widget.RecyclerView
-                                android:id="@+id/rvHospitals"
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:clipToPadding="false"
-                                android:nestedScrollingEnabled="false"
-                                android:paddingHorizontal="8dp"
-                                android:layout_marginTop="4dp"
-                                tools:listitem="@layout/item_home_hospital" />
-
-                            <!-- Empty State for Hospitals -->
-                            <LinearLayout
-                                android:id="@+id/layoutHospitalEmpty"
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:gravity="center"
-                                android:orientation="vertical"
-                                android:visibility="gone"
-                                android:padding="28dp">
-
-                                <ImageView
-                                    android:layout_width="48dp"
-                                    android:layout_height="48dp"
-                                    android:src="@drawable/ic_hospital"
-                                    app:tint="@color/text_secondary"
-                                    tools:ignore="ContentDescription" />
-
-                                <TextView
-                                    android:id="@+id/tvNoHospitals"
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:layout_marginTop="12dp"
-                                    android:text="No hospitals match your search criteria"
-                                    android:textColor="@color/text_secondary"
-                                    android:textSize="14sp"
-                                    tools:ignore="HardcodedText" />
-                            </LinearLayout>
-
-                        </LinearLayout>
-
-                        <!-- TAB 3 CONTENT: BLOOD BANKS -->
-                        <LinearLayout
-                            android:id="@+id/layoutBloodBanksTabContent"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:orientation="vertical"
-                            android:visibility="gone">
-
-                            <!-- Blood Bank Filter Chips -->
-                            <HorizontalScrollView
-                                android:id="@+id/hsvBloodBankFilters"
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:layout_marginTop="10dp"
-                                android:scrollbars="none"
-                                android:paddingHorizontal="16dp"
-                                android:clipToPadding="false">
-
-                                <com.google.android.material.chip.ChipGroup
-                                    android:id="@+id/chipGroupBloodBank"
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    app:singleSelection="true"
-                                    app:selectionRequired="false">
-
-                                    <com.google.android.material.chip.Chip
-                                        android:id="@+id/chipBloodBankAll"
-                                        style="@style/Widget.Material3.Chip.Filter"
-                                        android:layout_width="wrap_content"
-                                        android:layout_height="wrap_content"
-                                        android:text="All"
-                                        android:checked="true" />
-
-                                    <com.google.android.material.chip.Chip
-                                        android:id="@+id/chipBloodBankRedCrescent"
-                                        style="@style/Widget.Material3.Chip.Filter"
-                                        android:layout_width="wrap_content"
-                                        android:layout_height="wrap_content"
-                                        android:text="Red Crescent" />
-
-                                    <com.google.android.material.chip.Chip
-                                        android:id="@+id/chipBloodBankQuantum"
-                                        style="@style/Widget.Material3.Chip.Filter"
-                                        android:layout_width="wrap_content"
-                                        android:layout_height="wrap_content"
-                                        android:text="Quantum" />
-
-                                    <com.google.android.material.chip.Chip
-                                        android:id="@+id/chipBloodBankVoluntary"
-                                        style="@style/Widget.Material3.Chip.Filter"
-                                        android:layout_width="wrap_content"
-                                        android:layout_height="wrap_content"
-                                        android:text="Voluntary Org" />
-
-                                    <com.google.android.material.chip.Chip
-                                        android:id="@+id/chipBloodBank24Hours"
-                                        style="@style/Widget.Material3.Chip.Filter"
-                                        android:layout_width="wrap_content"
-                                        android:layout_height="wrap_content"
-                                        android:text="Open 24/7" />
-
-                                </com.google.android.material.chip.ChipGroup>
-                            </HorizontalScrollView>
-
-                            <!-- RecyclerView for Blood Banks -->
-                            <androidx.recyclerview.widget.RecyclerView
-                                android:id="@+id/rvBloodBanks"
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:clipToPadding="false"
-                                android:nestedScrollingEnabled="false"
-                                android:paddingHorizontal="8dp"
-                                android:layout_marginTop="4dp"
-                                tools:listitem="@layout/item_home_blood_bank" />
-
-                            <!-- Empty State for Blood Banks -->
-                            <LinearLayout
-                                android:id="@+id/layoutBloodBankEmpty"
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:gravity="center"
-                                android:orientation="vertical"
-                                android:visibility="gone"
-                                android:padding="28dp">
-
-                                <ImageView
-                                    android:layout_width="48dp"
-                                    android:layout_height="48dp"
-                                    android:src="@drawable/ic_blood_bag"
-                                    app:tint="@color/text_secondary"
-                                    tools:ignore="ContentDescription" />
-
-                                <TextView
-                                    android:id="@+id/tvNoBloodBanks"
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:layout_marginTop="12dp"
-                                    android:text="No certified blood banks match your search"
-                                    android:textColor="@color/text_secondary"
-                                    android:textSize="14sp"
-                                    tools:ignore="HardcodedText" />
-                            </LinearLayout>
-
-                        </LinearLayout>
 
                     </LinearLayout>
                 </androidx.core.widget.NestedScrollView>

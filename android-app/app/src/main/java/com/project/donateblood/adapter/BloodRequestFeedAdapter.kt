@@ -97,6 +97,7 @@ class BloodRequestFeedAdapter(
             if (isUrgent) {
                 tvUrgencyTag.text = "URGENT"
                 tvUrgencyTag.setTextColor(ContextCompat.getColor(context, R.color.primary_red))
+                tvUrgencyTag.setBackgroundResource(R.drawable.bg_tag_urgent_2026)
                 tvUrgencyTag.setCompoundDrawablesWithIntrinsicBounds(R.drawable.ic_clock, 0, 0, 0)
                 TextViewCompat.setCompoundDrawableTintList(
                     tvUrgencyTag,
@@ -104,7 +105,8 @@ class BloodRequestFeedAdapter(
                 )
             } else {
                 tvUrgencyTag.text = "NEEDED"
-                tvUrgencyTag.setTextColor(ContextCompat.getColor(context, R.color.text_primary))
+                tvUrgencyTag.setTextColor(ContextCompat.getColor(context, R.color.text_secondary))
+                tvUrgencyTag.setBackgroundResource(R.drawable.bg_tag_needed_2026)
                 tvUrgencyTag.setCompoundDrawablesWithIntrinsicBounds(R.drawable.ic_blood_drop, 0, 0, 0)
                 TextViewCompat.setCompoundDrawableTintList(
                     tvUrgencyTag,

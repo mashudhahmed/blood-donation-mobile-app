@@ -5,47 +5,49 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginHorizontal="12dp"
-    android:layout_marginVertical="6dp"
-    app:cardCornerRadius="16dp"
-    app:cardElevation="2dp"
+    android:layout_marginHorizontal="14dp"
+    android:layout_marginVertical="7dp"
+    app:cardCornerRadius="18dp"
+    app:cardElevation="1dp"
     app:strokeWidth="1dp"
-    app:strokeColor="#EDEDED"
+    app:strokeColor="#E2E8F0"
     app:cardBackgroundColor="@color/surface_white">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="14dp">
+        android:padding="16dp">
 
-        <!-- ================= TOP HEADER: BLOOD GROUP + TAGS + ACTIONS ================= -->
+        <!-- ================= TOP HEADER: BLOOD BADGE + DETAILS + SHARE BUTTON ================= -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
             android:gravity="top">
 
-            <!-- PROMINENT BLOOD GROUP BADGE -->
+            <!-- PROMINENT BLOOD GROUP SQUIRCLE BADGE (2026 MODERN) -->
             <TextView
                 android:id="@+id/tvBloodGroupBadge"
                 android:layout_width="48dp"
                 android:layout_height="48dp"
-                android:background="@drawable/bg_blood_group_badge"
+                android:background="@drawable/bg_blood_badge_modern"
                 android:gravity="center"
                 android:textColor="@color/white"
                 android:textSize="18sp"
                 android:textStyle="bold"
                 tools:text="A+" />
 
-            <!-- URGENCY & UNITS & COMPATIBILITY PILLS -->
+            <!-- URGENCY, UNITS, PATIENT & COMPATIBILITY -->
             <LinearLayout
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:layout_marginStart="12dp"
+                android:layout_marginEnd="8dp"
                 android:orientation="vertical">
 
+                <!-- BADGES ROW: URGENT / NEEDED + UNITS -->
                 <LinearLayout
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
@@ -56,10 +58,10 @@
                         android:id="@+id/tvUrgencyTag"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:background="@drawable/bg_urgent_tag"
+                        android:background="@drawable/bg_tag_urgent_2026"
                         android:drawablePadding="4dp"
-                        android:paddingHorizontal="7dp"
-                        android:paddingVertical="2dp"
+                        android:paddingHorizontal="8dp"
+                        android:paddingVertical="3dp"
                         android:text="URGENT"
                         android:textColor="@color/primary_red"
                         android:textSize="11sp"
@@ -73,14 +75,27 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginStart="6dp"
-                        android:background="@drawable/bg_units_pill"
-                        android:paddingHorizontal="7dp"
-                        android:paddingVertical="2dp"
-                        android:textColor="@color/text_primary"
+                        android:background="@drawable/bg_tag_units_2026"
+                        android:paddingHorizontal="8dp"
+                        android:paddingVertical="3dp"
+                        android:textColor="#334155"
                         android:textSize="11sp"
                         android:textStyle="bold"
                         tools:text="2 Units Needed" />
                 </LinearLayout>
+
+                <!-- PATIENT NAME -->
+                <TextView
+                    android:id="@+id/tvPatientName"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="5dp"
+                    android:textColor="#0F172A"
+                    android:textSize="15.5sp"
+                    android:textStyle="bold"
+                    android:maxLines="1"
+                    android:ellipsize="end"
+                    tools:text="Patient: Farhana Akhter" />
 
                 <!-- COMPATIBILITY BADGE (DYNAMIC) -->
                 <TextView
@@ -88,10 +103,10 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="4dp"
-                    android:background="@drawable/bg_units_pill"
-                    android:drawablePadding="4dp"
-                    android:paddingHorizontal="6dp"
-                    android:paddingVertical="2dp"
+                    android:background="@drawable/bg_tag_compatibility_2026"
+                    android:drawablePadding="5dp"
+                    android:paddingHorizontal="8dp"
+                    android:paddingVertical="3dp"
                     android:text="Compatible with your blood"
                     android:textColor="#0284C7"
                     android:textSize="10.5sp"
@@ -102,71 +117,27 @@
                     tools:ignore="HardcodedText" />
             </LinearLayout>
 
-            <!-- ACTION ICONS: SHARE + CHAT + CALL -->
-            <LinearLayout
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:gravity="center_vertical">
-
-                <ImageView
-                    android:id="@+id/btnShare"
-                    android:layout_width="32dp"
-                    android:layout_height="32dp"
-                    android:src="@drawable/ic_share"
-                    android:background="@drawable/bg_icon_circle_light"
-                    android:padding="7dp"
-                    app:tint="@color/text_secondary"
-                    tools:ignore="ContentDescription" />
-
-                <ImageView
-                    android:id="@+id/btnChat"
-                    android:layout_width="32dp"
-                    android:layout_height="32dp"
-                    android:layout_marginStart="6dp"
-                    android:src="@drawable/ic_chat"
-                    android:background="@drawable/bg_icon_circle_light"
-                    android:padding="6dp"
-                    app:tint="@color/primary_red"
-                    tools:ignore="ContentDescription" />
-
-                <ImageView
-                    android:id="@+id/btnCall"
-                    android:layout_width="32dp"
-                    android:layout_height="32dp"
-                    android:layout_marginStart="6dp"
-                    android:src="@drawable/ic_call"
-                    android:background="@drawable/bg_icon_circle_light"
-                    android:padding="6dp"
-                    app:tint="@color/primary_red"
-                    tools:ignore="ContentDescription" />
-            </LinearLayout>
+            <!-- SHARE ICON ON TOP RIGHT -->
+            <ImageView
+                android:id="@+id/btnShare"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:src="@drawable/ic_share"
+                android:background="@drawable/bg_icon_button_2026"
+                android:padding="8.5dp"
+                app:tint="#64748B"
+                android:contentDescription="Share blood request"
+                tools:ignore="HardcodedText" />
         </LinearLayout>
 
-        <!-- ================= PATIENT NAME ================= -->
-        <TextView
-            android:id="@+id/tvPatientName"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="10dp"
-            android:textColor="@color/text_primary"
-            android:textSize="15sp"
-            android:textStyle="bold"
-            tools:text="Patient: Farhana Akhter" />
-
-        <!-- DIVIDER -->
-        <View
-            android:layout_width="match_parent"
-            android:layout_height="1dp"
-            android:layout_marginTop="8dp"
-            android:layout_marginBottom="8dp"
-            android:background="#F3F4F6" />
-
-        <!-- ================= HOSPITAL + LOCATION + TIME DETAILS ================= -->
+        <!-- ================= METADATA CONTAINER: HOSPITAL + LOCATION + TIME ================= -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical">
+            android:layout_marginTop="12dp"
+            android:background="@drawable/bg_meta_container_2026"
+            android:orientation="vertical"
+            android:padding="12dp">
 
             <!-- HOSPITAL -->
             <LinearLayout
@@ -176,19 +147,22 @@
                 android:gravity="center_vertical">
 
                 <ImageView
-                    android:layout_width="14dp"
-                    android:layout_height="14dp"
+                    android:layout_width="15dp"
+                    android:layout_height="15dp"
                     android:src="@drawable/ic_hospital"
-                    app:tint="@color/text_secondary"
+                    app:tint="#64748B"
                     tools:ignore="ContentDescription" />
 
                 <TextView
                     android:id="@+id/tvHospital"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="8dp"
-                    android:textColor="@color/text_secondary"
-                    android:textSize="12sp"
+                    android:layout_marginStart="9dp"
+                    android:textColor="#1E293B"
+                    android:textSize="13sp"
+                    android:textStyle="bold"
+                    android:maxLines="1"
+                    android:ellipsize="end"
                     tools:text="Dhaka Medical College Hospital" />
             </LinearLayout>
 
@@ -196,24 +170,26 @@
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
+                android:layout_marginTop="6dp"
                 android:orientation="horizontal"
                 android:gravity="center_vertical">
 
                 <ImageView
-                    android:layout_width="14dp"
-                    android:layout_height="14dp"
+                    android:layout_width="15dp"
+                    android:layout_height="15dp"
                     android:src="@drawable/ic_location_pin"
-                    app:tint="@color/text_secondary"
+                    app:tint="#64748B"
                     tools:ignore="ContentDescription" />
 
                 <TextView
                     android:id="@+id/tvLocation"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="8dp"
-                    android:textColor="@color/text_secondary"
+                    android:layout_marginStart="9dp"
+                    android:textColor="#64748B"
                     android:textSize="12sp"
+                    android:maxLines="1"
+                    android:ellipsize="end"
                     tools:text="Ramna, Dhaka" />
             </LinearLayout>
 
@@ -221,69 +197,100 @@
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
+                android:layout_marginTop="6dp"
                 android:orientation="horizontal"
                 android:gravity="center_vertical">
 
                 <ImageView
-                    android:layout_width="14dp"
-                    android:layout_height="14dp"
+                    android:layout_width="15dp"
+                    android:layout_height="15dp"
                     android:src="@drawable/ic_calendar"
-                    app:tint="@color/text_secondary"
+                    app:tint="#64748B"
                     tools:ignore="ContentDescription" />
 
                 <TextView
                     android:id="@+id/tvDateTime"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="8dp"
-                    android:textColor="@color/text_secondary"
+                    android:layout_marginStart="9dp"
+                    android:textColor="#64748B"
                     android:textSize="12sp"
+                    android:maxLines="1"
+                    android:ellipsize="end"
                     tools:text="Required: 15/01/2026 (04:00 PM)" />
             </LinearLayout>
         </LinearLayout>
 
-        <!-- ================= ACTION BUTTONS: DIRECTIONS + I CAN HELP ================= -->
+        <!-- ================= PRIMARY & SECONDARY ACTIONS ROW ================= -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="12dp"
-            android:orientation="horizontal">
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
 
+            <!-- CALL BUTTON -->
+            <ImageView
+                android:id="@+id/btnCall"
+                android:layout_width="38dp"
+                android:layout_height="38dp"
+                android:layout_marginEnd="8dp"
+                android:src="@drawable/ic_call"
+                android:background="@drawable/bg_icon_button_2026"
+                android:padding="9dp"
+                app:tint="@color/primary_red"
+                android:contentDescription="Call requester"
+                tools:ignore="HardcodedText" />
+
+            <!-- CHAT BUTTON -->
+            <ImageView
+                android:id="@+id/btnChat"
+                android:layout_width="38dp"
+                android:layout_height="38dp"
+                android:layout_marginEnd="8dp"
+                android:src="@drawable/ic_chat"
+                android:background="@drawable/bg_icon_button_2026"
+                android:padding="9dp"
+                app:tint="@color/primary_red"
+                android:contentDescription="Chat with requester"
+                tools:ignore="HardcodedText" />
+
+            <!-- DIRECTIONS BUTTON -->
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnDirections"
                 style="@style/Widget.MaterialComponents.Button.OutlinedButton"
                 android:layout_width="0dp"
-                android:layout_height="38dp"
+                android:layout_height="40dp"
                 android:layout_weight="1"
                 android:layout_marginEnd="6dp"
                 android:text="Directions"
-                android:textColor="@color/text_secondary"
-                android:textSize="12sp"
-                app:cornerRadius="19dp"
-                app:strokeColor="#D1D5DB"
+                android:textColor="#475569"
+                android:textSize="12.5sp"
+                android:textStyle="bold"
+                app:cornerRadius="20dp"
+                app:strokeColor="#CBD5E1"
                 app:strokeWidth="1dp"
                 app:icon="@drawable/ic_directions"
-                app:iconSize="14dp"
+                app:iconSize="15dp"
                 app:iconGravity="textStart"
-                app:iconTint="@color/text_secondary"
+                app:iconTint="#475569"
                 android:textAllCaps="false"
                 tools:ignore="HardcodedText" />
 
+            <!-- I CAN HELP BUTTON -->
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnHelp"
                 android:layout_width="0dp"
-                android:layout_height="38dp"
-                android:layout_weight="1"
-                android:layout_marginStart="6dp"
+                android:layout_height="40dp"
+                android:layout_weight="1.25"
                 android:text="I Can Help"
                 android:textColor="@color/white"
-                android:textSize="12sp"
+                android:textSize="12.5sp"
                 android:textStyle="bold"
-                app:cornerRadius="19dp"
+                app:cornerRadius="20dp"
                 app:backgroundTint="@color/primary_red"
                 app:icon="@drawable/ic_blood_drop"
-                app:iconSize="14dp"
+                app:iconSize="15dp"
                 app:iconTint="@color/white"
                 app:iconGravity="textStart"
                 android:textAllCaps="false"

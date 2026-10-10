@@ -131,20 +131,29 @@ class HistoryAdapter(
         private val onViewCertificateClick: (HistoryItem) -> Unit
     ) : RecyclerView.ViewHolder(itemView) {
         private val tvTitle: TextView = itemView.findViewById(R.id.tvTitle)
+        private val tvBloodType: TextView = itemView.findViewById(R.id.tvBloodType)
+        private val tvDateSmall: TextView = itemView.findViewById(R.id.tvDateSmall)
         private val tvStatus: TextView = itemView.findViewById(R.id.tvStatus)
         private val tvHospital: TextView = itemView.findViewById(R.id.tvHospital)
         private val tvImpact: TextView = itemView.findViewById(R.id.tvImpact)
         private val tvLocation: TextView = itemView.findViewById(R.id.tvLocation)
         private val tvDate: TextView = itemView.findViewById(R.id.tvDate)
+        private val tvUnits: TextView = itemView.findViewById(R.id.tvUnits)
+        private val btnViewDetails: com.google.android.material.button.MaterialButton =
+            itemView.findViewById(R.id.btnViewDetails)
         private val btnViewCertificate: com.google.android.material.button.MaterialButton =
             itemView.findViewById(R.id.btnViewCertificate)
 
         @SuppressLint("SetTextI18n")
         fun bind(item: HistoryItem) {
             tvTitle.text = "Blood Donation"
+            tvBloodType.text = if (item.bloodGroup.isNotEmpty()) "(${item.bloodGroup})" else ""
+            val formattedDate = dateFormat.format(item.date)
+            tvDateSmall.text = "· $formattedDate"
             tvHospital.text = "Donation Center: ${item.hospital}"
             tvLocation.text = item.location
-            tvDate.text = dateFormat.format(item.date)
+            tvDate.text = formattedDate
+            tvUnits.text = "${item.units} unit${if (item.units > 1) "s" else ""}"
 
             // Set impact message based on units
             tvImpact.text = when (item.units) {
@@ -162,6 +171,7 @@ class HistoryAdapter(
 
             // Set click listeners
             itemView.setOnClickListener { onItemClick(item) }
+            btnViewDetails.setOnClickListener { onItemClick(item) }
             btnViewCertificate.setOnClickListener { onViewCertificateClick(item) }
         }
     }

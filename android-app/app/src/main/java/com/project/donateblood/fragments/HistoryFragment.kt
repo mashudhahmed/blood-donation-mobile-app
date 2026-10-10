@@ -18,6 +18,7 @@ import com.project.donateblood.R
 import com.project.donateblood.adapter.HistoryAdapter
 import com.project.donateblood.databinding.FragmentHistoryBinding
 import com.project.donateblood.models.HistoryItem
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import java.text.SimpleDateFormat
 import java.util.Locale
 
@@ -65,6 +66,15 @@ class HistoryFragment : Fragment() {
             findNavController().navigateUp()
         }
 
+        binding.swipeRefreshLayout.setColorSchemeResources(R.color.primary_red)
+        binding.swipeRefreshLayout.setOnRefreshListener {
+            loadHistoryData()
+        }
+
+        binding.btnEmptyAction.setOnClickListener {
+            navigateToRequestBloodFragment()
+        }
+
         // Setup search functionality with debounce
         binding.etSearch.addTextChangedListener { editable ->
             currentSearchQuery = editable?.toString() ?: ""
@@ -106,8 +116,10 @@ class HistoryFragment : Fragment() {
             return
         }
 
-        binding.progressBar.visibility = View.VISIBLE
-        binding.tvNoHistory.visibility = View.GONE
+        if (!binding.swipeRefreshLayout.isRefreshing) {
+            binding.progressBar.visibility = View.VISIBLE
+        }
+        binding.layoutEmptyHistory.visibility = View.GONE
         binding.rvHistory.visibility = View.GONE
 
         // Clear existing data
@@ -130,6 +142,7 @@ class HistoryFragment : Fragment() {
                 if (error != null) {
                     if (dataLoadCount >= totalDataSources) {
                         binding.progressBar.visibility = View.GONE
+                        binding.swipeRefreshLayout.isRefreshing = false
                         showNoData("Failed to load blood requests")
                     }
                     return@addSnapshotListener
@@ -303,41 +316,67 @@ class HistoryFragment : Fragment() {
 
     private fun showFilterOptionsDialog() {
         val options = arrayOf("All History", "Blood Requests", "Donations")
-        android.app.AlertDialog.Builder(requireContext())
-            .setTitle("Filter History")
-            .setItems(options) { _, i ->
+        val checkedIndex = when (currentFilterType) {
+            "requested" -> 1
+            "donated" -> 2
+            else -> 0
+        }
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle("Filter Activity")
+            .setSingleChoiceItems(options, checkedIndex) { dialog, i ->
                 currentFilterType = when (i) {
-                    0 -> "all"
                     1 -> "requested"
                     2 -> "donated"
                     else -> "all"
                 }
+                binding.btnFilter.text = when (currentFilterType) {
+                    "requested" -> "Filter: Requests"
+                    "donated" -> "Filter: Donations"
+                    else -> "Filter: All"
+                }
                 applyFiltersAndUpdate()
-            }.show()
+                dialog.dismiss()
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
     }
 
     private fun showSortOptionsDialog() {
         val options = arrayOf("Most Recent", "Oldest First", "By Status")
-        android.app.AlertDialog.Builder(requireContext())
-            .setTitle("Sort History")
-            .setItems(options) { _, i ->
+        val checkedIndex = when (currentSortType) {
+            "oldest" -> 1
+            "status" -> 2
+            else -> 0
+        }
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle("Sort Activity")
+            .setSingleChoiceItems(options, checkedIndex) { dialog, i ->
                 currentSortType = when (i) {
-                    0 -> "recent"
                     1 -> "oldest"
                     2 -> "status"
                     else -> "recent"
                 }
+                binding.btnSort.text = when (currentSortType) {
+                    "oldest" -> "Sort: Oldest"
+                    "status" -> "Sort: Status"
+                    else -> "Sort: Recent"
+                }
                 applyFiltersAndUpdate()
-            }.show()
+                dialog.dismiss()
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
     }
 
     private fun updateHistoryList(items: List<HistoryItem>) {
+        binding.progressBar.visibility = View.GONE
+        binding.swipeRefreshLayout.isRefreshing = false
         if (items.isEmpty()) {
             showNoData(getNoDataMessage())
         } else {
             // Submit a new list to trigger DiffUtil
             historyAdapter.submitList(ArrayList(items))
-            binding.tvNoHistory.visibility = View.GONE
+            binding.layoutEmptyHistory.visibility = View.GONE
             binding.rvHistory.visibility = View.VISIBLE
         }
     }
@@ -350,13 +389,15 @@ class HistoryFragment : Fragment() {
                 "No history found for '$currentSearchQuery'"
             currentFilterType != "all" ->
                 "No $currentFilterType history found"
-            else -> "No history available"
+            else -> "When you create a blood request or donate, your activity history will appear here."
         }
     }
 
     private fun showNoData(message: String) {
+        binding.progressBar.visibility = View.GONE
+        binding.swipeRefreshLayout.isRefreshing = false
         binding.tvNoHistory.text = message
-        binding.tvNoHistory.visibility = View.VISIBLE
+        binding.layoutEmptyHistory.visibility = View.VISIBLE
         binding.rvHistory.visibility = View.GONE
     }
 
@@ -382,7 +423,7 @@ class HistoryFragment : Fragment() {
 
     // NEW: Show cancel confirmation dialog
     private fun showCancelRequestConfirmation(historyItem: HistoryItem) {
-        android.app.AlertDialog.Builder(requireContext())
+        MaterialAlertDialogBuilder(requireContext())
             .setTitle("Cancel Blood Request")
             .setMessage("Are you sure you want to cancel this blood request?\n\nPatient: ${historyItem.patientName}\nHospital: ${historyItem.hospital}\nBlood Group: ${historyItem.bloodGroup}")
             .setPositiveButton("Yes, Cancel") { _, _ ->

@@ -35,22 +35,12 @@
                 android:layout_marginTop="32dp"
                 android:layout_marginBottom="40dp">
 
-                <!-- App Name with Gradient Text -->
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="101dp"
-                    android:background="@color/primary_red_dark"
-                    android:gravity="center">
-
-                    <ImageView
-                        android:layout_width="120dp"
-                        android:layout_height="120dp"
-                        android:scaleType="fitCenter"
-                        android:src="@drawable/ic_blood_drop"
-                        app:tint="@color/surface_white"
-                        tools:ignore="ContentDescription" />
-
-                </LinearLayout>
+                <ImageView
+                    android:layout_width="100dp"
+                    android:layout_height="100dp"
+                    android:scaleType="fitCenter"
+                    android:src="@drawable/ic_app_logo_card"
+                    tools:ignore="ContentDescription" />
 
                 <TextView
                     android:layout_width="wrap_content"

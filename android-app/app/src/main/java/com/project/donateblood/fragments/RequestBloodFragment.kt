@@ -64,6 +64,9 @@ class RequestBloodFragment : Fragment() {
         setupUI()
         setupToolbar()
         setDefaultDateTime()
+        binding.scrollView.post {
+            binding.scrollView.scrollTo(0, 0)
+        }
     }
 
     override fun onDestroyView() {

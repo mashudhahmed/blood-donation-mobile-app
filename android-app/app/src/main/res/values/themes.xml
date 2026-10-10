@@ -31,4 +31,16 @@
         <item name="titleTextColor">@color/white</item>
         <item name="subtitleTextColor">@color/white</item>
     </style>
+
+    <!-- Toolbar Title & Subtitle TextAppearances matching Chat & Message styling -->
+    <style name="TextAppearance.BloodLink.Toolbar.Title" parent="TextAppearance.Material3.TitleMedium">
+        <item name="android:textSize">20sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:textColor">@color/white</item>
+    </style>
+
+    <style name="TextAppearance.BloodLink.Toolbar.Subtitle" parent="TextAppearance.Material3.BodySmall">
+        <item name="android:textSize">12sp</item>
+        <item name="android:textColor">#E0E0E0</item>
+    </style>
 </resources>

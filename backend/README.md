@@ -1,12 +1,20 @@
-# Android Notification Backend
+<p align="center">
+  <img src="../assets/logo.png" width="100" height="100" alt="BloodLink Logo" />
+</p>
 
-A production-ready NestJS backend for delivering Firebase Cloud Messaging (FCM) push notifications to Android devices. The service is designed with scalability, security, and maintainability in mind, providing a centralized notification system that integrates seamlessly with Android applications.
+<h1 align="center">BloodLink Backend</h1>
 
-![NestJS](https://img.shields.io/badge/NestJS-10-E0234E?logo=nestjs)
-![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript)
-![Firebase](https://img.shields.io/badge/Firebase-FCM-FFCA28?logo=firebase)
-![Node.js](https://img.shields.io/badge/Node.js-20-339933?logo=node.js)
-![License](https://img.shields.io/badge/License-MIT-green)
+<p align="center">
+  <strong>NestJS Push Notification &amp; Matching Engine</strong>
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/NestJS-10-E0234E?logo=nestjs" alt="NestJS" />
+  <img src="https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript" alt="TypeScript" />
+  <img src="https://img.shields.io/badge/Firebase-FCM-FFCA28?logo=firebase" alt="Firebase" />
+  <img src="https://img.shields.io/badge/Node.js-20-339933?logo=node.js" alt="Node.js" />
+  <img src="https://img.shields.io/badge/License-MIT-green" alt="License" />
+</p>
 
 ---
 

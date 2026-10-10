@@ -1,125 +1,110 @@
-# BloodLink Android
+<p align="center">
+  <img src="../assets/logo.png" width="120" height="120" alt="BloodLink Logo" />
+</p>
 
-![Platform](https://img.shields.io/badge/Platform-Android-green?logo=android)
-![Language](https://img.shields.io/badge/Language-Kotlin-purple?logo=kotlin)
-![Architecture](https://img.shields.io/badge/Architecture-MVVM-blue)
-![Firebase](https://img.shields.io/badge/Firebase-Enabled-orange?logo=firebase)
-![Min SDK](https://img.shields.io/badge/Min%20SDK-26-lightgrey)
-![Status](https://img.shields.io/badge/Status-Active-success)
+<h1 align="center">BloodLink Android</h1>
 
-> The Android client for BloodLink — a blood donation platform that connects donors and recipients through real-time push notifications and intelligent blood group matching.
+<p align="center">
+  <strong>Native Android Client for Real-Time Blood Donation & Matching</strong>
+</p>
 
-
-
-## Overview
-
-BloodLink Android is the mobile front-end of the BloodLink platform. It allows users to register as blood donors, post urgent blood requests, receive instant push notifications when a match is found, and track their donation history — all in a clean, fast native Android experience.
-
-The app communicates with a [NestJS backend](../backend/) for donor matching and push notifications, and uses Firebase directly for authentication, real-time data sync, and FCM delivery.
+<p align="center">
+  <img src="https://img.shields.io/badge/Platform-Android-green?logo=android" alt="Platform" />
+  <img src="https://img.shields.io/badge/Language-Kotlin-purple?logo=kotlin" alt="Language" />
+  <img src="https://img.shields.io/badge/Architecture-MVVM-blue" alt="Architecture" />
+  <img src="https://img.shields.io/badge/Firebase-Enabled-orange?logo=firebase" alt="Firebase" />
+  <img src="https://img.shields.io/badge/Min%20SDK-26-lightgrey" alt="Min SDK" />
+  <img src="https://img.shields.io/badge/UI-Material%203-maroon" alt="Material 3" />
+  <img src="https://img.shields.io/badge/Status-Active-success" alt="Status" />
+</p>
 
 ---
 
-## Screenshots
+## Overview
 
-| Home | Blood Request | Notifications | Profile |
-|------|--------------|---------------|---------|
-| ![Home](screenshots/home.png) | ![Request](screenshots/request.png) | ![Notifications](screenshots/notifications.png) | ![Profile](screenshots/profile.png) |
-
-> Screenshots coming soon. Download the APK from [Releases](https://github.com/your-username/bloodlink-android/releases) to try it now.
+**BloodLink Android** is the native mobile front-end for the BloodLink platform. Built with Kotlin and modern Android architecture components, it enables users to register as blood donors, post urgent blood requests, communicate through real-time 1-on-1 chat, and receive instant push notifications when matching requests are published.
 
 ---
 
 ## Features
 
-### Authentication
-- Email and password registration via Firebase Auth
-- Email verification before account activation
+### 🔐 Authentication & Profile
+- Email and password registration via Firebase Authentication
+- Email verification flow prior to account activation
 - Persistent login session management
+- Blood group registration and donor profile management
+- Availability switch (Active / Temporarily Unavailable)
+- Cooldown safety window enforcement (56-day donation interval)
 
-### Donor Profile
-- Blood group selection and registration
-- Availability toggle (active / unavailable)
-- Donation history with timestamps
-- Cooldown enforcement (56-day eligibility window)
+### 🩸 Blood Requests
+- Create blood requests with patient details, hospital info, blood units, and district
+- Date and time pickers for scheduled donations
+- Intelligent donor matching by blood group and geographic location
+- Request status lifecycle tracking (`open` ➔ `matched` ➔ `fulfilled`)
 
-### Blood Requests
-- Create requests specifying blood group, quantity, and urgency
-- Browse and filter open requests by blood group
-- Request status tracking (open → matched → fulfilled)
+### 💬 Real-Time In-App Chat
+- Instant 1-on-1 messaging between donor and recipient
+- **WhatsApp-style delivery indicators**:
+  - Sent (single tick)
+  - Delivered (double tick)
+  - Read (double blue tick)
+- Direct phone call integration for time-sensitive emergencies
 
-### Notifications
-- Real-time FCM push notifications for matching blood requests
-- In-app notification center with read/unread state
-- Offline support — notifications queued and delivered on reconnect
+### 🔔 Notifications
+- Background and foreground push notifications powered by Firebase Cloud Messaging (FCM)
+- In-app notification center with read/unread tracking
+- Offline caching and automatic resynchronization upon reconnection
 
-### Support
-- In-app feedback submission
-- FAQ section
-- Privacy policy and About Us
+### 🎨 Material 3 Design
+- BloodLink deep-crimson theming (`#C62828`)
+- Modern bottom navigation bar with active indicators
+- Card-based layouts with rounded corners and consistent typography
 
 ---
 
 ## Tech Stack
 
-| Library / Tool | Version | Purpose |
-|----------------|---------|---------|
-| Kotlin | 1.9+ | Primary language |
-| Android Navigation Component | 2.7+ | Fragment navigation and back stack |
-| View Binding | — | Type-safe view access |
-| ViewModel + LiveData | — | MVVM state management |
-| Firebase Authentication | — | User login and registration |
-| Firebase Firestore | — | Real-time NoSQL database |
-| Firebase Cloud Messaging | — | Push notification delivery |
-| Retrofit | 2.9+ | HTTP client for backend API |
-| OkHttp | 4.x | HTTP interceptor and logging |
-| Timber | 5.x | Debug logging |
+| Library / Tool | Purpose |
+|---|---|
+| Kotlin 1.9+ | Primary programming language |
+| MVVM Architecture | Separation of presentation, state, and data logic |
+| Android Navigation Component | Single-activity in-app fragment routing |
+| View Binding | Compile-time safe view access |
+| Firebase Authentication | User account lifecycle and token management |
+| Cloud Firestore | Real-time database and message synchronization |
+| Firebase Cloud Messaging (FCM) | Push notification delivery |
+| Retrofit 2 + OkHttp 3 | REST API integration with the NestJS backend |
+| Timber | Robust application logging |
 
 ---
 
 ## Project Structure
 
 ```
-bloodlink-android/
+android-app/
 │
 ├── app/
 │   ├── src/main/
-│   │   ├── java/com/bloodlink/
-│   │   │   ├── ui/
-│   │   │   │   ├── auth/            # Login, Register, Verify screens
-│   │   │   │   ├── home/            # Home dashboard fragment
-│   │   │   │   ├── request/         # Create and view blood requests
-│   │   │   │   ├── notifications/   # Notification center
-│   │   │   │   └── profile/         # User profile and settings
-│   │   │   │
-│   │   │   ├── viewmodels/
-│   │   │   │   ├── AuthViewModel.kt
-│   │   │   │   ├── RequestViewModel.kt
-│   │   │   │   ├── NotificationViewModel.kt
-│   │   │   │   └── ProfileViewModel.kt
-│   │   │   │
-│   │   │   ├── repository/
-│   │   │   │   ├── AuthRepository.kt
-│   │   │   │   ├── RequestRepository.kt
-│   │   │   │   └── NotificationRepository.kt
-│   │   │   │
-│   │   │   ├── firebase/
-│   │   │   │   ├── FirestoreService.kt
-│   │   │   │   └── FCMService.kt    # FirebaseMessagingService impl
-│   │   │   │
-│   │   │   ├── model/               # Data classes (User, Request, Notification)
-│   │   │   ├── network/             # Retrofit API interface and client
-│   │   │   └── utils/               # Constants, extensions, helpers
+│   │   ├── java/com/project/donateblood/
+│   │   │   ├── activities/          # MainActivity and root navigation
+│   │   │   ├── adapters/            # RecyclerView & ViewPager adapters
+│   │   │   ├── fragments/           # UI screens (Home, Chat, Request, Profile)
+│   │   │   ├── model/               # Data classes (User, BloodRequest, ChatMessage)
+│   │   │   ├── network/             # Retrofit interfaces & API service clients
+│   │   │   ├── repository/          # Firestore and remote repositories
+│   │   │   ├── viewmodel/           # MVVM ViewModels
+│   │   │   └── utils/               # Constants, formatters, and helpers
 │   │   │
 │   │   └── res/
-│   │       ├── layout/              # XML layouts
-│   │       ├── navigation/          # Nav graph
-│   │       ├── drawable/            # Icons and shapes
-│   │       └── values/              # Colors, strings, themes
+│   │       ├── layout/              # XML layout definitions
+│   │       ├── navigation/          # Jetpack Navigation graphs
+│   │       ├── drawable/            # Vector drawables & brand assets
+│   │       └── values/              # Colors, styles, strings, themes
 │   │
-│   ├── google-services.json         # Firebase config (not committed — see setup)
-│   └── build.gradle
+│   ├── google-services.json         # Firebase config (gitignored)
+│   └── build.gradle.kts
 │
-└── build.gradle
+└── build.gradle.kts
 ```
 
 ---
@@ -127,110 +112,36 @@ bloodlink-android/
 ## Getting Started
 
 ### Prerequisites
-
-- Android Studio **Hedgehog (2023.1.1)** or later
-- JDK 17
-- Android device or emulator running **API 26 (Android 8.0)** or higher
-- A Firebase project — see [Firebase Setup](#firebase-setup)
+- **Android Studio** Ladybug (2024.2+) or later
+- **JDK 17** or **JDK 21**
+- Physical Android device or Emulator running **API 26 (Android 8.0)** or higher
+- A Firebase project with Auth, Firestore, and FCM configured
 
 ### Installation
 
-```bash
-# Clone the repository
-git clone https://github.com/your-username/bloodlink.git
-cd bloodlink/bloodlink-android
-```
+1. **Clone the repository**:
+   ```bash
+   git clone https://github.com/mashudhahmed/blood-donation-mobile-app.git
+   cd blood-donation-mobile-app
+   ```
 
-1. Open the `bloodlink-android/` folder in Android Studio.
-2. Add your `google-services.json` to `app/` (see [Firebase Setup](#firebase-setup)).
-3. Set the backend base URL in `app/src/main/java/com/bloodlink/utils/Constants.kt`:
-
-```kotlin
-object Constants {
-    const val BASE_URL = "https://bloodlink-api.onrender.com/" // or http://10.0.2.2:3000/ for local
-}
-```
-
-4. Click **Run ▶** or build an APK via **Build → Build Bundle(s) / APK(s) → Build APK(s)**.
-
-### Download APK
-
-Pre-built debug APKs are available in [Releases](https://github.com/your-username/bloodlink/releases). No build step required — just install and run.
-
-> Enable **Install unknown apps** on your device if prompted.
-
----
-
-## Firebase Setup
-
-1. Go to the [Firebase Console](https://console.firebase.google.com) and create a project.
-2. Register an Android app with your package name (e.g. `com.bloodlink`).
-3. Download `google-services.json` and place it in `bloodlink-android/app/`.
-4. Enable the following Firebase services:
-   - **Authentication** → Email/Password provider
-   - **Firestore Database** → Start in test mode, then apply security rules
-   - **Cloud Messaging** → No extra config needed
-
-### Firestore Security Rules (recommended)
-
-```
-rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
-    match /users/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
-    }
-    match /requests/{requestId} {
-      allow read: if request.auth != null;
-      allow write: if request.auth != null;
-    }
-    match /notifications/{notifId} {
-      allow read, write: if request.auth != null;
-    }
-  }
-}
-```
-
----
-
-## Build Variants
-
-| Variant | BASE_URL | Logging | Description |
-|---------|----------|---------|-------------|
-| `debug` | `http://10.0.2.2:3000/` | Enabled (Timber) | Local development |
-| `release` | `https://bloodlink-api.onrender.com/` | Disabled | Production build |
-
-Build variants are configured in `app/build.gradle` under `buildTypes`.
-
----
-
-## Architecture
-
-The app follows **MVVM (Model-View-ViewModel)** with a Repository pattern:
-
-```
-UI Layer (Fragments / Activities)
-        │  observes LiveData
-        ▼
-ViewModel Layer
-        │  calls
-        ▼
-Repository Layer
-        │              │
-        ▼              ▼
-  Firebase SDK     Retrofit API
-  (Auth, Firestore, FCM)   (NestJS Backend)
-```
-
-- **UI** observes `LiveData` from ViewModels — no direct data access
-- **ViewModels** hold UI state and survive configuration changes
-- **Repositories** abstract data sources (Firebase vs REST API)
-- **FCMService** extends `FirebaseMessagingService` to handle incoming push notifications and update Firestore
+2. Open the `android-app/` folder in Android Studio.
+3. Download `google-services.json` from your Firebase Console and place it in `android-app/app/`.
+4. Check the backend endpoint in `app/src/main/java/com/project/donateblood/utils/Constants.kt`:
+   ```kotlin
+   object Constants {
+       const val BASE_URL = "http://10.0.2.2:3000/" // Android Emulator
+       // or your live backend URL
+   }
+   ```
+5. Build and install to your attached device:
+   ```bash
+   ./gradlew assembleDebug
+   ```
 
 ---
 
 ## License
 
-This project is licensed under the [MIT License](../LICENSE).
-
-Developed for educational, portfolio, and open-source learning purposes.
+This project is licensed under the [MIT License](../LICENSE).  
+Developed for educational, portfolio, and humanitarian impact purposes.

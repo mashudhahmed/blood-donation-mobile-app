@@ -1,140 +1,150 @@
-# BloodLink
+<p align="center">
+  <img src="assets/logo.png" width="128" height="128" alt="BloodLink Logo" />
+</p>
 
-![Android](https://img.shields.io/badge/Android-Kotlin-green?logo=android)
-![Backend](https://img.shields.io/badge/Backend-NestJS-red?logo=nestjs)
-![Firebase](https://img.shields.io/badge/Firebase-FCM-orange?logo=firebase)
-![Architecture](https://img.shields.io/badge/Architecture-MVVM-blue)
-![License](https://img.shields.io/badge/License-MIT-lightgrey)
-![Status](https://img.shields.io/badge/Status-Active-success)
+<h1 align="center">BloodLink</h1>
 
-> A full-stack blood donation platform connecting donors and recipients through real-time notifications and intelligent donor matching.
+<p align="center">
+  <strong>Connecting Donors · Saving Lives in Real Time</strong><br>
+  A production-ready full-stack mobile platform bridging the gap between blood donors and recipients through instant push notifications, intelligent donor matching, and real-time chat.
+</p>
 
+<p align="center">
+  <img src="https://img.shields.io/badge/Android-Kotlin-green?logo=android" alt="Android" />
+  <img src="https://img.shields.io/badge/Backend-NestJS-red?logo=nestjs" alt="Backend" />
+  <img src="https://img.shields.io/badge/Firebase-Auth%20%7C%20Firestore%20%7C%20FCM-orange?logo=firebase" alt="Firebase" />
+  <img src="https://img.shields.io/badge/Chat-Real--Time-blue?logo=webrtc" alt="Chat" />
+  <img src="https://img.shields.io/badge/UI-Material%203-maroon" alt="Material 3" />
+  <img src="https://img.shields.io/badge/License-MIT-lightgrey" alt="License" />
+  <img src="https://img.shields.io/badge/Status-Active-success" alt="Status" />
+</p>
 
+---
 
 ## Overview
 
-BloodLink bridges the gap between blood donors and recipients by enabling real-time matching and push notifications. The platform consists of:
+**BloodLink** is an end-to-end blood donation ecosystem engineered to make urgent blood requests fast, reliable, and accessible. In medical emergencies, every minute matters. BloodLink replaces manual calls and disorganized social media posts with targeted notifications to eligible donors nearby, integrated direct messaging, and verifiable donation history.
 
-- **Android Mobile Application** — Donor and recipient interface built with Kotlin and MVVM
-- **NestJS Notification Backend** — REST API for donor matching and FCM push notifications
-- **Firebase Services** — Authentication, Firestore database, and Cloud Messaging
+The platform consists of:
+- **Android Native Mobile Application** (`android-app/`): Modern Kotlin application with MVVM architecture, Material 3 theming, real-time messaging, and interactive request flows.
+- **NestJS Notification & Matching Backend** (`backend/`): Scalable TypeScript REST API managing Firebase Admin SDK operations, donor proximity matching, and high-priority FCM notifications.
+- **Firebase Cloud Infrastructure**: Firebase Authentication, Cloud Firestore real-time database, and Firebase Cloud Messaging (FCM).
 
-
+---
 
 ## System Architecture
 
 ```
-┌─────────────────────────────┐
-│     Android Application     │
-│  (Kotlin · MVVM · Retrofit) │
-└────────────┬────────────────┘
-             │ REST / HTTPS
-             ▼
-┌─────────────────────────────┐
-│     NestJS Backend API      │
-│  (TypeScript · Node.js)     │
-└────────────┬────────────────┘
-             │ Firebase Admin SDK
-             ▼
-┌─────────────────────────────┐
-│      Firebase Services      │
-│  ├── Authentication         │
-│  ├── Firestore Database     │
-│  └── Cloud Messaging (FCM)  │
-└────────────┬────────────────┘
-             │ Push Notifications
-             ▼
-┌─────────────────────────────┐
-│      Android Devices        │
-└─────────────────────────────┘
+┌────────────────────────────────────────────────────────┐
+│               Android Application                      │
+│        (Kotlin · MVVM · Coroutines · Retrofit)         │
+└───────────────┬────────────────────────┬───────────────┘
+                │                        │
+       REST API │                        │ Real-Time Sync & Auth
+                ▼                        ▼
+┌───────────────────────────────┐ ┌───────────────────────────────┐
+│      NestJS Backend API       │ │       Firebase Services       │
+│    (TypeScript · Node.js)     │ │  ├── Firebase Authentication  │
+└───────────────┬───────────────┘ │  ├── Cloud Firestore Database │
+                │                 │  └── Cloud Messaging (FCM)    │
+                │ Firebase Admin  └───────────────┬───────────────┘
+                │ SDK                             │
+                ▼                                 │ Push Notifications
+┌─────────────────────────────────────────────────┴───────────────┐
+│                    Recipient & Donor Devices                    │
+│            (Instant Alerts · WhatsApp-Style Chat)               │
+└─────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
 ## Key Features
 
-### User Management
-- Email/password registration and login via Firebase Auth
-- Email verification flow
-- Blood group registration and profile management
-- Donor availability toggle (active / inactive)
+### 🩸 Urgent Blood Requests & Matching
+- Create urgent blood requests with patient details, hospital location, units needed, and precise schedule.
+- Multi-district Bangladesh location coverage with structured drop-downs.
+- Intelligent donor matching filtered by compatible blood groups and geographical districts.
+- Full request lifecycle tracking: `open` ➔ `matched` ➔ `fulfilled`.
 
-### Blood Donation
-- Create and manage blood requests
-- Intelligent donor matching by blood group and location
-- Donation history tracking with cooldown validation
-- Request status lifecycle (open → matched → fulfilled)
+### 💬 Real-Time In-App Chat
+- Direct 1-on-1 messaging between blood requesters and potential donors.
+- **WhatsApp-style message status indicators**:
+  - Single tick: Sent
+  - Double tick: Delivered
+  - Double blue tick: Read / Seen
+- In-chat call action to instantly reach donors by phone in critical moments.
 
-### Real-Time Notifications
-- Firebase Cloud Messaging (FCM) push notifications
-- Instant alerts when a matching blood request is posted
-- Notification persistence with read/unread tracking
-- Offline notification queuing and delivery on reconnect
+### 🔔 Smart Push Notifications (FCM)
+- High-priority background alerts delivered through Firebase Cloud Messaging.
+- Target notifications dispatched exclusively to matching, eligible donors.
+- In-app notification center with read/unread persistence and deep navigation.
 
-### Support
-- In-app feedback submission
-- FAQ section
-- Privacy policy and About Us pages
+### 👤 Donor Profile & Safety Management
+- Profile management with blood group verification and contact details.
+- Availability toggle (Active Donor / Temporarily Unavailable).
+- Donation cooldown tracker (standard 56-day safety window before next donation).
+
+### 🎨 Modern 2026 Material 3 UI/UX
+- Cohesive deep-crimson design system (`#C62828`).
+- Smooth modern bottom navigation bar.
+- Card-based sectioning with clean typography, iconography, and subtle elevation.
 
 ---
 
 ## Technology Stack
 
-### Android Application
-| Library / Tool | Purpose |
-|----------------|---------|
-| Kotlin | Primary language |
-| MVVM Architecture | Separation of concerns |
-| Android Navigation Component | In-app navigation |
-| View Binding | Type-safe view access |
-| Firebase Auth | User authentication |
-| Firebase Firestore | Real-time database |
-| Firebase Cloud Messaging | Push notifications |
-| Retrofit + OkHttp | REST API client |
-| Timber | Logging |
+### Android Application (`android-app/`)
+| Component | Technology |
+|---|---|
+| Language | Kotlin (1.9+) |
+| Architecture | MVVM (Model-View-ViewModel) + Android Architecture Components |
+| UI Framework | Material Design 3, View Binding, Custom Drawables |
+| Asynchronous | Kotlin Coroutines & Flow |
+| Networking | Retrofit 2, OkHttp 3, Gson |
+| Cloud Services | Firebase Auth, Cloud Firestore, Firebase Cloud Messaging |
+| Logging | Timber |
 
-### Backend Service
-| Library / Tool | Purpose |
-|----------------|---------|
-| NestJS (TypeScript) | REST API framework |
-| Firebase Admin SDK | Server-side Firebase access |
-| Node.js | Runtime |
-
-### Cloud Infrastructure
-| Service | Role |
-|---------|------|
-| Firebase Authentication | Identity management |
-| Firestore | NoSQL real-time database |
-| Firebase Cloud Messaging | Push notification delivery |
-| Render | Backend hosting |
+### Backend Service (`backend/`)
+| Component | Technology |
+|---|---|
+| Framework | NestJS 10 (TypeScript) |
+| Runtime | Node.js 18+ / 20+ |
+| Cloud Integration | Firebase Admin SDK |
+| Deployment | Render |
+| Configuration | `@nestjs/config` with environment validation |
 
 ---
 
 ## Project Structure
 
 ```
-BloodLink/
+blood-donation-mobile-app/
 │
-├── README.md
+├── assets/                          # Official logos and project media
+│   ├── logo.png                     # BloodLink emblem with card background
+│   └── logo_transparent.png         # BloodLink transparent vector logo
 │
-├── bloodlink-android/               # Kotlin Android App
+├── android-app/                     # Native Android application
 │   ├── app/
-│   │   ├── src/main/java/
-│   │   │   ├── ui/                  # Fragments and Activities
-│   │   │   ├── viewmodels/          # MVVM ViewModels
-│   │   │   ├── repository/          # Data layer
-│   │   │   ├── model/               # Data models
-│   │   │   └── utils/               # Helpers and extensions
-│   │   └── res/                     # Layouts, drawables, strings
-│   └── google-services.json         # Firebase config (not committed)
+│   │   ├── src/main/java/           # Kotlin source code
+│   │   │   └── com/project/donateblood/
+│   │   │       ├── activities/      # App activities (MainActivity)
+│   │   │       ├── adapters/        # RecyclerView & ViewPager adapters
+│   │   │       ├── fragments/       # Feature fragments (Home, Chat, Request, etc.)
+│   │   │       ├── model/           # Data models & DTOs
+│   │   │       ├── network/         # Retrofit API interfaces & clients
+│   │   │       ├── repository/      # Firestore & API repositories
+│   │   │       └── viewmodel/       # Architecture ViewModels
+│   │   ├── src/main/res/            # Layouts, drawables, fonts, themes
+│   │   └── google-services.json     # Firebase client configuration (gitignored)
+│   └── build.gradle.kts
 │
-└── bloodlink-backend/               # NestJS Backend
+└── backend/                         # NestJS API backend
     ├── src/
-    │   ├── notifications/           # FCM notification module
-    │   ├── matching/                # Donor matching logic
-    │   ├── firebase/                # Firebase Admin SDK setup
-    │   └── main.ts                  # App entry point
-    ├── .env.example                 # Environment variable template
+    │   ├── firebase/                # Firebase Admin SDK module & provider
+    │   ├── notifications/           # Push notification controller & service
+    │   └── main.ts                  # Application bootstrap entrypoint
+    ├── .env.example                 # Environment variables template
     └── package.json
 ```
 
@@ -143,107 +153,91 @@ BloodLink/
 ## Getting Started
 
 ### Prerequisites
+- **Android Studio** Ladybug (2024.2+) or later
+- **JDK 17** or **JDK 21**
+- **Node.js** 18+ and **npm**
+- Firebase project with **Authentication**, **Cloud Firestore**, and **Cloud Messaging (FCM)** enabled
 
-- Node.js 18+
-- Android Studio Hedgehog or later
-- Firebase project with Auth, Firestore, and FCM enabled
-- A `google-services.json` from your Firebase console
+---
 
 ### Backend Setup
 
-```bash
-# Clone the repository
-git clone https://github.com/your-username/bloodlink.git
-cd bloodlink/bloodlink-backend
+1. **Clone the repository**:
+   ```bash
+   git clone https://github.com/mashudhahmed/blood-donation-mobile-app.git
+   cd blood-donation-mobile-app/backend
+   ```
 
-# Install dependencies
-npm install
+2. **Install dependencies**:
+   ```bash
+   npm install
+   ```
 
-# Copy and configure environment variables
-cp .env.example .env
-# Fill in your Firebase credentials and FCM config
+3. **Configure environment variables**:
+   ```bash
+   cp .env.example .env
+   ```
+   Add your Firebase service account details in `.env`:
+   ```env
+   FIREBASE_PROJECT_ID=your-project-id
+   FIREBASE_CLIENT_EMAIL=firebase-adminsdk@your-project.iam.gserviceaccount.com
+   FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
+   PORT=3000
+   NODE_ENV=development
+   ```
 
-# Run in development mode
-npm run start:dev
-```
-
-### Android Setup
-
-1. Open `bloodlink-android/` in Android Studio.
-2. Place your `google-services.json` inside `app/`.
-3. Update `BASE_URL` in `utils/Constants.kt` to point to your backend (local or deployed).
-4. Build and run on an emulator or physical device (API 26+).
-
-### Download APK
-
-> A pre-built debug APK will be available in [Releases](https://github.com/your-username/bloodlink/releases).
+4. **Start the backend**:
+   ```bash
+   # Development mode with hot-reload
+   npm run start:dev
+   ```
 
 ---
 
-## API Reference
+### Android Application Setup
 
-Base URL: `https://bloodlink-api.onrender.com` (or your local `http://localhost:3000`)
+1. Open Android Studio and choose **Open**, selecting the `android-app/` folder.
+2. Download your `google-services.json` from the Firebase Console and place it in `android-app/app/`.
+3. In `android-app/app/src/main/java/com/project/donateblood/utils/Constants.kt`, verify the API base URL:
+   ```kotlin
+   const val BASE_URL = "http://10.0.2.2:3000/" // Android Emulator
+   // OR your deployed backend URL: "https://bloodlink-api.onrender.com/"
+   ```
+4. Build and run on an Android device or emulator (Android 8.0+, API 26+):
+   ```bash
+   ./gradlew assembleDebug
+   ```
 
-All endpoints expect and return `application/json`. Authentication is handled via Firebase ID tokens passed in the `Authorization: Bearer <token>` header.
+---
+
+## API Endpoints
+
+Base URL: `https://your-backend.onrender.com` (or `http://localhost:3000`)
 
 | Method | Endpoint | Description |
-|--------|----------|-------------|
-| `POST` | `/notifications/send` | Send FCM push notification to matching donors |
-| `POST` | `/notifications/register` | Register or update a device FCM token |
-| `GET` | `/notifications/:userId` | Fetch notification history for a user |
-| `PATCH` | `/notifications/:id/read` | Mark a notification as read |
-| `POST` | `/matching/donors` | Find eligible donors for a blood request |
-| `GET` | `/matching/eligibility/:userId` | Check donor cooldown and eligibility status |
-
----
-
-## Environment Variables
-
-Create a `.env` file in `bloodlink-backend/` based on `.env.example`:
-
-```env
-# Firebase Admin SDK
-FIREBASE_PROJECT_ID=your-project-id
-FIREBASE_CLIENT_EMAIL=your-service-account@project.iam.gserviceaccount.com
-FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
-
-# Server
-PORT=3000
-NODE_ENV=development
-```
-
-> Never commit `.env` or `google-services.json` to version control. Both are listed in `.gitignore`.
-
----
-
-## Deployment
-
-The NestJS backend is deployed on [Render](https://render.com).
-
-To deploy your own instance:
-
-1. Push the `bloodlink-backend/` directory to a GitHub repository.
-2. Create a new **Web Service** on Render, connected to that repo.
-3. Set the build command to `npm install && npm run build` and start command to `npm run start:prod`.
-4. Add all environment variables from `.env.example` under the Render service's **Environment** tab.
+|---|---|---|
+| `POST` | `/notifications/send` | Dispatches push notifications to matching donors |
+| `POST` | `/notifications/register` | Registers or updates a device FCM token |
+| `GET` | `/notifications/:userId` | Retrieves persistent notification history |
+| `PATCH` | `/notifications/:id/read` | Marks an in-app notification as read |
+| `POST` | `/matching/donors` | Evaluates blood group and district compatibility |
+| `GET` | `/matching/eligibility/:userId` | Verifies donor cooldown status |
 
 ---
 
 ## Roadmap
 
-| Priority | Feature |
-|----------|---------|
-| 🔴 High | Hospital dashboard for institutional blood requests |
-| 🔴 High | Multi-language support (Bangla, Arabic) |
-| 🟡 Medium | Web application (React or Next.js) |
-| 🟡 Medium | Blood bank integration and inventory tracking |
-| 🟢 Planned | AI-based donor ranking and smart matching |
-| 🟢 Planned | Advanced analytics for donation trends |
+- [x] Official BloodLink visual branding & logo integration
+- [x] Redesigned Material 3 Crimson theme & bottom navigation
+- [x] Real-time 1-on-1 chat with WhatsApp-style delivery indicators
+- [x] Card-based Request Blood submission flow
+- [ ] Hospital & Blood Bank institutional verification dashboard
+- [ ] Emergency SOS one-tap broadcast widget
+- [ ] Multi-language support (Bangla & English localization)
 
 ---
 
 ## License
 
-This project is licensed under the [MIT License](LICENSE).
-
-Developed for educational, portfolio, and open-source learning purposes.
+This project is licensed under the [MIT License](LICENSE).  
+Developed for educational, open-source, and humanitarian impact purposes.

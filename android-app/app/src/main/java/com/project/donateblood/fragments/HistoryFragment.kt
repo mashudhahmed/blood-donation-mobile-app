@@ -5,17 +5,20 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
+import androidx.core.content.ContextCompat
 import androidx.core.widget.addTextChangedListener
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.firebase.Timestamp
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
 import com.project.donateblood.R
 import com.project.donateblood.adapter.HistoryAdapter
+import com.project.donateblood.databinding.BottomSheetActivityDetailsBinding
 import com.project.donateblood.databinding.FragmentHistoryBinding
 import com.project.donateblood.models.HistoryItem
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
@@ -85,7 +88,7 @@ class HistoryFragment : Fragment() {
     private fun setupRecyclerView() {
         historyAdapter = HistoryAdapter(
             onItemClick = { historyItem ->
-                showHistoryItemToast(historyItem)
+                showActivityDetailsModal(historyItem)
             },
             onViewCertificateClick = { historyItem ->
                 showDonationCertificate(historyItem)
@@ -401,20 +404,120 @@ class HistoryFragment : Fragment() {
         binding.rvHistory.visibility = View.GONE
     }
 
-    private fun showHistoryItemToast(historyItem: HistoryItem) {
+    private fun showActivityDetailsModal(historyItem: HistoryItem) {
+        if (!isAdded) return
+
+        val dialog = BottomSheetDialog(
+            requireContext(),
+            R.style.Theme_BloodLink_BottomSheetDialog
+        )
+        val sheetBinding = BottomSheetActivityDetailsBinding.inflate(layoutInflater)
+        dialog.setContentView(sheetBinding.root)
+
         val dateFormat = SimpleDateFormat("dd MMM yyyy", Locale.getDefault())
-        val message = when (historyItem.type) {
-            "requested" -> {
-                "Request: ${historyItem.patientName} at ${historyItem.hospital}\n" +
-                        "${historyItem.bloodGroup} • ${historyItem.units} units • ${historyItem.status}"
-            }
-            "donated" -> {
-                "Donation: ${historyItem.hospital}\n" +
-                        "${historyItem.bloodGroup} • ${historyItem.units} units • ${dateFormat.format(historyItem.date)}"
-            }
-            else -> "History item clicked"
+        val formattedDate = dateFormat.format(historyItem.date)
+
+        sheetBinding.ivCloseDetails.setOnClickListener { dialog.dismiss() }
+        sheetBinding.btnCloseDetails.setOnClickListener { dialog.dismiss() }
+
+        // Setup common fields
+        sheetBinding.tvModalDate.text = formattedDate
+        sheetBinding.tvModalHospital.text = historyItem.hospital
+        sheetBinding.tvModalLocation.text = historyItem.location
+        sheetBinding.tvModalBloodGroup.text = "Group: ${historyItem.bloodGroup}"
+        sheetBinding.tvModalUnits.text = "${historyItem.units} Unit${if (historyItem.units > 1) "s" else ""}"
+
+        // Status pill
+        sheetBinding.tvModalStatus.text = historyItem.status.replaceFirstChar { it.uppercase() }
+        when (historyItem.status.lowercase()) {
+            "completed" -> sheetBinding.tvModalStatus.setBackgroundResource(R.drawable.bg_status_completed)
+            "cancelled" -> sheetBinding.tvModalStatus.setBackgroundResource(R.drawable.bg_status_cancelled)
+            "processing" -> sheetBinding.tvModalStatus.setBackgroundResource(R.drawable.bg_status_processing)
+            else -> sheetBinding.tvModalStatus.setBackgroundResource(R.drawable.bg_status_pending)
         }
-        Toast.makeText(requireContext(), message, Toast.LENGTH_LONG).show()
+
+        if (historyItem.type == "requested") {
+            sheetBinding.layoutIconBadge.setBackgroundResource(R.drawable.circle_light_red)
+            sheetBinding.ivModalIcon.setImageResource(R.drawable.ic_blood_drop)
+            sheetBinding.ivModalIcon.imageTintList = ContextCompat.getColorStateList(requireContext(), R.color.primary_red)
+            sheetBinding.tvModalTitle.text = "Blood Request Details"
+            sheetBinding.tvModalSubtitle.text = "Requested on $formattedDate"
+
+            sheetBinding.tvModalPatientLabel.text = "Patient"
+            sheetBinding.tvModalPatient.text = historyItem.patientName
+            sheetBinding.rowPatient.visibility = View.VISIBLE
+
+            sheetBinding.tvModalHospitalLabel.text = "Hospital"
+
+            when (historyItem.status.lowercase()) {
+                "pending" -> {
+                    sheetBinding.ivModalNoteIcon.setImageResource(R.drawable.ic_clock)
+                    sheetBinding.ivModalNoteIcon.imageTintList = ContextCompat.getColorStateList(requireContext(), R.color.warning)
+                    sheetBinding.tvModalNote.setTextColor(ContextCompat.getColor(requireContext(), R.color.warning))
+                    sheetBinding.tvModalNote.text = "Waiting for matching donors. You will be notified when a donor responds."
+
+                    sheetBinding.btnActionDetails.visibility = View.VISIBLE
+                    sheetBinding.btnActionDetails.text = "Cancel Request"
+                    sheetBinding.btnActionDetails.backgroundTintList = ContextCompat.getColorStateList(requireContext(), R.color.primary_red)
+                    sheetBinding.btnActionDetails.setOnClickListener {
+                        dialog.dismiss()
+                        showCancelRequestConfirmation(historyItem)
+                    }
+                }
+                "completed" -> {
+                    sheetBinding.ivModalNoteIcon.setImageResource(R.drawable.ic_check_circle)
+                    sheetBinding.ivModalNoteIcon.imageTintList = ContextCompat.getColorStateList(requireContext(), R.color.success_color)
+                    sheetBinding.tvModalNote.setTextColor(ContextCompat.getColor(requireContext(), R.color.success_color))
+                    sheetBinding.tvModalNote.text = "Blood request was fulfilled successfully."
+                    sheetBinding.btnActionDetails.visibility = View.GONE
+                }
+                "cancelled" -> {
+                    sheetBinding.ivModalNoteIcon.setImageResource(R.drawable.ic_close)
+                    sheetBinding.ivModalNoteIcon.imageTintList = ContextCompat.getColorStateList(requireContext(), R.color.error_red)
+                    sheetBinding.tvModalNote.setTextColor(ContextCompat.getColor(requireContext(), R.color.error_red))
+                    sheetBinding.tvModalNote.text = "This blood request was cancelled."
+                    sheetBinding.btnActionDetails.visibility = View.GONE
+                }
+                else -> {
+                    sheetBinding.rowNote.visibility = View.GONE
+                    sheetBinding.dividerNote.visibility = View.GONE
+                    sheetBinding.btnActionDetails.visibility = View.GONE
+                }
+            }
+        } else {
+            // Donation
+            sheetBinding.layoutIconBadge.setBackgroundResource(R.drawable.bg_circle_donation)
+            sheetBinding.ivModalIcon.setImageResource(R.drawable.ic_blood_drop)
+            sheetBinding.ivModalIcon.imageTintList = ContextCompat.getColorStateList(requireContext(), R.color.white)
+            sheetBinding.tvModalTitle.text = "Blood Donation Details"
+            sheetBinding.tvModalSubtitle.text = "Donated on $formattedDate"
+
+            sheetBinding.tvModalPatientLabel.text = "Donation Type"
+            sheetBinding.tvModalPatient.text = "Whole Blood Donation"
+            sheetBinding.rowPatient.visibility = View.VISIBLE
+
+            sheetBinding.tvModalHospitalLabel.text = "Donation Center"
+
+            val impactMsg = when (historyItem.units) {
+                1 -> "🎉 You helped save up to 3 lives!"
+                2 -> "🎉 You helped save up to 6 lives!"
+                else -> "🎉 You helped save multiple lives!"
+            }
+            sheetBinding.ivModalNoteIcon.setImageResource(R.drawable.ic_check_circle)
+            sheetBinding.ivModalNoteIcon.imageTintList = ContextCompat.getColorStateList(requireContext(), R.color.success_color)
+            sheetBinding.tvModalNote.setTextColor(ContextCompat.getColor(requireContext(), R.color.success_color))
+            sheetBinding.tvModalNote.text = impactMsg
+
+            sheetBinding.btnActionDetails.visibility = View.VISIBLE
+            sheetBinding.btnActionDetails.text = "View Certificate"
+            sheetBinding.btnActionDetails.backgroundTintList = ContextCompat.getColorStateList(requireContext(), R.color.donation_green)
+            sheetBinding.btnActionDetails.setOnClickListener {
+                dialog.dismiss()
+                showDonationCertificate(historyItem)
+            }
+        }
+
+        dialog.show()
     }
 
     private fun showDonationCertificate(historyItem: HistoryItem) {

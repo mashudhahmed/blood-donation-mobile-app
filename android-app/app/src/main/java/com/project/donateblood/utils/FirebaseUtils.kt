@@ -10,7 +10,7 @@ object FirebaseUtils {
     object Collections {
         const val DONORS = "donors"
         const val USERS = "users"
-        const val REQUESTS = "blood_requests"
+        const val REQUESTS = "bloodRequests"
         const val NOTIFICATIONS = "notifications"
         const val CHATS = "chats"
         const val MESSAGES = "messages"

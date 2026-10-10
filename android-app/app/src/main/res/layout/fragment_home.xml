@@ -8,13 +8,13 @@
     android:layout_height="match_parent"
     android:fitsSystemWindows="true">
 
-    <!-- ================= MAIN CONTENT ================= -->
+    <!-- ================= MAIN CONTENT ROOT ================= -->
     <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:background="@color/cardview_light_background">
 
-        <!-- ================= CLICKABLE OVERLAY (NEW) ================= -->
+        <!-- ================= CLICKABLE OVERLAY ================= -->
         <View
             android:id="@+id/clickableOverlay"
             android:layout_width="match_parent"
@@ -24,32 +24,37 @@
             android:focusable="true"
             android:visibility="gone" />
 
-        <!-- ================= RED BACKGROUND ================= -->
+        <!-- ================= CRIMSON TOP HEADER BACKGROUND ================= -->
         <View
             android:id="@+id/dark_red_background"
             android:layout_width="match_parent"
-            android:layout_height="137dp"
+            android:layout_height="140dp"
             android:background="@color/primary_red_dark" />
 
-        <!-- ================= MAIN CONTENT ================= -->
+        <!-- ================= MAIN VERTICAL LAYOUT ================= -->
         <LinearLayout
             android:id="@+id/mainContentLayout"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:orientation="vertical">
 
-            <!-- ========== TOP BAR ========== -->
+            <!-- ========== TOP ACTION BAR ========== -->
             <RelativeLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:background="@color/primary_red_dark"
+                android:elevation="4dp"
                 android:gravity="center_vertical"
-                android:padding="16dp">
+                android:paddingHorizontal="16dp"
+                android:paddingTop="12dp"
+                android:paddingBottom="12dp">
 
                 <ImageView
                     android:id="@+id/ivMenu"
-                    android:layout_width="24dp"
-                    android:layout_height="24dp"
+                    android:layout_width="26dp"
+                    android:layout_height="26dp"
                     android:layout_alignParentStart="true"
+                    android:layout_centerVertical="true"
                     android:src="@drawable/ic_menu"
                     app:tint="@color/white"
                     tools:ignore="ContentDescription" />
@@ -59,7 +64,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_centerInParent="true"
-                    android:text="Home"
+                    android:text="BloodLink"
                     android:textColor="@color/white"
                     android:textSize="20sp"
                     android:textStyle="bold"
@@ -70,6 +75,7 @@
                     android:layout_width="32dp"
                     android:layout_height="32dp"
                     android:layout_alignParentEnd="true"
+                    android:layout_centerVertical="true"
                     android:background="?attr/selectableItemBackgroundBorderless"
                     android:padding="4dp"
                     android:src="@drawable/ic_notification"
@@ -77,246 +83,544 @@
                     tools:ignore="ContentDescription" />
             </RelativeLayout>
 
-            <!-- ========== SEARCH BAR ========== -->
-            <com.google.android.material.card.MaterialCardView
-                android:layout_width="match_parent"
-                android:layout_height="48dp"
-                android:layout_marginHorizontal="16dp"
-                android:layout_marginTop="8dp"
-                app:cardBackgroundColor="@color/white"
-                app:cardCornerRadius="24dp"
-                app:cardElevation="0dp">
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal"
-                    android:paddingHorizontal="16dp">
-
-                    <ImageView
-                        android:layout_width="20dp"
-                        android:layout_height="20dp"
-                        android:src="@drawable/ic_search"
-                        app:tint="@color/text_secondary"
-                        tools:ignore="ContentDescription" />
-
-                    <EditText
-                        android:id="@+id/etSearch"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:background="@android:color/transparent"
-                        android:hint="Search by location"
-                        android:paddingStart="8dp"
-                        android:textColor="@color/text_primary"
-                        android:textSize="14sp"
-                        tools:ignore="HardcodedText" />
-                </LinearLayout>
-            </com.google.android.material.card.MaterialCardView>
-
-            <!-- ========== SORT & FILTER ========== -->
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
-                android:background="@color/cardview_light_background"
-                android:orientation="horizontal"
-                android:paddingHorizontal="16dp"
-                android:paddingBottom="8dp">
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btnSort"
-                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-                    android:layout_width="0dp"
-                    android:layout_height="40dp"
-                    android:layout_marginEnd="8dp"
-                    android:layout_weight="1"
-                    android:text="Sort"
-                    android:textAllCaps="false"
-                    app:cornerRadius="20dp"
-                    app:icon="@drawable/ic_sort"
-                    app:iconGravity="textStart"
-                    tools:ignore="HardcodedText" />
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btnFilter"
-                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-                    android:layout_width="0dp"
-                    android:layout_height="40dp"
-                    android:layout_marginStart="8dp"
-                    android:layout_weight="1"
-                    android:text="Filter"
-                    android:textAllCaps="false"
-                    app:cornerRadius="20dp"
-                    app:icon="@drawable/ic_filter_list"
-                    app:iconGravity="textStart"
-                    tools:ignore="HardcodedText" />
-            </LinearLayout>
-
-            <!-- ========== BLOOD GROUP FILTER CHIPS (QUICK ACCESS) ========== -->
-            <HorizontalScrollView
-                android:id="@+id/hsvBloodGroups"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:scrollbars="none"
-                android:paddingHorizontal="16dp"
-                android:paddingBottom="8dp"
-                android:clipToPadding="false">
-
-                <com.google.android.material.chip.ChipGroup
-                    android:id="@+id/chipGroupBlood"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    app:singleSelection="true"
-                    app:selectionRequired="false">
-
-                    <com.google.android.material.chip.Chip
-                        android:id="@+id/chipAll"
-                        style="@style/Widget.Material3.Chip.Filter"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="All"
-                        android:checked="true" />
-
-                    <com.google.android.material.chip.Chip
-                        android:id="@+id/chipAPos"
-                        style="@style/Widget.Material3.Chip.Filter"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="A+" />
-
-                    <com.google.android.material.chip.Chip
-                        android:id="@+id/chipANeg"
-                        style="@style/Widget.Material3.Chip.Filter"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="A-" />
-
-                    <com.google.android.material.chip.Chip
-                        android:id="@+id/chipBPos"
-                        style="@style/Widget.Material3.Chip.Filter"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="B+" />
-
-                    <com.google.android.material.chip.Chip
-                        android:id="@+id/chipBNeg"
-                        style="@style/Widget.Material3.Chip.Filter"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="B-" />
-
-                    <com.google.android.material.chip.Chip
-                        android:id="@+id/chipOPos"
-                        style="@style/Widget.Material3.Chip.Filter"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="O+" />
-
-                    <com.google.android.material.chip.Chip
-                        android:id="@+id/chipONeg"
-                        style="@style/Widget.Material3.Chip.Filter"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="O-" />
-
-                    <com.google.android.material.chip.Chip
-                        android:id="@+id/chipABPos"
-                        style="@style/Widget.Material3.Chip.Filter"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="AB+" />
-
-                    <com.google.android.material.chip.Chip
-                        android:id="@+id/chipABNeg"
-                        style="@style/Widget.Material3.Chip.Filter"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="AB-" />
-
-                </com.google.android.material.chip.ChipGroup>
-            </HorizontalScrollView>
-
-            <!-- ========== DONOR LIST WITH PULL TO REFRESH ========== -->
+            <!-- ========== PULL TO REFRESH ========== -->
             <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
                 android:id="@+id/swipeRefreshLayout"
                 android:layout_width="match_parent"
-                android:layout_height="0dp"
-                android:layout_weight="1">
+                android:layout_height="match_parent">
 
-                <FrameLayout
+                <!-- ========== NESTED SCROLL VIEW FOR ENTIRE HOME FEED ========== -->
+                <androidx.core.widget.NestedScrollView
+                    android:id="@+id/nestedScrollViewHome"
                     android:layout_width="match_parent"
-                    android:layout_height="match_parent">
+                    android:layout_height="match_parent"
+                    android:fillViewport="true"
+                    android:scrollbars="none"
+                    android:focusable="true"
+                    android:focusableInTouchMode="true"
+                    android:descendantFocusability="beforeDescendants">
 
-                    <!-- Shimmer skeleton loading placeholder -->
-                    <com.facebook.shimmer.ShimmerFrameLayout
-                        android:id="@+id/shimmerLayout"
+                    <LinearLayout
                         android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:visibility="gone"
-                        app:shimmer_auto_start="false"
-                        app:shimmer_duration="1200">
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:paddingBottom="36dp">
 
+                        <!-- ================= 1. HERO USER DASHBOARD ================= -->
+                        <com.google.android.material.card.MaterialCardView
+                            android:id="@+id/cardHeroDashboard"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginHorizontal="16dp"
+                            android:layout_marginTop="4dp"
+                            app:cardCornerRadius="18dp"
+                            app:cardElevation="3dp"
+                            app:strokeWidth="1dp"
+                            app:strokeColor="#F0F0F0"
+                            app:cardBackgroundColor="@color/surface_white">
+
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:orientation="vertical"
+                                android:padding="16dp">
+
+                                <!-- Greeting & Persona Badge -->
+                                <LinearLayout
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    android:orientation="horizontal"
+                                    android:gravity="center_vertical">
+
+                                    <LinearLayout
+                                        android:layout_width="0dp"
+                                        android:layout_height="wrap_content"
+                                        android:layout_weight="1"
+                                        android:orientation="vertical">
+
+                                        <TextView
+                                            android:id="@+id/tvHeroGreetingSub"
+                                            android:layout_width="wrap_content"
+                                            android:layout_height="wrap_content"
+                                            android:text="Welcome back 👋"
+                                            android:textColor="@color/text_secondary"
+                                            android:textSize="12sp"
+                                            tools:ignore="HardcodedText" />
+
+                                        <TextView
+                                            android:id="@+id/tvHeroGreetingName"
+                                            android:layout_width="wrap_content"
+                                            android:layout_height="wrap_content"
+                                            android:layout_marginTop="2dp"
+                                            android:text="User"
+                                            android:textColor="@color/text_primary"
+                                            android:textSize="18sp"
+                                            android:textStyle="bold"
+                                            tools:ignore="HardcodedText" />
+                                    </LinearLayout>
+
+                                    <!-- Live Donor Status Badge -->
+                                    <TextView
+                                        android:id="@+id/tvHeroDonorBadge"
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:background="@drawable/bg_badge_pill"
+                                        android:text="🩸 Donor • Available"
+                                        android:textColor="@color/primary_red"
+                                        android:textSize="12sp"
+                                        android:textStyle="bold"
+                                        tools:ignore="HardcodedText" />
+                                </LinearLayout>
+
+                                <TextView
+                                    android:id="@+id/tvHeroSubtitle"
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    android:layout_marginTop="6dp"
+                                    android:text="Every donation saves up to 3 lives. What would you like to do?"
+                                    android:textColor="@color/text_secondary"
+                                    android:textSize="12sp"
+                                    tools:ignore="HardcodedText" />
+
+                                <!-- Quick Action Buttons -->
+                                <LinearLayout
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    android:layout_marginTop="14dp"
+                                    android:orientation="horizontal">
+
+                                    <com.google.android.material.button.MaterialButton
+                                        android:id="@+id/btnHeroRequestBlood"
+                                        android:layout_width="0dp"
+                                        android:layout_height="44dp"
+                                        android:layout_weight="1"
+                                        android:layout_marginEnd="6dp"
+                                        android:text="Request Blood"
+                                        android:textColor="@color/white"
+                                        android:textSize="13sp"
+                                        android:textStyle="bold"
+                                        app:cornerRadius="22dp"
+                                        app:backgroundTint="@color/primary_red"
+                                        app:icon="@drawable/ic_blood_drop"
+                                        app:iconTint="@color/white"
+                                        app:iconGravity="textStart"
+                                        android:textAllCaps="false"
+                                        tools:ignore="HardcodedText" />
+
+                                    <com.google.android.material.button.MaterialButton
+                                        android:id="@+id/btnHeroFindDonors"
+                                        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                                        android:layout_width="0dp"
+                                        android:layout_height="44dp"
+                                        android:layout_weight="1"
+                                        android:layout_marginStart="6dp"
+                                        android:text="Find Donors"
+                                        android:textColor="@color/text_primary"
+                                        android:textSize="13sp"
+                                        android:textStyle="bold"
+                                        app:cornerRadius="22dp"
+                                        app:strokeColor="#D0D0D0"
+                                        app:strokeWidth="1dp"
+                                        app:icon="@drawable/ic_search"
+                                        app:iconTint="@color/primary_red"
+                                        app:iconGravity="textStart"
+                                        android:textAllCaps="false"
+                                        tools:ignore="HardcodedText" />
+                                </LinearLayout>
+
+                            </LinearLayout>
+                        </com.google.android.material.card.MaterialCardView>
+
+                        <!-- ================= 2. URGENT BLOOD REQUESTS FEED ================= -->
+                        <LinearLayout
+                            android:id="@+id/layoutUrgentSectionHeader"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="20dp"
+                            android:layout_marginHorizontal="16dp"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="🚨 Urgent Requests"
+                                android:textColor="@color/text_primary"
+                                android:textSize="16sp"
+                                android:textStyle="bold"
+                                tools:ignore="HardcodedText" />
+
+                            <TextView
+                                android:id="@+id/tvUrgentCountBadge"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginStart="8dp"
+                                android:background="@drawable/bg_urgent_tag"
+                                android:text="Loading..."
+                                android:textColor="@color/primary_red"
+                                android:textSize="11sp"
+                                android:textStyle="bold"
+                                tools:ignore="HardcodedText" />
+
+                            <View
+                                android:layout_width="0dp"
+                                android:layout_height="1dp"
+                                android:layout_weight="1" />
+
+                            <TextView
+                                android:id="@+id/btnViewAllUrgentRequests"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:background="?attr/selectableItemBackgroundBorderless"
+                                android:padding="4dp"
+                                android:text="View All"
+                                android:textColor="@color/primary_red"
+                                android:textSize="13sp"
+                                android:textStyle="bold"
+                                tools:ignore="HardcodedText" />
+                        </LinearLayout>
+
+                        <!-- Urgent Requests Shimmer Loading -->
+                        <com.facebook.shimmer.ShimmerFrameLayout
+                            android:id="@+id/shimmerUrgent"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="8dp"
+                            android:visibility="gone"
+                            app:shimmer_auto_start="false"
+                            app:shimmer_duration="1200">
+
+                            <LinearLayout
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:orientation="horizontal"
+                                android:paddingStart="16dp"
+                                android:paddingEnd="8dp">
+
+                                <include layout="@layout/shimmer_item_urgent_request" />
+                                <include layout="@layout/shimmer_item_urgent_request" />
+                            </LinearLayout>
+                        </com.facebook.shimmer.ShimmerFrameLayout>
+
+                        <!-- Urgent Requests Horizontal List -->
+                        <androidx.recyclerview.widget.RecyclerView
+                            android:id="@+id/rvUrgentRequests"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="8dp"
+                            android:clipToPadding="false"
+                            android:orientation="horizontal"
+                            android:paddingStart="16dp"
+                            android:paddingEnd="4dp"
+                            android:focusable="false"
+                            android:focusableInTouchMode="false"
+                            android:descendantFocusability="beforeDescendants"
+                            tools:listitem="@layout/item_home_urgent_request" />
+
+                        <!-- Empty State for Urgent Requests (Hidden by default) -->
+                        <com.google.android.material.card.MaterialCardView
+                            android:id="@+id/layoutUrgentEmpty"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginHorizontal="16dp"
+                            android:layout_marginTop="8dp"
+                            android:visibility="gone"
+                            app:cardCornerRadius="14dp"
+                            app:cardElevation="0dp"
+                            app:strokeWidth="1dp"
+                            app:strokeColor="#E8E8E8"
+                            app:cardBackgroundColor="@color/surface_white">
+
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:gravity="center"
+                                android:orientation="horizontal"
+                                android:padding="16dp">
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="🎉"
+                                    android:textSize="22sp"
+                                    tools:ignore="HardcodedText" />
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:layout_marginStart="10dp"
+                                    android:text="No urgent requests nearby right now. All patients assisted!"
+                                    android:textColor="@color/text_secondary"
+                                    android:textSize="13sp"
+                                    tools:ignore="HardcodedText" />
+                            </LinearLayout>
+                        </com.google.android.material.card.MaterialCardView>
+
+                        <!-- ================= 3. AVAILABLE DONORS DIRECTORY ================= -->
+                        <LinearLayout
+                            android:id="@+id/layoutDonorsSectionHeader"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="24dp"
+                            android:layout_marginHorizontal="16dp"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="🩸 Available Donors"
+                                android:textColor="@color/text_primary"
+                                android:textSize="16sp"
+                                android:textStyle="bold"
+                                tools:ignore="HardcodedText" />
+
+                            <View
+                                android:layout_width="0dp"
+                                android:layout_height="1dp"
+                                android:layout_weight="1" />
+
+                            <TextView
+                                android:id="@+id/tvDonorsScopeSubtitle"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Verified Donors"
+                                android:textColor="@color/text_secondary"
+                                android:textSize="12sp"
+                                tools:ignore="HardcodedText" />
+                        </LinearLayout>
+
+                        <!-- Search Bar -->
+                        <com.google.android.material.card.MaterialCardView
+                            android:id="@+id/cardSearch"
+                            android:layout_width="match_parent"
+                            android:layout_height="48dp"
+                            android:layout_marginHorizontal="16dp"
+                            android:layout_marginTop="10dp"
+                            app:cardBackgroundColor="@color/white"
+                            app:cardCornerRadius="24dp"
+                            app:cardElevation="1dp"
+                            app:strokeWidth="1dp"
+                            app:strokeColor="#EDEDED">
+
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="match_parent"
+                                android:gravity="center_vertical"
+                                android:orientation="horizontal"
+                                android:paddingHorizontal="16dp">
+
+                                <ImageView
+                                    android:layout_width="20dp"
+                                    android:layout_height="20dp"
+                                    android:src="@drawable/ic_search"
+                                    app:tint="@color/text_secondary"
+                                    tools:ignore="ContentDescription" />
+
+                                <EditText
+                                    android:id="@+id/etSearch"
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    android:background="@android:color/transparent"
+                                    android:hint="Search by name, location, or district"
+                                    android:paddingStart="8dp"
+                                    android:textColor="@color/text_primary"
+                                    android:textSize="14sp"
+                                    tools:ignore="HardcodedText" />
+                            </LinearLayout>
+                        </com.google.android.material.card.MaterialCardView>
+
+                        <!-- Blood Group Filter Chips -->
+                        <HorizontalScrollView
+                            android:id="@+id/hsvBloodGroups"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="10dp"
+                            android:scrollbars="none"
+                            android:paddingHorizontal="16dp"
+                            android:clipToPadding="false">
+
+                            <com.google.android.material.chip.ChipGroup
+                                android:id="@+id/chipGroupBlood"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                app:singleSelection="true"
+                                app:selectionRequired="false">
+
+                                <com.google.android.material.chip.Chip
+                                    android:id="@+id/chipAll"
+                                    style="@style/Widget.Material3.Chip.Filter"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="All"
+                                    android:checked="true" />
+
+                                <com.google.android.material.chip.Chip
+                                    android:id="@+id/chipAPos"
+                                    style="@style/Widget.Material3.Chip.Filter"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="A+" />
+
+                                <com.google.android.material.chip.Chip
+                                    android:id="@+id/chipANeg"
+                                    style="@style/Widget.Material3.Chip.Filter"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="A-" />
+
+                                <com.google.android.material.chip.Chip
+                                    android:id="@+id/chipBPos"
+                                    style="@style/Widget.Material3.Chip.Filter"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="B+" />
+
+                                <com.google.android.material.chip.Chip
+                                    android:id="@+id/chipBNeg"
+                                    style="@style/Widget.Material3.Chip.Filter"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="B-" />
+
+                                <com.google.android.material.chip.Chip
+                                    android:id="@+id/chipOPos"
+                                    style="@style/Widget.Material3.Chip.Filter"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="O+" />
+
+                                <com.google.android.material.chip.Chip
+                                    android:id="@+id/chipONeg"
+                                    style="@style/Widget.Material3.Chip.Filter"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="O-" />
+
+                                <com.google.android.material.chip.Chip
+                                    android:id="@+id/chipABPos"
+                                    style="@style/Widget.Material3.Chip.Filter"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="AB+" />
+
+                                <com.google.android.material.chip.Chip
+                                    android:id="@+id/chipABNeg"
+                                    style="@style/Widget.Material3.Chip.Filter"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="AB-" />
+
+                            </com.google.android.material.chip.ChipGroup>
+                        </HorizontalScrollView>
+
+                        <!-- Sort & Filter Action Buttons -->
                         <LinearLayout
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:orientation="vertical"
-                            android:padding="4dp">
+                            android:layout_marginTop="4dp"
+                            android:orientation="horizontal"
+                            android:paddingHorizontal="16dp"
+                            android:paddingBottom="6dp">
 
-                            <include layout="@layout/shimmer_item_donor" />
-                            <include layout="@layout/shimmer_item_donor" />
-                            <include layout="@layout/shimmer_item_donor" />
-                            <include layout="@layout/shimmer_item_donor" />
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/btnSort"
+                                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                                android:layout_width="0dp"
+                                android:layout_height="38dp"
+                                android:layout_marginEnd="6dp"
+                                android:layout_weight="1"
+                                android:text="Sort"
+                                android:textAllCaps="false"
+                                android:textSize="12sp"
+                                app:cornerRadius="19dp"
+                                app:icon="@drawable/ic_sort"
+                                app:iconGravity="textStart"
+                                tools:ignore="HardcodedText" />
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/btnFilter"
+                                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                                android:layout_width="0dp"
+                                android:layout_height="38dp"
+                                android:layout_marginStart="6dp"
+                                android:layout_weight="1"
+                                android:text="Filter"
+                                android:textAllCaps="false"
+                                android:textSize="12sp"
+                                app:cornerRadius="19dp"
+                                app:icon="@drawable/ic_filter_list"
+                                app:iconGravity="textStart"
+                                tools:ignore="HardcodedText" />
                         </LinearLayout>
-                    </com.facebook.shimmer.ShimmerFrameLayout>
 
-                    <!-- RecyclerView for donor list -->
-                    <androidx.recyclerview.widget.RecyclerView
-                        android:id="@+id/rvDonors"
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:background="@color/cardview_light_background"
-                        android:clipToPadding="false"
-                        android:padding="8dp"
-                        tools:listitem="@layout/item_donor" />
-
-                    <!-- Empty state message - inside SwipeRefreshLayout -->
-                    <LinearLayout
-                        android:id="@+id/errorLayout"
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:gravity="center"
-                        android:orientation="vertical"
-                        android:visibility="gone"
-                        android:padding="16dp"
-                        android:background="@color/cardview_light_background">
-
-                        <TextView
-                            android:id="@+id/tvNoDonors"
+                        <!-- Shimmer skeleton loading placeholder for Donors -->
+                        <com.facebook.shimmer.ShimmerFrameLayout
+                            android:id="@+id/shimmerLayout"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:text="No donors available"
-                            android:textAlignment="center"
-                            android:textSize="16sp"
-                            android:textColor="@color/text_secondary"
-                            android:paddingTop="16dp"
-                            android:paddingBottom="16dp" />
-
-                        <com.google.android.material.button.MaterialButton
-                            android:id="@+id/btnRetry"
-                            android:layout_width="wrap_content"
-                            android:layout_height="40dp"
-                            android:layout_marginTop="16dp"
-                            android:text="Retry"
                             android:visibility="gone"
-                            app:cornerRadius="20dp"
-                            app:backgroundTint="@color/primary_red"
-                            android:textColor="@android:color/white"
-                            tools:ignore="HardcodedText" />
+                            app:shimmer_auto_start="false"
+                            app:shimmer_duration="1200">
+
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:orientation="vertical"
+                                android:padding="4dp">
+
+                                <include layout="@layout/shimmer_item_donor" />
+                                <include layout="@layout/shimmer_item_donor" />
+                                <include layout="@layout/shimmer_item_donor" />
+                            </LinearLayout>
+                        </com.facebook.shimmer.ShimmerFrameLayout>
+
+                        <!-- RecyclerView for Donors -->
+                        <androidx.recyclerview.widget.RecyclerView
+                            android:id="@+id/rvDonors"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:clipToPadding="false"
+                            android:nestedScrollingEnabled="false"
+                            android:paddingHorizontal="8dp"
+                            tools:listitem="@layout/item_donor" />
+
+                        <!-- Empty state / Error layout for Donors -->
+                        <LinearLayout
+                            android:id="@+id/errorLayout"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:gravity="center"
+                            android:orientation="vertical"
+                            android:visibility="gone"
+                            android:padding="24dp">
+
+                            <TextView
+                                android:id="@+id/tvNoDonors"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:text="No donors available"
+                                android:textAlignment="center"
+                                android:textSize="15sp"
+                                android:textColor="@color/text_secondary"
+                                android:paddingTop="12dp"
+                                android:paddingBottom="12dp" />
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/btnRetry"
+                                android:layout_width="wrap_content"
+                                android:layout_height="40dp"
+                                android:layout_marginTop="8dp"
+                                android:text="Retry"
+                                android:visibility="gone"
+                                app:cornerRadius="20dp"
+                                app:backgroundTint="@color/primary_red"
+                                android:textColor="@android:color/white"
+                                tools:ignore="HardcodedText" />
+                        </LinearLayout>
 
                     </LinearLayout>
-
-                </FrameLayout>
+                </androidx.core.widget.NestedScrollView>
 
             </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
         </LinearLayout>
@@ -331,7 +635,7 @@
 
     </FrameLayout>
 
-    <!-- ================= SIDE MENU ================= -->
+    <!-- ================= SIDE MENU (NAV DRAWER) ================= -->
     <com.google.android.material.navigation.NavigationView
         android:id="@+id/navigationView"
         android:layout_width="280dp"

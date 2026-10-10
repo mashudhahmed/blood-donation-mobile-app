@@ -22,6 +22,18 @@ class UserViewModel : ViewModel() {
     private val _userProfileImage = MutableLiveData<String?>()
     val userProfileImage: LiveData<String?> = _userProfileImage
 
+    private val _userBloodGroup = MutableLiveData<String>()
+    val userBloodGroup: LiveData<String> = _userBloodGroup
+
+    private val _userDistrict = MutableLiveData<String>()
+    val userDistrict: LiveData<String> = _userDistrict
+
+    private val _isDonor = MutableLiveData<Boolean>()
+    val isDonor: LiveData<Boolean> = _isDonor
+
+    private val _isAvailable = MutableLiveData<Boolean>()
+    val isAvailable: LiveData<Boolean> = _isAvailable
+
     private val auth = FirebaseAuth.getInstance()
     private val firestore = FirebaseFirestore.getInstance()
 
@@ -44,6 +56,10 @@ class UserViewModel : ViewModel() {
                 _userName.value = "Guest"
                 _userEmail.value = "Not logged in"
                 _userProfileImage.value = null
+                _userBloodGroup.value = ""
+                _userDistrict.value = ""
+                _isDonor.value = false
+                _isAvailable.value = false
             }
         }
     }
@@ -76,6 +92,26 @@ class UserViewModel : ViewModel() {
                         // Update profile image
                         doc.getString(FirebaseUtils.UserFields.PROFILE_IMAGE)?.let { imageUrl ->
                             _userProfileImage.value = imageUrl
+                        }
+
+                        // Update blood group
+                        doc.getString(FirebaseUtils.UserFields.BLOOD_GROUP)?.let { bg ->
+                            if (bg.isNotEmpty()) _userBloodGroup.value = bg
+                        }
+
+                        // Update district
+                        doc.getString(FirebaseUtils.UserFields.DISTRICT)?.let { dist ->
+                            if (dist.isNotEmpty()) _userDistrict.value = dist
+                        }
+
+                        // Update donor status
+                        doc.getBoolean(FirebaseUtils.UserFields.IS_DONOR)?.let { donor ->
+                            _isDonor.value = donor
+                        }
+
+                        // Update availability
+                        doc.getBoolean(FirebaseUtils.UserFields.IS_AVAILABLE)?.let { avail ->
+                            _isAvailable.value = avail
                         }
                     }
                 }

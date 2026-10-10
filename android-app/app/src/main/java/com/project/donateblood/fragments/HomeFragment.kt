@@ -27,7 +27,9 @@ import com.google.firebase.firestore.Query
 import com.project.donateblood.MainActivity
 import com.project.donateblood.R
 import com.project.donateblood.adapter.DonorAdapter
+import com.project.donateblood.adapter.HomeUrgentRequestAdapter
 import com.project.donateblood.databinding.FragmentHomeBinding
+import com.project.donateblood.models.BloodRequest
 import com.project.donateblood.models.Donor
 import com.project.donateblood.utils.FirebaseUtils
 import com.project.donateblood.utils.ProfileImageManager
@@ -41,6 +43,10 @@ class HomeFragment : Fragment() {
 
     private lateinit var donorAdapter: DonorAdapter
     private val donorList = mutableListOf<Donor>()
+
+    private lateinit var urgentRequestAdapter: HomeUrgentRequestAdapter
+    private val urgentRequestList = mutableListOf<BloodRequest>()
+    private var urgentRequestsListener: ListenerRegistration? = null
 
     private lateinit var firestore: FirebaseFirestore
     private lateinit var auth: FirebaseAuth
@@ -91,6 +97,8 @@ class HomeFragment : Fragment() {
         userViewModel = ViewModelProvider(requireActivity())[UserViewModel::class.java]
 
         setupViews()
+        setupHeroDashboard()
+        setupUrgentRequestsRecyclerView()
         setupRecyclerView()
         setupNavigationDrawer()
         setupClickListeners()
@@ -114,6 +122,7 @@ class HomeFragment : Fragment() {
 
         // Smart refresh logic
         if (shouldRefresh()) {
+            loadUrgentRequestsFromFirestore()
             loadRealDonorsFromFirestore()
         }
 
@@ -127,6 +136,7 @@ class HomeFragment : Fragment() {
 
     override fun onDestroyView() {
         donorListener?.remove()
+        urgentRequestsListener?.remove()
         stopAutoRefresh()
         handler.removeCallbacksAndMessages(null)
         _binding = null
@@ -159,17 +169,97 @@ class HomeFragment : Fragment() {
     // ---------------- UI ----------------
     @SuppressLint("SetTextI18n")
     private fun setupViews() {
-        binding.tvTitle.text = "Available Donors"
-        binding.etSearch.hint = "Search by name, blood group, or location"
+        binding.tvTitle.text = "BloodLink"
+        binding.etSearch.hint = "Search by name, location, or district"
 
         // Hide clickable overlay since feature is removed
         binding.clickableOverlay.visibility = View.GONE
 
         // Initialize empty state
         binding.errorLayout.visibility = View.GONE
+        binding.layoutUrgentEmpty.visibility = View.GONE
 
         // Setup blood group quick filter chips
         setupBloodGroupChips()
+    }
+
+    @SuppressLint("SetTextI18n")
+    private fun setupHeroDashboard() {
+        // Live update hero name
+        userViewModel.userName.observe(viewLifecycleOwner) { name ->
+            if (!name.isNullOrBlank() && name != "Guest") {
+                binding.tvHeroGreetingName.text = name
+            } else {
+                val user = auth.currentUser
+                binding.tvHeroGreetingName.text = user?.displayName ?: "Friend"
+            }
+        }
+
+        // Live update donor persona badge
+        userViewModel.userBloodGroup.observe(viewLifecycleOwner) { bg ->
+            updateHeroDonorBadge(bg, userViewModel.isAvailable.value ?: true)
+        }
+
+        userViewModel.isAvailable.observe(viewLifecycleOwner) { isAvail ->
+            updateHeroDonorBadge(userViewModel.userBloodGroup.value ?: "", isAvail)
+        }
+
+        // Hero quick action buttons
+        binding.btnHeroRequestBlood.setOnClickListener {
+            navigateToRequestBloodFragment()
+        }
+
+        binding.btnHeroFindDonors.setOnClickListener {
+            binding.nestedScrollViewHome.smoothScrollTo(0, binding.layoutDonorsSectionHeader.top)
+            binding.etSearch.requestFocus()
+        }
+
+        binding.btnViewAllUrgentRequests.setOnClickListener {
+            navigateToHistoryFragment()
+        }
+    }
+
+    @SuppressLint("SetTextI18n")
+    private fun updateHeroDonorBadge(bloodGroup: String, isAvailable: Boolean) {
+        if (!isAdded || _binding == null) return
+        if (bloodGroup.isNotBlank()) {
+            binding.tvHeroDonorBadge.text = "🩸 $bloodGroup • ${if (isAvailable) "Available" else "Unavailable"}"
+            binding.tvHeroDonorBadge.setTextColor(
+                requireContext().getColor(if (isAvailable) R.color.primary_red else R.color.text_secondary)
+            )
+        } else {
+            binding.tvHeroDonorBadge.text = "🩸 Donor Ready"
+            binding.tvHeroDonorBadge.setTextColor(requireContext().getColor(R.color.primary_red))
+        }
+    }
+
+    // ---------------- URGENT REQUESTS RECYCLER VIEW ----------------
+    private fun setupUrgentRequestsRecyclerView() {
+        urgentRequestAdapter = HomeUrgentRequestAdapter(
+            onCallClick = { request ->
+                if (request.phone.isNotEmpty()) {
+                    makePhoneCall(request.phone)
+                } else {
+                    toast("Requester phone number not available")
+                }
+            },
+            onChatClick = { request ->
+                openChatWithRequester(request)
+            },
+            onHelpClick = { request ->
+                handleHelpClick(request)
+            },
+            onItemClick = { request ->
+                showRequestDetailsDialog(request)
+            }
+        )
+
+        binding.rvUrgentRequests.layoutManager = LinearLayoutManager(
+            requireContext(),
+            LinearLayoutManager.HORIZONTAL,
+            false
+        )
+        binding.rvUrgentRequests.adapter = urgentRequestAdapter
     }
 
     private fun showLoading(show: Boolean) {
@@ -221,6 +311,7 @@ class HomeFragment : Fragment() {
 
         binding.swipeRefreshLayout.setOnRefreshListener {
             if (networkAvailable) {
+                loadUrgentRequestsFromFirestore()
                 loadRealDonorsFromFirestore()
             } else {
                 binding.swipeRefreshLayout.isRefreshing = false
@@ -280,6 +371,7 @@ class HomeFragment : Fragment() {
     // ---------------- INITIAL DATA LOAD ----------------
     private fun loadInitialData() {
         showLoading(true)
+        loadUrgentRequestsFromFirestore()
         loadRealDonorsFromFirestore()
     }
 
@@ -367,7 +459,7 @@ class HomeFragment : Fragment() {
         donorListener = firestore.collection(FirebaseUtils.Collections.DONORS)
             .whereEqualTo("isAvailable", true)
             .orderBy("name", Query.Direction.ASCENDING)
-            .limit(100)
+            .limit(15)
             .addSnapshotListener { snapshot, error ->
                 handleQueryResult(snapshot, error, "ordered")
             }
@@ -380,7 +472,7 @@ class HomeFragment : Fragment() {
 
         donorListener = firestore.collection(FirebaseUtils.Collections.DONORS)
             .whereEqualTo("isAvailable", true)
-            .limit(100)
+            .limit(15)
             .addSnapshotListener { snapshot, error ->
                 handleQueryResult(snapshot, error, "unordered")
             }
@@ -392,7 +484,7 @@ class HomeFragment : Fragment() {
         donorListener?.remove()
 
         donorListener = firestore.collection(FirebaseUtils.Collections.DONORS)
-            .limit(100)
+            .limit(15)
             .addSnapshotListener { snapshot, error ->
                 if (error != null) {
                     Timber.tag("HomeFragment").e("Manual filtering failed: ${error.message}")
@@ -567,7 +659,8 @@ class HomeFragment : Fragment() {
             refreshAttempts = 0
 
             // Update donor count in UI
-            binding.tvTitle.text = "Available Donors (${donorList.size})"
+            binding.tvTitle.text = "BloodLink"
+            binding.tvDonorsScopeSubtitle.text = "Verified Donors (${donorList.size})"
 
             // Submit filtered list to adapter
             applyFilters()
@@ -971,6 +1064,202 @@ class HomeFragment : Fragment() {
                         }
                 }
             }
+    }
+
+    // ---------------- URGENT BLOOD REQUESTS DATA LOADING ----------------
+    private fun loadUrgentRequestsFromFirestore() {
+        if (!isAdded || _binding == null) return
+
+        if (!binding.swipeRefreshLayout.isRefreshing) {
+            binding.shimmerUrgent.visibility = View.VISIBLE
+            binding.shimmerUrgent.startShimmer()
+        }
+
+        urgentRequestsListener?.remove()
+
+        urgentRequestsListener = firestore.collection(FirebaseUtils.Collections.REQUESTS)
+            .whereEqualTo("status", "pending")
+            .limit(10)
+            .addSnapshotListener { snapshot, error ->
+                if (!isAdded || _binding == null) return@addSnapshotListener
+
+                binding.shimmerUrgent.stopShimmer()
+                binding.shimmerUrgent.visibility = View.GONE
+
+                if (error != null) {
+                    Timber.tag("HomeFragment").e("Urgent requests query error: ${error.message}")
+                    binding.tvUrgentCountBadge.text = "0 Active"
+                    if (urgentRequestList.isEmpty()) {
+                        binding.layoutUrgentEmpty.visibility = View.VISIBLE
+                        binding.rvUrgentRequests.visibility = View.GONE
+                    }
+                    return@addSnapshotListener
+                }
+
+                urgentRequestList.clear()
+                snapshot?.documents?.forEach { doc ->
+                    try {
+                        val req = parseBloodRequestFromDocument(doc)
+                        if (req != null) {
+                            urgentRequestList.add(req)
+                        }
+                    } catch (e: Exception) {
+                        Timber.tag("HomeFragment").e("Error parsing blood request ${doc.id}: ${e.message}")
+                    }
+                }
+
+                // Prioritize high/urgent urgency or larger requests
+                urgentRequestList.sortByDescending {
+                    it.urgency.equals("high", ignoreCase = true) ||
+                    it.urgency.equals("urgent", ignoreCase = true) ||
+                    it.units >= 3
+                }
+
+                urgentRequestAdapter.submitList(ArrayList(urgentRequestList)) {
+                    if (isAdded && _binding != null) {
+                        binding.rvUrgentRequests.scrollToPosition(0)
+                    }
+                }
+
+                val count = urgentRequestList.size
+                binding.tvUrgentCountBadge.text = if (count > 0) "$count Active" else "0 Active"
+
+                if (urgentRequestList.isEmpty()) {
+                    binding.layoutUrgentEmpty.visibility = View.VISIBLE
+                    binding.rvUrgentRequests.visibility = View.GONE
+                } else {
+                    binding.layoutUrgentEmpty.visibility = View.GONE
+                    binding.rvUrgentRequests.visibility = View.VISIBLE
+                }
+            }
+    }
+
+    private fun parseBloodRequestFromDocument(doc: com.google.firebase.firestore.DocumentSnapshot): BloodRequest? {
+        return try {
+            val req = doc.toObject(BloodRequest::class.java)
+            if (req != null && req.hospital.isNotBlank()) {
+                req.copy(id = doc.id)
+            } else {
+                createManualBloodRequest(doc)
+            }
+        } catch (e: Exception) {
+            createManualBloodRequest(doc)
+        }
+    }
+
+    private fun createManualBloodRequest(doc: com.google.firebase.firestore.DocumentSnapshot): BloodRequest? {
+        return try {
+            val data = doc.data ?: return null
+            BloodRequest(
+                id = doc.id,
+                patientName = data["patientName"] as? String ?: "",
+                hospital = data["hospital"] as? String ?: "",
+                phone = data["phone"] as? String ?: "",
+                units = (data["units"] as? Number)?.toInt() ?: 1,
+                bloodGroup = data["bloodGroup"] as? String ?: "",
+                date = data["date"] as? String ?: "",
+                time = data["time"] as? String ?: "",
+                district = data["district"] as? String ?: "",
+                location = data["location"] as? String ?: "",
+                requesterId = data["requesterId"] as? String ?: "",
+                urgency = data["urgency"] as? String ?: "normal",
+                status = data["status"] as? String ?: "pending"
+            )
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    private fun openChatWithRequester(request: BloodRequest) {
+        val currentUser = auth.currentUser
+        if (currentUser == null) {
+            toast("Please sign in to chat")
+            findNavController().navigate(R.id.loginFragment)
+            return
+        }
+
+        if (request.requesterId == currentUser.uid) {
+            toast("This is your own blood request")
+            return
+        }
+
+        if (request.requesterId.isNotBlank()) {
+            val bundle = ConversationFragment.newBundle(
+                recipientId = request.requesterId,
+                recipientName = request.patientName.ifBlank { "Patient Request" },
+                recipientBloodGroup = request.bloodGroup,
+                recipientPhone = request.phone,
+                recipientImage = ""
+            )
+            try {
+                findNavController().navigate(R.id.action_homeFragment_to_conversationFragment, bundle)
+            } catch (e: Exception) {
+                Timber.e(e, "Failed to navigate to conversation from urgent request")
+                fallbackSmsForRequest(request)
+            }
+        } else {
+            fallbackSmsForRequest(request)
+        }
+    }
+
+    private fun fallbackSmsForRequest(request: BloodRequest) {
+        if (request.phone.isEmpty()) {
+            toast("Requester contact number not available")
+            return
+        }
+        val sanitized = request.phone.replace(" ", "")
+        val prefilledMsg = "Hello, I saw your urgent request for ${request.bloodGroup} blood at ${request.hospital} on BloodLink. I would like to help."
+        try {
+            val intent = Intent(Intent.ACTION_VIEW).apply {
+                data = "smsto:$sanitized".toUri()
+                putExtra("sms_body", prefilledMsg)
+            }
+            startActivity(intent)
+        } catch (_: Exception) {
+            toast("Unable to open messaging app")
+        }
+    }
+
+    private fun handleHelpClick(request: BloodRequest) {
+        val currentUser = auth.currentUser
+        if (currentUser != null && request.requesterId == currentUser.uid) {
+            navigateToHistoryFragment()
+            return
+        }
+
+        android.app.AlertDialog.Builder(requireContext())
+            .setTitle("🤝 Offer Blood Donation")
+            .setMessage("Would you like to contact the requester for ${request.patientName.ifBlank { "Patient" }} (${request.bloodGroup}) at ${request.hospital}?")
+            .setPositiveButton("Message on BloodLink") { _, _ ->
+                openChatWithRequester(request)
+            }
+            .setNeutralButton("Call Directly") { _, _ ->
+                makePhoneCall(request.phone)
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+
+    private fun showRequestDetailsDialog(request: BloodRequest) {
+        val detailsMsg = buildString {
+            append("🩸 Blood Group: ${request.bloodGroup}\n")
+            if (request.patientName.isNotBlank()) append("👤 Patient: ${request.patientName}\n")
+            append("🏥 Hospital: ${request.hospital}\n")
+            val loc = if (request.district.isNotBlank()) "${request.location}, ${request.district}".trim(',', ' ') else request.location
+            if (loc.isNotBlank()) append("📍 Location: $loc\n")
+            append("💉 Units Needed: ${request.units}\n")
+            if (request.date.isNotBlank()) append("📅 Date: ${request.date} ${request.time}\n")
+            if (request.phone.isNotBlank()) append("📞 Phone: ${request.phone}\n")
+        }
+
+        android.app.AlertDialog.Builder(requireContext())
+            .setTitle("Blood Request Details")
+            .setMessage(detailsMsg)
+            .setPositiveButton("I Can Help") { _, _ ->
+                handleHelpClick(request)
+            }
+            .setNegativeButton("Close", null)
+            .show()
     }
 
     private fun toast(msg: String) {

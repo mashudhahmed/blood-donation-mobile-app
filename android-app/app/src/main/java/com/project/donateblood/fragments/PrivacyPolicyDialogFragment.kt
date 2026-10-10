@@ -45,8 +45,8 @@ class PrivacyPolicyDialogFragment : DialogFragment() {
         // Set transparent background for rounded corners
         dialog?.window?.setBackgroundDrawableResource(android.R.color.transparent)
 
-        // Make dialog cancelable by clicking outside (but show warning)
-        isCancelable = false
+        // Make dialog cancelable by clicking outside or back button
+        isCancelable = true
     }
 
     @SuppressLint("SetTextI18n")
@@ -99,19 +99,29 @@ class PrivacyPolicyDialogFragment : DialogFragment() {
     }
 
     private fun setupClickListeners() {
-        // Close button
-        binding.ivClose.setOnClickListener {
-            showDeclineWarning()
-        }
+        val isAlreadyAccepted = requireActivity().getSharedPreferences("app_prefs", 0)
+            .getBoolean("privacy_policy_accepted", false)
 
-        // Accept button
-        binding.btnAccept.setOnClickListener {
-            acceptPrivacyPolicy()
-        }
+        if (isAlreadyAccepted) {
+            binding.btnAccept.text = "Close"
+            binding.btnDecline.visibility = View.GONE
+            binding.ivClose.setOnClickListener { dismiss() }
+            binding.btnAccept.setOnClickListener { dismiss() }
+        } else {
+            // Close button
+            binding.ivClose.setOnClickListener {
+                showDeclineWarning()
+            }
 
-        // Decline button
-        binding.btnDecline.setOnClickListener {
-            showDeclineWarning()
+            // Accept button
+            binding.btnAccept.setOnClickListener {
+                acceptPrivacyPolicy()
+            }
+
+            // Decline button
+            binding.btnDecline.setOnClickListener {
+                showDeclineWarning()
+            }
         }
     }
 

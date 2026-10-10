@@ -425,6 +425,7 @@ class ProfileFragment : Fragment() {
 
                 // Update button text
                 binding.btnEditDonor.text = "Register as Donor"
+                binding.btnRegisterDonor.text = "Register as Donor"
 
                 // Disable donor-only features
                 binding.switchAvailability.isChecked = false
@@ -441,6 +442,7 @@ class ProfileFragment : Fragment() {
         binding.cardDonorInfo.visibility = View.GONE
         binding.cardDonorPromotion.visibility = View.VISIBLE
         binding.btnEditDonor.text = "Register as Donor"
+        binding.btnRegisterDonor.text = "Register as Donor"
         binding.switchAvailability.isChecked = false
         binding.switchAvailability.isEnabled = false
         binding.layoutDonorStatus.visibility = View.GONE

@@ -430,7 +430,8 @@ class DonorRegistrationFragment : Fragment() {
                     FirebaseUtils.UserFields.BLOOD_GROUP to bloodGroup,
                     FirebaseUtils.UserFields.DISTRICT to district,
                     FirebaseUtils.UserFields.LOCATION to location,
-                    FirebaseUtils.UserFields.IS_AVAILABLE to true
+                    FirebaseUtils.UserFields.IS_AVAILABLE to true,
+                    FirebaseUtils.UserFields.USER_TYPE to "donor"
                 )
 
                 firestore.collection(FirebaseUtils.Collections.USERS)

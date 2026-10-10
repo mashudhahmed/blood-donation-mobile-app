@@ -143,55 +143,28 @@ class SignupBloodGroupFragment : Fragment() {
             // ✅ CRITICAL FIX
             "lastDonationDate" to 0L,
 
-            "isAvailable" to SignupData.isAvailable,
+            "userType" to "user",
+            "isAvailable" to false,
             "registrationComplete" to SignupData.registrationComplete,
             "createdAt" to System.currentTimeMillis(),
             "updatedAt" to System.currentTimeMillis()
         )
 
-        // ================= DONORS COLLECTION =================
-        val donorData = hashMapOf<String, Any>(
-            "id" to uid,
-            "name" to SignupData.name,
-            "bloodGroup" to SignupData.bloodGroup,
-            "district" to SignupData.district,
-            "phone" to SignupData.phone,
-            "isAvailable" to true,
-
-            // ✅ REQUIRED FOR NOTIFICATIONS
-            "lastDonationDate" to 0L,
-            "fcmToken" to ""
-        )
-
         firestore.collection("users").document(uid)
             .set(userData)
             .addOnSuccessListener {
+                resetUi()
+                SignupData.clear()
 
-                firestore.collection("donors").document(uid)
-                    .set(donorData)
-                    .addOnSuccessListener {
+                Toast.makeText(
+                    requireContext(),
+                    "Registration completed successfully!",
+                    Toast.LENGTH_SHORT
+                ).show()
 
-                        resetUi()
-                        SignupData.clear()
-
-                        Toast.makeText(
-                            requireContext(),
-                            "Registration completed successfully!",
-                            Toast.LENGTH_SHORT
-                        ).show()
-
-                        findNavController().navigate(
-                            R.id.action_signupBloodGroupFragment_to_homeFragment
-                        )
-                    }
-                    .addOnFailureListener { e ->
-                        resetUi()
-                        Toast.makeText(
-                            requireContext(),
-                            "Donor save failed: ${e.message}",
-                            Toast.LENGTH_LONG
-                        ).show()
-                    }
+                findNavController().navigate(
+                    R.id.action_signupBloodGroupFragment_to_homeFragment
+                )
             }
             .addOnFailureListener { e ->
                 resetUi()

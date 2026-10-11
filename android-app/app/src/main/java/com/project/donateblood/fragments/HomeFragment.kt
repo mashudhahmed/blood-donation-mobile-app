@@ -14,6 +14,10 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.LinearLayout
 import android.widget.Toast
+import android.animation.Animator
+import android.animation.AnimatorListenerAdapter
+import android.animation.ValueAnimator
+import android.view.animation.AccelerateDecelerateInterpolator
 import androidx.core.content.edit
 import androidx.core.net.toUri
 import androidx.core.view.GravityCompat
@@ -21,6 +25,9 @@ import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
+import androidx.viewpager2.widget.CompositePageTransformer
+import androidx.viewpager2.widget.MarginPageTransformer
 import androidx.viewpager2.widget.ViewPager2
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
@@ -95,14 +102,72 @@ class HomeFragment : Fragment() {
 
     private val bannerAutoSlideInterval = 4000L
     private val bannerHandler = Handler(Looper.getMainLooper())
+    private var bannerScrollAnimator: ValueAnimator? = null
+    private var lastSelectedIndicatorPosition = 0
+
     private val bannerSlideRunnable = object : Runnable {
         override fun run() {
             if (_binding != null && isAdded && homeBanners.isNotEmpty()) {
-                val currentItem = binding.vpHomeBanners.currentItem
-                val nextItem = (currentItem + 1) % homeBanners.size
-                binding.vpHomeBanners.setCurrentItem(nextItem, true)
+                smoothScrollToNextBanner()
                 bannerHandler.postDelayed(this, bannerAutoSlideInterval)
             }
+        }
+    }
+
+    private fun smoothScrollToNextBanner() {
+        val vp = _binding?.vpHomeBanners ?: return
+        if (vp.width <= 0 || !isAdded) return
+        if (vp.isFakeDragging || vp.scrollState != ViewPager2.SCROLL_STATE_IDLE) return
+
+        val density = resources.displayMetrics.density
+        val marginPx = (10 * density).toInt()
+        val dragDistance = (vp.width - vp.paddingLeft - vp.paddingRight + marginPx).toFloat()
+        var previousValue = 0f
+
+        bannerScrollAnimator?.cancel()
+        bannerScrollAnimator = ValueAnimator.ofFloat(0f, dragDistance).apply {
+            duration = 750L
+            interpolator = AccelerateDecelerateInterpolator()
+
+            addListener(object : AnimatorListenerAdapter() {
+                override fun onAnimationStart(animation: Animator) {
+                    try {
+                        vp.beginFakeDrag()
+                    } catch (_: Exception) {
+                        animation.cancel()
+                    }
+                }
+
+                override fun onAnimationEnd(animation: Animator) {
+                    try {
+                        if (vp.isFakeDragging) {
+                            vp.endFakeDrag()
+                        }
+                    } catch (_: Exception) {}
+                    bannerScrollAnimator = null
+                }
+
+                override fun onAnimationCancel(animation: Animator) {
+                    try {
+                        if (vp.isFakeDragging) {
+                            vp.endFakeDrag()
+                        }
+                    } catch (_: Exception) {}
+                    bannerScrollAnimator = null
+                }
+            })
+
+            addUpdateListener { va ->
+                if (!vp.isFakeDragging) return@addUpdateListener
+                val currentValue = va.animatedValue as Float
+                val delta = currentValue - previousValue
+                try {
+                    vp.fakeDragBy(-delta)
+                } catch (_: Exception) {}
+                previousValue = currentValue
+            }
+
+            start()
         }
     }
 
@@ -155,6 +220,13 @@ class HomeFragment : Fragment() {
     override fun onDestroyView() {
         urgentRequestsListener?.remove()
         stopBannerAutoSlide()
+        bannerScrollAnimator?.cancel()
+        bannerScrollAnimator = null
+        try {
+            if (_binding?.vpHomeBanners?.isFakeDragging == true) {
+                _binding?.vpHomeBanners?.endFakeDrag()
+            }
+        } catch (_: Exception) {}
         bannerHandler.removeCallbacksAndMessages(null)
         _binding?.vpHomeBanners?.adapter = null
         _binding = null
@@ -168,24 +240,60 @@ class HomeFragment : Fragment() {
         binding.layoutUrgentEmpty.visibility = View.GONE
     }
 
-    // ---------------- 2026 BANNER CAROUSEL ----------------
+    // ---------------- 2026 BANNER CAROUSEL (BKASH / NAGAD STYLE) ----------------
     private fun setupHomeBannerCarousel() {
         val bannerAdapter = HomeBannerAdapter(homeBanners) { banner ->
             handleBannerClick(banner)
         }
         binding.vpHomeBanners.adapter = bannerAdapter
 
+        // Start in the center of the infinite range aligned to banner index 0
+        if (homeBanners.size > 1) {
+            val startPosition = (HomeBannerAdapter.INFINITE_COUNT / 2) - ((HomeBannerAdapter.INFINITE_COUNT / 2) % homeBanners.size)
+            binding.vpHomeBanners.setCurrentItem(startPosition, false)
+        }
+
+        // Configure internal RecyclerView for zero-clipping and smooth gliding
+        val recyclerView = binding.vpHomeBanners.getChildAt(0) as? RecyclerView
+        recyclerView?.apply {
+            clipToPadding = false
+            clipChildren = false
+            overScrollMode = RecyclerView.OVER_SCROLL_NEVER
+        }
+
+        // bKash / Nagad style smooth PageTransformer: Margin + Subtle Scale + Alpha Peek
+        val density = resources.displayMetrics.density
+        val compositePageTransformer = CompositePageTransformer().apply {
+            addTransformer(MarginPageTransformer((10 * density).toInt()))
+            addTransformer { page, position ->
+                val absPos = Math.abs(position)
+                val scale = 0.93f + (1 - absPos.coerceAtMost(1f)) * 0.07f
+                page.scaleY = scale
+                page.alpha = 0.80f + (1 - absPos.coerceAtMost(1f)) * 0.20f
+            }
+        }
+        binding.vpHomeBanners.setPageTransformer(compositePageTransformer)
+        binding.vpHomeBanners.offscreenPageLimit = 3
+
         setupBannerIndicators(homeBanners.size)
 
         binding.vpHomeBanners.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
             override fun onPageSelected(position: Int) {
                 super.onPageSelected(position)
-                updateBannerIndicators(position)
+                val realPosition = if (homeBanners.isNotEmpty()) position % homeBanners.size else 0
+                updateBannerIndicators(realPosition)
             }
 
             override fun onPageScrollStateChanged(state: Int) {
                 super.onPageScrollStateChanged(state)
                 if (state == ViewPager2.SCROLL_STATE_DRAGGING) {
+                    bannerScrollAnimator?.cancel()
+                    bannerScrollAnimator = null
+                    try {
+                        if (binding.vpHomeBanners.isFakeDragging) {
+                            binding.vpHomeBanners.endFakeDrag()
+                        }
+                    } catch (_: Exception) {}
                     stopBannerAutoSlide()
                 } else if (state == ViewPager2.SCROLL_STATE_IDLE) {
                     startBannerAutoSlide()
@@ -199,6 +307,7 @@ class HomeFragment : Fragment() {
         container.removeAllViews()
         val context = requireContext()
         val density = resources.displayMetrics.density
+        lastSelectedIndicatorPosition = 0
 
         for (i in 0 until count) {
             val indicator = View(context).apply {
@@ -218,26 +327,47 @@ class HomeFragment : Fragment() {
     }
 
     private fun updateBannerIndicators(selectedPosition: Int) {
-        val container = binding.layoutBannerIndicators
+        val container = _binding?.layoutBannerIndicators ?: return
         val density = resources.displayMetrics.density
         val childCount = container.childCount
+        if (selectedPosition !in 0 until childCount) return
+        if (selectedPosition == lastSelectedIndicatorPosition && container.getChildAt(selectedPosition)?.width == (20 * density).toInt()) return
 
-        for (i in 0 until childCount) {
-            val view = container.getChildAt(i) ?: continue
-            val isSelected = (i == selectedPosition)
-            val targetWidth = if (isSelected) (20 * density).toInt() else (6 * density).toInt()
-            val targetHeight = (6 * density).toInt()
+        val prevPos = lastSelectedIndicatorPosition
+        lastSelectedIndicatorPosition = selectedPosition
 
-            val params = view.layoutParams as LinearLayout.LayoutParams
-            if (params.width != targetWidth) {
-                params.width = targetWidth
-                params.height = targetHeight
-                view.layoutParams = params
+        val activeWidth = (20 * density).toInt()
+        val inactiveWidth = (6 * density).toInt()
+
+        val prevView = container.getChildAt(prevPos)
+        val nextView = container.getChildAt(selectedPosition)
+
+        if (prevView != null && prevView != nextView) {
+            prevView.setBackgroundResource(R.drawable.bg_banner_indicator_inactive)
+            ValueAnimator.ofInt(prevView.width, inactiveWidth).apply {
+                duration = 280L
+                interpolator = AccelerateDecelerateInterpolator()
+                addUpdateListener { va ->
+                    val lp = prevView.layoutParams
+                    lp.width = va.animatedValue as Int
+                    prevView.layoutParams = lp
+                }
+                start()
             }
-            view.setBackgroundResource(
-                if (isSelected) R.drawable.bg_banner_indicator_active
-                else R.drawable.bg_banner_indicator_inactive
-            )
+        }
+
+        if (nextView != null) {
+            nextView.setBackgroundResource(R.drawable.bg_banner_indicator_active)
+            ValueAnimator.ofInt(nextView.width, activeWidth).apply {
+                duration = 280L
+                interpolator = AccelerateDecelerateInterpolator()
+                addUpdateListener { va ->
+                    val lp = nextView.layoutParams
+                    lp.width = va.animatedValue as Int
+                    nextView.layoutParams = lp
+                }
+                start()
+            }
         }
     }
 

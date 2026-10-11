@@ -11,6 +11,10 @@ class HomeBannerAdapter(
     private val onBannerClick: (HomeBanner) -> Unit
 ) : RecyclerView.Adapter<HomeBannerAdapter.BannerViewHolder>() {
 
+    companion object {
+        const val INFINITE_COUNT = 10000
+    }
+
     inner class BannerViewHolder(
         private val binding: ItemHomeBannerBinding
     ) : RecyclerView.ViewHolder(binding.root) {
@@ -36,8 +40,12 @@ class HomeBannerAdapter(
     }
 
     override fun onBindViewHolder(holder: BannerViewHolder, position: Int) {
-        holder.bind(banners[position])
+        if (banners.isEmpty()) return
+        val realPosition = position % banners.size
+        holder.bind(banners[realPosition])
     }
 
-    override fun getItemCount(): Int = banners.size
+    override fun getItemCount(): Int {
+        return if (banners.size > 1) INFINITE_COUNT else banners.size
+    }
 }

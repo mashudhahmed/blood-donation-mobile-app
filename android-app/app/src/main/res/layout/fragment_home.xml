@@ -123,7 +123,7 @@
                                     android:layout_height="140dp"
                                     android:clipChildren="false"
                                     android:clipToPadding="false"
-                                    android:paddingHorizontal="16dp" />
+                                    android:paddingHorizontal="22dp" />
 
                                 <!-- Smooth Dot Indicators -->
                                 <LinearLayout

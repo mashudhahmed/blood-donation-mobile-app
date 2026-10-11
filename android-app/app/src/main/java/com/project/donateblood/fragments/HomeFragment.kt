@@ -102,72 +102,15 @@ class HomeFragment : Fragment() {
 
     private val bannerAutoSlideInterval = 4000L
     private val bannerHandler = Handler(Looper.getMainLooper())
-    private var bannerScrollAnimator: ValueAnimator? = null
     private var lastSelectedIndicatorPosition = 0
 
     private val bannerSlideRunnable = object : Runnable {
         override fun run() {
             if (_binding != null && isAdded && homeBanners.isNotEmpty()) {
-                smoothScrollToNextBanner()
+                val currentItem = binding.vpHomeBanners.currentItem
+                binding.vpHomeBanners.setCurrentItem(currentItem + 1, true)
                 bannerHandler.postDelayed(this, bannerAutoSlideInterval)
             }
-        }
-    }
-
-    private fun smoothScrollToNextBanner() {
-        val vp = _binding?.vpHomeBanners ?: return
-        if (vp.width <= 0 || !isAdded) return
-        if (vp.isFakeDragging || vp.scrollState != ViewPager2.SCROLL_STATE_IDLE) return
-
-        val density = resources.displayMetrics.density
-        val marginPx = (10 * density).toInt()
-        val dragDistance = (vp.width - vp.paddingLeft - vp.paddingRight + marginPx).toFloat()
-        var previousValue = 0f
-
-        bannerScrollAnimator?.cancel()
-        bannerScrollAnimator = ValueAnimator.ofFloat(0f, dragDistance).apply {
-            duration = 750L
-            interpolator = AccelerateDecelerateInterpolator()
-
-            addListener(object : AnimatorListenerAdapter() {
-                override fun onAnimationStart(animation: Animator) {
-                    try {
-                        vp.beginFakeDrag()
-                    } catch (_: Exception) {
-                        animation.cancel()
-                    }
-                }
-
-                override fun onAnimationEnd(animation: Animator) {
-                    try {
-                        if (vp.isFakeDragging) {
-                            vp.endFakeDrag()
-                        }
-                    } catch (_: Exception) {}
-                    bannerScrollAnimator = null
-                }
-
-                override fun onAnimationCancel(animation: Animator) {
-                    try {
-                        if (vp.isFakeDragging) {
-                            vp.endFakeDrag()
-                        }
-                    } catch (_: Exception) {}
-                    bannerScrollAnimator = null
-                }
-            })
-
-            addUpdateListener { va ->
-                if (!vp.isFakeDragging) return@addUpdateListener
-                val currentValue = va.animatedValue as Float
-                val delta = currentValue - previousValue
-                try {
-                    vp.fakeDragBy(-delta)
-                } catch (_: Exception) {}
-                previousValue = currentValue
-            }
-
-            start()
         }
     }
 
@@ -220,13 +163,6 @@ class HomeFragment : Fragment() {
     override fun onDestroyView() {
         urgentRequestsListener?.remove()
         stopBannerAutoSlide()
-        bannerScrollAnimator?.cancel()
-        bannerScrollAnimator = null
-        try {
-            if (_binding?.vpHomeBanners?.isFakeDragging == true) {
-                _binding?.vpHomeBanners?.endFakeDrag()
-            }
-        } catch (_: Exception) {}
         bannerHandler.removeCallbacksAndMessages(null)
         _binding?.vpHomeBanners?.adapter = null
         _binding = null
@@ -286,20 +222,18 @@ class HomeFragment : Fragment() {
 
             override fun onPageScrollStateChanged(state: Int) {
                 super.onPageScrollStateChanged(state)
-                if (state == ViewPager2.SCROLL_STATE_DRAGGING) {
-                    bannerScrollAnimator?.cancel()
-                    bannerScrollAnimator = null
-                    try {
-                        if (binding.vpHomeBanners.isFakeDragging) {
-                            binding.vpHomeBanners.endFakeDrag()
-                        }
-                    } catch (_: Exception) {}
-                    stopBannerAutoSlide()
-                } else if (state == ViewPager2.SCROLL_STATE_IDLE) {
-                    startBannerAutoSlide()
+                when (state) {
+                    ViewPager2.SCROLL_STATE_DRAGGING -> {
+                        stopBannerAutoSlide()
+                    }
+                    ViewPager2.SCROLL_STATE_IDLE -> {
+                        startBannerAutoSlide()
+                    }
                 }
             }
         })
+
+        startBannerAutoSlide()
     }
 
     private fun setupBannerIndicators(count: Int) {

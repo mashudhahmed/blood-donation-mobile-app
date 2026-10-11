@@ -288,6 +288,7 @@
     <color name="selection_overlay">#1AE53935</color>
     <color name="clickable_overlay_tint">#33000000</color>
     <color name="ripple_color">#1F000000</color>
+    <color name="bottom_nav_ripple">#14E53935</color>
     <color name="focus_outline">#2196F3</color>
     <color name="notification_batch_selected">#FFEBEE</color>
 

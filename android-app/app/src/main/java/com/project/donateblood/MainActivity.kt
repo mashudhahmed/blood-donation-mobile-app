@@ -20,6 +20,7 @@ import com.project.donateblood.databinding.ActivityMainBinding
 import com.project.donateblood.network.FcmTokenSyncManager
 import timber.log.Timber
 import androidx.core.content.edit
+import androidx.core.view.WindowCompat
 
 @Suppress("DEPRECATION")
 class MainActivity : BaseActivity() {
@@ -44,6 +45,12 @@ class MainActivity : BaseActivity() {
 
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
+
+        // Ensure bottom navigation bar seamlessly covers the full screen (no black system bar)
+        window.navigationBarColor = ContextCompat.getColor(this, R.color.surface_white)
+        WindowCompat.getInsetsController(window, window.decorView).apply {
+            isAppearanceLightNavigationBars = true
+        }
 
         setupBottomNavigation()
         requestNotificationPermission()
@@ -80,6 +87,8 @@ class MainActivity : BaseActivity() {
     }
 
     private fun setupBottomNavigation() {
+        binding.bottomNavigationView.isItemActiveIndicatorEnabled = false
+
         val navHostFragment = supportFragmentManager
             .findFragmentById(R.id.nav_host_fragment) as? NavHostFragment ?: return
         val navController = navHostFragment.navController

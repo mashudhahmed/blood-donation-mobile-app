@@ -14,6 +14,11 @@
         <!-- Status bar -->
         <item name="android:statusBarColor">@color/primary_red_dark</item>
 
+        <!-- Navigation bar (Edge-to-edge LinkedIn bottom) -->
+        <item name="android:navigationBarColor">@color/surface_white</item>
+        <item name="android:windowLightNavigationBar">true</item>
+        <item name="android:enforceNavigationBarContrast" tools:targetApi="q">false</item>
+
         <!-- Background -->
         <item name="android:colorBackground">@color/background_light</item>
 
@@ -82,5 +87,43 @@
         <item name="android:textSize">11.5sp</item>
         <item name="android:textStyle">bold</item>
         <item name="android:textAllCaps">false</item>
+    </style>
+
+    <!-- LinkedIn-Style Bottom Navigation Text Appearances -->
+    <style name="TextAppearance.BloodLink.BottomNav.Active" parent="TextAppearance.Material3.LabelSmall">
+        <item name="android:textSize">11sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:textColor">@color/primary_red</item>
+    </style>
+
+    <style name="TextAppearance.BloodLink.BottomNav.Inactive" parent="TextAppearance.Material3.LabelSmall">
+        <item name="android:textSize">11sp</item>
+        <item name="android:textStyle">normal</item>
+        <item name="android:textColor">@color/gray_600</item>
+    </style>
+
+    <!-- LinkedIn-Style Bottom Navigation Active Indicator Style (Transparent & 0dp) -->
+    <style name="Widget.BloodLink.BottomNav.ActiveIndicator" parent="Widget.Material3.BottomNavigationView.ActiveIndicator">
+        <item name="android:color">@android:color/transparent</item>
+        <item name="android:width">0dp</item>
+        <item name="android:height">0dp</item>
+        <item name="marginHorizontal">0dp</item>
+    </style>
+
+    <!-- LinkedIn-Style Production Grade Bottom Navigation -->
+    <style name="Widget.BloodLink.BottomNavigationView" parent="Widget.Material3.BottomNavigationView">
+        <item name="android:background">@drawable/bg_bottom_nav_linkedin</item>
+        <item name="android:minHeight">56dp</item>
+        <item name="elevation">0dp</item>
+        <item name="itemIconSize">22dp</item>
+        <item name="itemIconTint">@drawable/bottom_nav_icon_color_selector</item>
+        <item name="itemTextColor">@drawable/bottom_nav_text_color_selector</item>
+        <item name="itemTextAppearanceActive">@style/TextAppearance.BloodLink.BottomNav.Active</item>
+        <item name="itemTextAppearanceInactive">@style/TextAppearance.BloodLink.BottomNav.Inactive</item>
+        <item name="itemRippleColor">@color/bottom_nav_ripple</item>
+        <item name="itemActiveIndicatorStyle">@style/Widget.BloodLink.BottomNav.ActiveIndicator</item>
+        <item name="itemPaddingTop">11dp</item>
+        <item name="itemPaddingBottom">7dp</item>
+        <item name="activeIndicatorLabelPadding">0dp</item>
     </style>
 </resources>

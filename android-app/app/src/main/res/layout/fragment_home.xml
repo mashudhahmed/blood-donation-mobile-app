@@ -456,6 +456,7 @@
                                                 android:textColor="@color/text_primary"
                                                 android:textSize="16sp"
                                                 android:textStyle="bold"
+                                                android:singleLine="true"
                                                 tools:ignore="HardcodedText" />
 
                                             <TextView
@@ -465,10 +466,11 @@
                                                 android:background="@drawable/bg_badge_blue_tint"
                                                 android:paddingHorizontal="7dp"
                                                 android:paddingVertical="2dp"
-                                                android:text="24/7 Helplines"
+                                                android:text="24/7"
                                                 android:textColor="#0284C7"
                                                 android:textSize="10.5sp"
                                                 android:textStyle="bold"
+                                                android:singleLine="true"
                                                 tools:ignore="HardcodedText" />
                                         </LinearLayout>
 

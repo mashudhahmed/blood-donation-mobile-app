@@ -410,16 +410,6 @@ class HomeFragment : Fragment() {
             navigateToNotificationFragment()
         }
 
-        // Hero Quick Action 1: Request Blood
-        binding.btnHeroRequestBlood.setOnClickListener {
-            navigateToRequestBloodFragment()
-        }
-
-        // Hero Quick Action 2: Find Donors
-        binding.btnHeroFindDonors.setOnClickListener {
-            navigateToDonorsFragment()
-        }
-
         // Urgent requests header "View All"
         binding.btnViewAllUrgentRequests.setOnClickListener {
             navigateToUrgentRequestsFragment()

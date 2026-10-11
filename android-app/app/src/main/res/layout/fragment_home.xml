@@ -125,53 +125,6 @@
                                 android:orientation="horizontal"
                                 android:layout_marginTop="10dp" />
 
-                            <!-- Quick Action Buttons: Request Blood & Find Donors -->
-                            <LinearLayout
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:layout_marginTop="14dp"
-                                android:layout_marginHorizontal="16dp"
-                                android:orientation="horizontal">
-
-                                <com.google.android.material.button.MaterialButton
-                                    android:id="@+id/btnHeroRequestBlood"
-                                    android:layout_width="0dp"
-                                    android:layout_height="44dp"
-                                    android:layout_weight="1"
-                                    android:layout_marginEnd="6dp"
-                                    android:text="Request Blood"
-                                    android:textColor="@color/white"
-                                    android:textSize="13sp"
-                                    android:textStyle="bold"
-                                    app:cornerRadius="22dp"
-                                    app:backgroundTint="@color/primary_red"
-                                    app:icon="@drawable/ic_blood_drop"
-                                    app:iconTint="@color/white"
-                                    app:iconGravity="textStart"
-                                    android:textAllCaps="false"
-                                    tools:ignore="HardcodedText" />
-
-                                <com.google.android.material.button.MaterialButton
-                                    android:id="@+id/btnHeroFindDonors"
-                                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-                                    android:layout_width="0dp"
-                                    android:layout_height="44dp"
-                                    android:layout_weight="1"
-                                    android:layout_marginStart="6dp"
-                                    android:text="Find Donors"
-                                    android:textColor="@color/text_primary"
-                                    android:textSize="13sp"
-                                    android:textStyle="bold"
-                                    app:cornerRadius="22dp"
-                                    app:strokeColor="#D0D0D0"
-                                    app:strokeWidth="1dp"
-                                    app:icon="@drawable/ic_search"
-                                    app:iconTint="@color/primary_red"
-                                    app:iconGravity="textStart"
-                                    android:textAllCaps="false"
-                                    tools:ignore="HardcodedText" />
-                            </LinearLayout>
-
                         </LinearLayout>
 
                         <!-- ================= 2. URGENT BLOOD REQUESTS FEED ================= -->

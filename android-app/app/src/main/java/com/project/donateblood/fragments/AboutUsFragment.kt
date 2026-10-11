@@ -41,23 +41,6 @@ class AboutUsFragment : Fragment() {
     }
 
     private fun setupClickListeners() {
-        // Social media click listeners
-        binding.ivFacebook.setOnClickListener {
-            openUrl("https://facebook.com/donateblood")
-        }
-
-        binding.ivTwitter.setOnClickListener {
-            openUrl("https://twitter.com/donateblood")
-        }
-
-        binding.ivInstagram.setOnClickListener {
-            openUrl("https://instagram.com/donateblood")
-        }
-
-        binding.ivLinkedin.setOnClickListener {
-            openUrl("https://linkedin.com/company/donateblood")
-        }
-
         // Email click
         binding.tvEmail.setOnClickListener {
             sendEmail()
@@ -65,7 +48,7 @@ class AboutUsFragment : Fragment() {
 
         // Website click
         binding.tvWebsite.setOnClickListener {
-            openUrl("https://bloodlink.com")
+            openUrl("https://bloodlink.org")
         }
 
         // Phone click
@@ -110,7 +93,7 @@ class AboutUsFragment : Fragment() {
 
     private fun sendEmail() {
         try {
-            val email = "support@bloodlink.com"
+            val email = "support@bloodlink.org"
             val intent = android.content.Intent(android.content.Intent.ACTION_SENDTO).apply {
                 data = "mailto:$email".toUri()
                 putExtra(android.content.Intent.EXTRA_SUBJECT, "BloodLink App Inquiry")
@@ -127,7 +110,7 @@ class AboutUsFragment : Fragment() {
 
     private fun makePhoneCall() {
         try {
-            val phone = "+12345678900"
+            val phone = "+880180000000"
             val intent = android.content.Intent(android.content.Intent.ACTION_DIAL)
             intent.data = "tel:$phone".toUri()
             startActivity(intent)

@@ -2,37 +2,116 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
-    android:layout_height="200dp"
+    android:layout_height="wrap_content"
     android:orientation="vertical"
-    android:padding="20dp"
-    android:background="@color/primary_red_dark"
-    android:gravity="bottom">
+    android:background="@drawable/bg_drawer_header_gradient"
+    android:paddingStart="20dp"
+    android:paddingEnd="20dp"
+    android:paddingTop="52dp"
+    android:paddingBottom="24dp">
 
-    <de.hdodenhof.circleimageview.CircleImageView
-        android:id="@+id/ivNavUserAvatar"
-        android:layout_width="72dp"
-        android:layout_height="72dp"
-        android:src="@drawable/ic_user_placeholder"
-        app:civ_border_color="@color/white"
-        app:civ_border_width="2dp"
-        android:layout_marginBottom="12dp" />
+    <!-- Top Row: Avatar + Blood Group Badge -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:layout_marginBottom="16dp">
 
+        <de.hdodenhof.circleimageview.CircleImageView
+            android:id="@+id/ivNavUserAvatar"
+            android:layout_width="66dp"
+            android:layout_height="66dp"
+            android:src="@drawable/ic_user_placeholder"
+            app:civ_border_color="@color/white"
+            app:civ_border_width="2.5dp" />
+
+        <View
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:layout_weight="1" />
+
+        <!-- Blood Group Badge Pill -->
+        <LinearLayout
+            android:id="@+id/layoutBloodBadge"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:background="@drawable/bg_blood_group_pill_drawer"
+            android:paddingStart="12dp"
+            android:paddingEnd="12dp"
+            android:paddingTop="6dp"
+            android:paddingBottom="6dp">
+
+            <ImageView
+                android:layout_width="14dp"
+                android:layout_height="14dp"
+                android:src="@drawable/ic_blood_drop"
+                app:tint="@color/primary_red"
+                android:layout_marginEnd="5dp" />
+
+            <TextView
+                android:id="@+id/tvNavBloodGroup"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="O+"
+                android:textStyle="bold"
+                android:textSize="14sp"
+                android:textColor="@color/primary_red" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- User Name -->
     <TextView
         android:id="@+id/tvUserName"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="John Doe"
+        android:text="User Name"
         android:textSize="18sp"
         android:textStyle="bold"
-        android:textColor="@color/white" />
+        android:textColor="@color/white"
+        android:letterSpacing="-0.01" />
 
+    <!-- User Email -->
     <TextView
         android:id="@+id/tvUserEmail"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:alpha="0.8"
-        android:text="john.doe@example.com"
-        android:textColor="@color/white"
-        android:textSize="14sp" />
+        android:layout_marginTop="2dp"
+        android:text="user@example.com"
+        android:textColor="#FFE4E6"
+        android:textSize="13sp" />
+
+    <!-- Donor Status Indicator Badge -->
+    <LinearLayout
+        android:id="@+id/layoutDonorStatus"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:background="@drawable/bg_donor_status_pill"
+        android:paddingStart="10dp"
+        android:paddingEnd="12dp"
+        android:paddingTop="4dp"
+        android:paddingBottom="4dp">
+
+        <View
+            android:id="@+id/viewStatusDot"
+            android:layout_width="8dp"
+            android:layout_height="8dp"
+            android:background="@drawable/bg_status_dot_green"
+            android:layout_marginEnd="6dp" />
+
+        <TextView
+            android:id="@+id/tvDonorStatus"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Available to Donate"
+            android:textColor="@color/white"
+            android:textSize="11.5sp"
+            android:textStyle="bold" />
+    </LinearLayout>
 
 </LinearLayout>

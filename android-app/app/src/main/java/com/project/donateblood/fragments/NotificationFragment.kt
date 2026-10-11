@@ -53,6 +53,7 @@ class NotificationFragment : Fragment() {
         Timber.d("onViewCreated")
 
         setupToolbar()
+        setupFilterChips()
         setupRecyclerView()
         setupSwipeRefresh()
         setupEmptyState()
@@ -99,6 +100,34 @@ class NotificationFragment : Fragment() {
             } catch (e: Exception) {
                 Timber.e("Navigate up error: ${e.message}")
             }
+        }
+        binding.btnMarkAllAsRead.setOnClickListener {
+            markAllAsRead()
+        }
+    }
+
+    private fun setupFilterChips() {
+        binding.chipGroupFilter.setOnCheckedStateChangeListener { _, checkedIds ->
+            applyFilter(checkedIds.firstOrNull())
+        }
+    }
+
+    private fun applyFilter(checkedId: Int?) {
+        val filtered = when (checkedId) {
+            R.id.chipFilterUrgent -> notificationsList.filter { it.urgency == "high" }
+            R.id.chipFilterRequests -> notificationsList.filter { it.isBloodRequest || it.type.contains("request", ignoreCase = true) }
+            R.id.chipFilterSystem -> notificationsList.filter { it.type.contains("system", ignoreCase = true) || (!it.isBloodRequest && it.urgency != "high") }
+            else -> notificationsList
+        }
+        notificationAdapter.updateNotifications(filtered)
+        if (filtered.isEmpty() && notificationsList.isNotEmpty()) {
+            binding.emptyStateLayout.isVisible = true
+            binding.rvNotifications.isVisible = false
+            binding.tvEmptyState.text = "No matching notifications"
+            binding.tvEmptySubtitle.text = "No notifications match the selected category filter."
+        } else if (notificationsList.isNotEmpty()) {
+            binding.emptyStateLayout.isVisible = false
+            binding.rvNotifications.isVisible = true
         }
     }
 
@@ -415,7 +444,8 @@ class NotificationFragment : Fragment() {
         binding.rvNotifications.isVisible = false
         binding.emptyStateLayout.isVisible = true
         binding.btnRetry.isVisible = false
-        binding.tvEmptyState.text = "No notifications yet"
+        binding.tvEmptyState.text = "All Caught Up!"
+        binding.tvEmptySubtitle.text = "You don't have any new alerts right now.\nWhen blood is requested nearby, you'll be notified here."
     }
 
     private fun showErrorState(errorMessage: String) {
@@ -423,6 +453,7 @@ class NotificationFragment : Fragment() {
         binding.rvNotifications.isVisible = false
         binding.emptyStateLayout.isVisible = true
         binding.btnRetry.isVisible = true
-        binding.tvEmptyState.text = errorMessage
+        binding.tvEmptyState.text = "Unable to load"
+        binding.tvEmptySubtitle.text = errorMessage
     }
 }

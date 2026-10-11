@@ -126,4 +126,21 @@
         <item name="itemPaddingBottom">7dp</item>
         <item name="activeIndicatorLabelPadding">0dp</item>
     </style>
+
+    <!-- Drawer Item Pill Shape & Typography -->
+    <style name="ShapeAppearance.BloodLink.DrawerItem" parent="ShapeAppearance.Material3.Corner.Full">
+        <item name="cornerSize">20dp</item>
+    </style>
+
+    <style name="TextAppearance.BloodLink.DrawerItem" parent="TextAppearance.Material3.BodyMedium">
+        <item name="android:textSize">14sp</item>
+        <item name="android:fontFamily">sans-serif-medium</item>
+    </style>
+
+    <style name="TextAppearance.BloodLink.DrawerSubheader" parent="TextAppearance.Material3.TitleSmall">
+        <item name="android:textSize">11sp</item>
+        <item name="android:fontFamily">sans-serif-medium</item>
+        <item name="android:textColor">#9CA3AF</item>
+        <item name="android:letterSpacing">0.08</item>
+    </style>
 </resources>

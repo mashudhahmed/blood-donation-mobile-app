@@ -1,20 +1,132 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:background="@color/surface">
+    android:background="#F8FAFC">
 
-    <!-- Toolbar -->
-    <androidx.appcompat.widget.Toolbar
-        android:id="@+id/toolbar"
+    <!-- Top Crimson Header -->
+    <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="?attr/actionBarSize"
-        android:background="@color/primary_red_dark"
-        android:elevation="4dp"
-        app:navigationIcon="@drawable/ic_arrow_back_white"
-        app:titleTextColor="@android:color/white" />
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:background="@drawable/bg_header_gradient"
+        android:paddingTop="48dp"
+        android:paddingBottom="16dp"
+        android:paddingHorizontal="16dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+            <androidx.appcompat.widget.Toolbar
+                android:id="@+id/toolbar"
+                android:layout_width="0dp"
+                android:layout_height="?attr/actionBarSize"
+                android:layout_weight="1"
+                android:background="@android:color/transparent"
+                app:navigationIcon="@drawable/ic_arrow_back_white"
+                app:title="Notifications"
+                app:titleTextColor="@android:color/white"
+                app:titleTextAppearance="@style/TextAppearance.Material3.TitleMedium" />
+
+            <!-- Mark All As Read Button -->
+            <LinearLayout
+                android:id="@+id/btnMarkAllAsRead"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:paddingHorizontal="10dp"
+                android:paddingVertical="6dp"
+                android:background="@drawable/bg_donor_status_pill"
+                android:backgroundTint="#33FFFFFF"
+                android:clickable="true"
+                android:focusable="true">
+
+                <ImageView
+                    android:layout_width="16dp"
+                    android:layout_height="16dp"
+                    android:src="@drawable/ic_check_circle"
+                    app:tint="@color/white"
+                    android:layout_marginEnd="4dp"
+                    tools:ignore="ContentDescription" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Mark Read"
+                    android:textSize="12sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/white" />
+            </LinearLayout>
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- Filter Chips Row (Below Header on surface) -->
+    <HorizontalScrollView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:scrollbars="none"
+        android:overScrollMode="never"
+        android:paddingHorizontal="16dp"
+        android:paddingTop="12dp"
+        android:paddingBottom="4dp">
+
+        <com.google.android.material.chip.ChipGroup
+            android:id="@+id/chipGroupFilter"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            app:singleSelection="true"
+            app:selectionRequired="true">
+
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chipFilterAll"
+                style="@style/Widget.Material3.Chip.Filter"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:checked="true"
+                android:text="All"
+                android:textSize="12.5sp" />
+
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chipFilterUrgent"
+                style="@style/Widget.Material3.Chip.Filter"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Urgent"
+                app:chipIcon="@drawable/ic_urgent"
+                app:chipIconVisible="true"
+                app:chipIconTint="@color/primary_red"
+                android:textSize="12.5sp" />
+
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chipFilterRequests"
+                style="@style/Widget.Material3.Chip.Filter"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Blood Requests"
+                app:chipIcon="@drawable/ic_blood_drop"
+                app:chipIconVisible="true"
+                app:chipIconTint="@color/primary_red"
+                android:textSize="12.5sp" />
+
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chipFilterSystem"
+                style="@style/Widget.Material3.Chip.Filter"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="System"
+                app:chipIcon="@drawable/ic_info"
+                app:chipIconVisible="true"
+                app:chipIconTint="@color/primary_red"
+                android:textSize="12.5sp" />
+        </com.google.android.material.chip.ChipGroup>
+    </HorizontalScrollView>
 
     <!-- Swipe Refresh Layout -->
     <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
@@ -33,6 +145,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_centerInParent="true"
+                android:indeterminateTint="@color/primary_red"
                 android:visibility="gone" />
 
             <!-- Notifications List -->
@@ -41,8 +154,8 @@
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:clipToPadding="false"
-                android:paddingTop="8dp"
-                android:paddingBottom="16dp"
+                android:paddingTop="12dp"
+                android:paddingBottom="24dp"
                 android:visibility="gone" />
 
             <!-- Empty State -->
@@ -55,30 +168,40 @@
                 android:visibility="gone"
                 android:padding="32dp">
 
-                <ImageView
-                    android:id="@+id/ivEmptyState"
-                    android:layout_width="120dp"
-                    android:layout_height="120dp"
-                    android:src="@drawable/ic_user"
-                    android:layout_marginBottom="24dp"
-                    app:tint="@color/text_secondary" />
+                <FrameLayout
+                    android:layout_width="100dp"
+                    android:layout_height="100dp"
+                    android:background="@drawable/bg_icon_circle_light"
+                    android:layout_marginBottom="20dp">
+
+                    <ImageView
+                        android:id="@+id/ivEmptyState"
+                        android:layout_width="48dp"
+                        android:layout_height="48dp"
+                        android:layout_gravity="center"
+                        android:src="@drawable/ic_notification"
+                        app:tint="@color/primary_red_dark"
+                        tools:ignore="ContentDescription" />
+                </FrameLayout>
 
                 <TextView
                     android:id="@+id/tvEmptyState"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="No Notifications"
-                    android:textSize="18sp"
+                    android:text="All Caught Up!"
+                    android:textSize="20sp"
                     android:textStyle="bold"
                     android:textColor="@color/text_primary"
                     android:layout_marginBottom="8dp" />
 
                 <TextView
+                    android:id="@+id/tvEmptySubtitle"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="You're all caught up!"
-                    android:textSize="14sp"
+                    android:text="You don't have any new alerts right now.\nWhen blood is requested nearby, you'll be notified here."
+                    android:textSize="13.5sp"
                     android:textColor="@color/text_secondary"
+                    android:lineSpacingExtra="3dp"
                     android:gravity="center" />
 
                 <!-- Retry Button -->
@@ -87,7 +210,10 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Retry"
-                    android:layout_marginTop="16dp"
+                    android:textColor="@color/white"
+                    android:backgroundTint="@color/primary_red"
+                    android:layout_marginTop="20dp"
+                    app:cornerRadius="10dp"
                     android:visibility="gone" />
             </LinearLayout>
 

@@ -414,58 +414,12 @@ class HomeFragment : Fragment() {
     // ---------------- DRAWER NAVIGATION ----------------
     private fun setupNavigationDrawer() {
         binding.ivMenu.setOnClickListener {
-            binding.drawerLayout.openDrawer(GravityCompat.START)
-        }
-
-        binding.navigationView.setNavigationItemSelectedListener { item ->
-            binding.drawerLayout.closeDrawer(GravityCompat.START)
-            when (item.itemId) {
-                R.id.nav_profile -> navigateToProfile()
-                R.id.nav_status -> toggleDonorStatus()
-                R.id.nav_settings -> navigateToSettingsFragment()
-                R.id.nav_privacy -> showPrivacyPolicyDialog()
-                R.id.nav_feedback -> toast("Feedback")
-                R.id.nav_support -> toast("Support Us")
-                R.id.nav_about -> navigateToAboutFragment()
-                R.id.nav_logout -> performLogout()
-            }
-            true
+            (activity as? MainActivity)?.openDrawer()
         }
     }
 
     private fun setupNavigationViewHeader() {
-        val header = binding.navigationView.getHeaderView(0)
-        val tvUserName = header.findViewById<android.widget.TextView>(R.id.tvUserName)
-        val tvUserEmail = header.findViewById<android.widget.TextView>(R.id.tvUserEmail)
-        val ivNavUserAvatar = header.findViewById<android.widget.ImageView>(R.id.ivNavUserAvatar)
-
-        userViewModel.userProfileImage.observe(viewLifecycleOwner) { imageUrl ->
-            ProfileImageManager.loadAvatar(ivNavUserAvatar, imageUrl)
-        }
-
-        userViewModel.userName.observe(viewLifecycleOwner) { name ->
-            tvUserName.text = name
-        }
-
-        userViewModel.userEmail.observe(viewLifecycleOwner) { email ->
-            tvUserEmail.text = email
-        }
-
-        val user = auth.currentUser
-        if (user != null) {
-            tvUserEmail.text = user.email ?: "No email"
-            tvUserName.text = user.displayName ?: user.email?.substringBefore("@") ?: "User"
-            userViewModel.loadUserData()
-        } else {
-            tvUserName.text = "Guest"
-            tvUserEmail.text = "Not logged in"
-            ivNavUserAvatar?.setImageResource(R.drawable.ic_user_placeholder)
-        }
-
-        ivNavUserAvatar?.setOnClickListener {
-            binding.drawerLayout.closeDrawer(GravityCompat.START)
-            navigateToProfile()
-        }
+        // Managed globally by MainActivity for full-screen edge-to-edge drawer
     }
 
     // ---------------- CLICK LISTENERS ----------------

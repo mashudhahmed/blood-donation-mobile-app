@@ -1,15 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.cardview.widget.CardView
+<com.google.android.material.card.MaterialCardView
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/notificationCard"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_marginHorizontal="16dp"
-    android:layout_marginVertical="4dp"
-    app:cardCornerRadius="12dp"
-    app:cardElevation="2dp"
-    app:cardUseCompatPadding="true">
+    android:layout_marginVertical="5dp"
+    app:cardCornerRadius="14dp"
+    app:cardElevation="0dp"
+    app:strokeColor="#E2E8F0"
+    app:strokeWidth="1dp"
+    app:cardBackgroundColor="@color/surface_white">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -24,13 +27,22 @@
             android:orientation="horizontal"
             android:gravity="center_vertical">
 
-            <!-- Icon -->
-            <ImageView
-                android:id="@+id/iconImageView"
-                android:layout_width="32dp"
-                android:layout_height="32dp"
-                android:layout_marginEnd="12dp"
-                android:src="@drawable/ic_notification" />
+            <!-- Rounded Icon Container -->
+            <FrameLayout
+                android:layout_width="38dp"
+                android:layout_height="38dp"
+                android:background="@drawable/bg_icon_circle_light"
+                android:layout_marginEnd="12dp">
+
+                <ImageView
+                    android:id="@+id/iconImageView"
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:layout_gravity="center"
+                    android:src="@drawable/ic_notification"
+                    app:tint="@color/primary_red"
+                    tools:ignore="ContentDescription" />
+            </FrameLayout>
 
             <!-- Title and Unread Dot -->
             <LinearLayout
@@ -45,7 +57,7 @@
                     android:orientation="horizontal"
                     android:gravity="center_vertical">
 
-                    <!-- Unread Indicator -->
+                    <!-- Unread Indicator Dot -->
                     <View
                         android:id="@+id/dotIndicator"
                         android:layout_width="8dp"
@@ -60,7 +72,7 @@
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:textSize="16sp"
+                        android:textSize="15sp"
                         android:textStyle="bold"
                         android:textColor="@color/text_primary"
                         android:maxLines="1"
@@ -89,28 +101,31 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:textSize="11sp"
+                android:textStyle="bold"
                 android:paddingHorizontal="8dp"
-                android:paddingVertical="4dp"
+                android:paddingVertical="3dp"
+                android:background="@drawable/bg_badge_pill"
                 android:visibility="gone" />
 
         </LinearLayout>
 
-        <!-- Message -->
+        <!-- Message Body -->
         <TextView
             android:id="@+id/tvMessage"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
-            android:textSize="14sp"
-            android:textColor="@color/text_secondary"
+            android:textSize="13.5sp"
+            android:textColor="#475569"
+            android:lineSpacingExtra="2dp"
             android:maxLines="3"
             android:ellipsize="end" />
 
-        <!-- Footer -->
+        <!-- Footer Row: Time and Blood Group -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
+            android:layout_marginTop="10dp"
             android:orientation="horizontal"
             android:gravity="center_vertical">
 
@@ -121,15 +136,18 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:textSize="12sp"
-                android:textColor="@color/text_hint" />
+                android:textColor="#94A3B8" />
 
             <!-- Blood Group Badge -->
             <TextView
                 android:id="@+id/tvBloodGroup"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:textSize="12sp"
+                android:textSize="11.5sp"
+                android:textStyle="bold"
                 android:textColor="@color/white"
+                android:background="@drawable/bg_blood_group_pill_drawer"
+                android:backgroundTint="@color/primary_red"
                 android:paddingHorizontal="8dp"
                 android:paddingVertical="2dp"
                 android:visibility="gone" />
@@ -138,4 +156,4 @@
 
     </LinearLayout>
 
-</androidx.cardview.widget.CardView>
+</com.google.android.material.card.MaterialCardView>

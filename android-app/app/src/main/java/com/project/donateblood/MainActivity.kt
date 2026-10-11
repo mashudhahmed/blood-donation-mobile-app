@@ -21,6 +21,15 @@ import com.project.donateblood.network.FcmTokenSyncManager
 import timber.log.Timber
 import androidx.core.content.edit
 import androidx.core.view.WindowCompat
+import android.widget.ImageView
+import android.widget.TextView
+import androidx.activity.OnBackPressedCallback
+import androidx.core.view.GravityCompat
+import androidx.drawerlayout.widget.DrawerLayout
+import com.project.donateblood.fragments.FeedbackBottomSheetDialogFragment
+import com.project.donateblood.fragments.PrivacyPolicyDialogFragment
+import com.project.donateblood.fragments.SupportBottomSheetDialogFragment
+import com.project.donateblood.utils.ProfileImageManager
 
 @Suppress("DEPRECATION")
 class MainActivity : BaseActivity() {
@@ -53,6 +62,7 @@ class MainActivity : BaseActivity() {
         }
 
         setupBottomNavigation()
+        setupNavigationDrawer()
         requestNotificationPermission()
         initializeFcmTokenSync()
         handleUserLoginStatus()
@@ -131,28 +141,222 @@ class MainActivity : BaseActivity() {
                 R.id.homeFragment -> {
                     binding.bottomNavigationView.visibility = View.VISIBLE
                     binding.bottomNavigationView.menu.findItem(R.id.nav_home)?.isChecked = true
+                    binding.drawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_UNLOCKED)
                 }
                 R.id.requestBloodFragment -> {
                     binding.bottomNavigationView.visibility = View.VISIBLE
                     binding.bottomNavigationView.menu.findItem(R.id.nav_request_donate)?.isChecked = true
+                    binding.drawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_CLOSED)
                 }
                 R.id.chatFragment -> {
                     binding.bottomNavigationView.visibility = View.VISIBLE
                     binding.bottomNavigationView.menu.findItem(R.id.nav_chat)?.isChecked = true
+                    binding.drawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_CLOSED)
                 }
                 R.id.historyFragment -> {
                     binding.bottomNavigationView.visibility = View.VISIBLE
                     binding.bottomNavigationView.menu.findItem(R.id.nav_history)?.isChecked = true
+                    binding.drawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_CLOSED)
                 }
                 R.id.profileFragment -> {
                     binding.bottomNavigationView.visibility = View.VISIBLE
                     binding.bottomNavigationView.menu.findItem(R.id.nav_profile)?.isChecked = true
+                    binding.drawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_CLOSED)
                 }
                 else -> {
                     binding.bottomNavigationView.visibility = View.GONE
+                    binding.drawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_CLOSED)
                 }
             }
         }
+    }
+
+    private fun setupNavigationDrawer() {
+        // Back press handling: smoothly close drawer instead of exiting app
+        val drawerBackCallback = object : OnBackPressedCallback(false) {
+            override fun handleOnBackPressed() {
+                binding.drawerLayout.closeDrawer(GravityCompat.START)
+            }
+        }
+        onBackPressedDispatcher.addCallback(this, drawerBackCallback)
+
+        binding.drawerLayout.addDrawerListener(object : DrawerLayout.SimpleDrawerListener() {
+            override fun onDrawerOpened(drawerView: View) {
+                drawerBackCallback.isEnabled = true
+            }
+            override fun onDrawerClosed(drawerView: View) {
+                drawerBackCallback.isEnabled = false
+            }
+        })
+
+        setupNavigationViewHeader()
+
+        val navHostFragment = supportFragmentManager
+            .findFragmentById(R.id.nav_host_fragment) as? NavHostFragment ?: return
+        val navController = navHostFragment.navController
+
+        binding.navigationView.setNavigationItemSelectedListener { item ->
+            binding.drawerLayout.closeDrawer(GravityCompat.START)
+            when (item.itemId) {
+                R.id.nav_profile -> {
+                    navController.navigate(R.id.profileFragment)
+                    true
+                }
+                R.id.nav_status -> {
+                    toggleDonorStatus()
+                    true
+                }
+                R.id.nav_settings -> {
+                    try {
+                        navController.navigate(R.id.settingsFragment)
+                    } catch (e: Exception) {
+                        Toast.makeText(this, "Settings coming soon", Toast.LENGTH_SHORT).show()
+                    }
+                    true
+                }
+                R.id.nav_privacy -> {
+                    PrivacyPolicyDialogFragment().show(supportFragmentManager, "PrivacyPolicy")
+                    true
+                }
+                R.id.nav_feedback -> {
+                    FeedbackBottomSheetDialogFragment().show(
+                        supportFragmentManager,
+                        FeedbackBottomSheetDialogFragment.TAG
+                    )
+                    true
+                }
+                R.id.nav_support -> {
+                    SupportBottomSheetDialogFragment().show(
+                        supportFragmentManager,
+                        SupportBottomSheetDialogFragment.TAG
+                    )
+                    true
+                }
+                R.id.nav_about -> {
+                    try {
+                        navController.navigate(R.id.aboutFragment)
+                    } catch (e: Exception) {
+                        Toast.makeText(this, "About Us coming soon", Toast.LENGTH_SHORT).show()
+                    }
+                    true
+                }
+                R.id.nav_logout -> {
+                    showLogoutDialog()
+                    true
+                }
+                else -> false
+            }
+        }
+    }
+
+    private fun setupNavigationViewHeader() {
+        val header = binding.navigationView.getHeaderView(0) ?: return
+        val tvUserName = header.findViewById<TextView>(R.id.tvUserName)
+        val tvUserEmail = header.findViewById<TextView>(R.id.tvUserEmail)
+        val ivNavUserAvatar = header.findViewById<ImageView>(R.id.ivNavUserAvatar)
+        val tvNavBloodGroup = header.findViewById<TextView>(R.id.tvNavBloodGroup)
+        val layoutBloodBadge = header.findViewById<View>(R.id.layoutBloodBadge)
+        val tvDonorStatus = header.findViewById<TextView>(R.id.tvDonorStatus)
+        val viewStatusDot = header.findViewById<View>(R.id.viewStatusDot)
+
+        userViewModel.userProfileImage.observe(this) { imageUrl ->
+            ProfileImageManager.loadAvatar(ivNavUserAvatar, imageUrl)
+        }
+
+        userViewModel.userName.observe(this) { name ->
+            tvUserName?.text = name
+        }
+
+        userViewModel.userEmail.observe(this) { email ->
+            tvUserEmail?.text = email
+        }
+
+        userViewModel.userBloodGroup.observe(this) { bloodGroup ->
+            if (!bloodGroup.isNullOrEmpty()) {
+                tvNavBloodGroup?.text = bloodGroup
+                layoutBloodBadge?.visibility = View.VISIBLE
+            } else {
+                layoutBloodBadge?.visibility = View.GONE
+            }
+        }
+
+        userViewModel.isAvailable.observe(this) { available ->
+            if (available == true) {
+                tvDonorStatus?.text = "Available to Donate"
+                viewStatusDot?.setBackgroundResource(R.drawable.bg_status_dot_green)
+            } else {
+                tvDonorStatus?.text = "Currently Unavailable"
+                viewStatusDot?.setBackgroundResource(R.drawable.bg_status_dot_gray)
+            }
+        }
+
+        val user = auth.currentUser
+        if (user != null) {
+            tvUserEmail?.text = user.email ?: "No email"
+            tvUserName?.text = user.displayName ?: user.email?.substringBefore("@") ?: "User"
+            userViewModel.loadUserData()
+        } else {
+            tvUserName?.text = "Guest"
+            tvUserEmail?.text = "Not logged in"
+            ivNavUserAvatar?.setImageResource(R.drawable.ic_user_placeholder)
+            layoutBloodBadge?.visibility = View.GONE
+            tvDonorStatus?.text = "Guest Mode"
+            viewStatusDot?.setBackgroundResource(R.drawable.bg_status_dot_gray)
+        }
+
+        ivNavUserAvatar?.setOnClickListener {
+            binding.drawerLayout.closeDrawer(GravityCompat.START)
+            val navHostFragment = supportFragmentManager
+                .findFragmentById(R.id.nav_host_fragment) as? NavHostFragment ?: return@setOnClickListener
+            navHostFragment.navController.navigate(R.id.profileFragment)
+        }
+    }
+
+    private fun showLogoutDialog() {
+        android.app.AlertDialog.Builder(this)
+            .setTitle("Log Out")
+            .setMessage("Are you sure you want to log out of BloodLink?")
+            .setPositiveButton("Log Out") { _, _ ->
+                logoutCurrentUser()
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+
+    private fun toggleDonorStatus() {
+        val currentUser = auth.currentUser ?: return
+
+        db.collection("donors")
+            .document(currentUser.uid)
+            .get()
+            .addOnSuccessListener { document ->
+                if (document.exists()) {
+                    val currentStatus = document.getBoolean("isAvailable") ?: true
+                    val newStatus = !currentStatus
+                    db.collection("donors")
+                        .document(currentUser.uid)
+                        .update("isAvailable", newStatus)
+                        .addOnSuccessListener {
+                            userViewModel.loadUserData()
+                            val msg = if (newStatus) "Status updated: Available to donate" else "Status updated: Currently unavailable"
+                            Toast.makeText(this, msg, Toast.LENGTH_SHORT).show()
+                        }
+                } else {
+                    Toast.makeText(this, "Donor profile not found", Toast.LENGTH_SHORT).show()
+                }
+            }
+    }
+
+    fun openDrawer() {
+        binding.drawerLayout.openDrawer(GravityCompat.START)
+    }
+
+    fun closeDrawer() {
+        binding.drawerLayout.closeDrawer(GravityCompat.START)
+    }
+
+    fun isDrawerOpen(): Boolean {
+        return binding.drawerLayout.isDrawerOpen(GravityCompat.START)
     }
 
     override fun onNewIntent(intent: Intent) {

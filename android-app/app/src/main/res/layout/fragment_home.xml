@@ -1,18 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.drawerlayout.widget.DrawerLayout
+<FrameLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
-    android:id="@+id/drawerLayout"
+    android:id="@+id/homeRootLayout"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:fitsSystemWindows="true">
-
-    <!-- ================= MAIN CONTENT ROOT ================= -->
-    <FrameLayout
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:background="@color/cardview_light_background">
+    android:background="@color/cardview_light_background">
 
         <!-- ================= CLICKABLE OVERLAY ================= -->
         <View
@@ -617,19 +611,4 @@
             android:layout_gravity="center"
             android:visibility="gone" />
 
-    </FrameLayout>
-
-    <!-- ================= SIDE MENU (NAV DRAWER) ================= -->
-    <com.google.android.material.navigation.NavigationView
-        android:id="@+id/navigationView"
-        android:layout_width="280dp"
-        android:layout_height="match_parent"
-        android:layout_gravity="start"
-        android:fitsSystemWindows="true"
-        app:headerLayout="@layout/nav_header"
-        app:menu="@menu/nav_menu"
-        app:itemTextColor="@color/text_primary"
-        app:itemIconTint="@color/primary_red_dark"
-        android:background="@color/surface_white" />
-
-</androidx.drawerlayout.widget.DrawerLayout>
+</FrameLayout>

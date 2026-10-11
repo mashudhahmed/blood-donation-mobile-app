@@ -36,7 +36,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:background="@color/primary_red_dark"
-                android:elevation="4dp"
+                android:elevation="0dp"
                 android:gravity="center_vertical"
                 android:paddingHorizontal="16dp"
                 android:paddingTop="12dp"
@@ -99,33 +99,44 @@
                         android:orientation="vertical"
                         android:paddingBottom="80dp">
 
-                        <!-- ================= 1. 2026 SLIDEABLE SVG BANNERS & QUICK ACTIONS ================= -->
-                        <LinearLayout
+                        <!-- ================= 1. 2026 SLIDEABLE SVG BANNERS WITH CURVED HEADER BG ================= -->
+                        <FrameLayout
                             android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="16dp"
-                            android:orientation="vertical">
+                            android:layout_height="wrap_content">
 
-                            <!-- 2026 Slideable SVG Banner Carousel -->
-                            <androidx.viewpager2.widget.ViewPager2
-                                android:id="@+id/vpHomeBanners"
+                            <!-- Crimson curved banner background connecting seamlessly with top action bar -->
+                            <View
                                 android:layout_width="match_parent"
-                                android:layout_height="140dp"
-                                android:clipChildren="false"
-                                android:clipToPadding="false"
-                                android:paddingHorizontal="16dp" />
+                                android:layout_height="95dp"
+                                android:background="@drawable/bg_header_crimson_curved" />
 
-                            <!-- Smooth Dot Indicators -->
                             <LinearLayout
-                                android:id="@+id/layoutBannerIndicators"
-                                android:layout_width="wrap_content"
+                                android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
-                                android:layout_gravity="center_horizontal"
-                                android:gravity="center"
-                                android:orientation="horizontal"
-                                android:layout_marginTop="10dp" />
+                                android:orientation="vertical"
+                                android:paddingTop="12dp">
 
-                        </LinearLayout>
+                                <!-- 2026 Slideable SVG Banner Carousel -->
+                                <androidx.viewpager2.widget.ViewPager2
+                                    android:id="@+id/vpHomeBanners"
+                                    android:layout_width="match_parent"
+                                    android:layout_height="140dp"
+                                    android:clipChildren="false"
+                                    android:clipToPadding="false"
+                                    android:paddingHorizontal="16dp" />
+
+                                <!-- Smooth Dot Indicators -->
+                                <LinearLayout
+                                    android:id="@+id/layoutBannerIndicators"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:layout_gravity="center_horizontal"
+                                    android:gravity="center"
+                                    android:orientation="horizontal"
+                                    android:layout_marginTop="10dp" />
+
+                            </LinearLayout>
+                        </FrameLayout>
 
                         <!-- ================= 2. URGENT BLOOD REQUESTS FEED ================= -->
                         <LinearLayout

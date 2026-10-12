@@ -6,9 +6,10 @@ import { Bell, MessageSquare, LogOut } from 'lucide-react';
 
 interface TopHeaderProps {
   onOpenMessages?: () => void;
+  onOpenNotifications?: () => void;
 }
 
-export default function TopHeader({ onOpenMessages }: TopHeaderProps) {
+export default function TopHeader({ onOpenMessages, onOpenNotifications }: TopHeaderProps) {
   const { role, user, logout } = useAuth();
   const [showNotifications, setShowNotifications] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
@@ -52,7 +53,13 @@ export default function TopHeader({ onOpenMessages }: TopHeaderProps) {
         {/* Notification Bell matching Screenshot */}
         <div className="relative">
           <button
-            onClick={() => setShowNotifications(!showNotifications)}
+            onClick={() => {
+              if (onOpenNotifications) {
+                onOpenNotifications();
+              } else {
+                setShowNotifications(!showNotifications);
+              }
+            }}
             className="p-2 rounded-xl text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-colors relative cursor-pointer"
             title="System Notifications"
           >

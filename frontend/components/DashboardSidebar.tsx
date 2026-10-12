@@ -20,6 +20,7 @@ import {
   MessageSquare,
   Settings,
   LucideIcon,
+  Bell,
 } from 'lucide-react';
 
 interface NavItem {
@@ -39,6 +40,7 @@ interface SidebarProps<T extends string = string> {
   activeTab: T;
   setActiveTab: (tab: T) => void;
   pendingCount?: number;
+  unreadNotificationsCount?: number;
   onOpenMessages?: () => void;
 }
 
@@ -46,6 +48,7 @@ export default function DashboardSidebar<T extends string = string>({
   activeTab,
   setActiveTab,
   pendingCount = 0,
+  unreadNotificationsCount = 0,
   onOpenMessages,
 }: SidebarProps<T>) {
   const { role, user, logout } = useAuth();
@@ -56,73 +59,74 @@ export default function DashboardSidebar<T extends string = string>({
     if (role === 'ADMIN') {
       return [
         {
-          group: 'HOSPITAL OPERATIONS',
+          group: 'OPERATIONS',
           items: [
-            { id: 'overview', label: 'Executive Analytics', icon: LayoutDashboard },
-            { id: 'verifications', label: 'Doctor & Facility Approvals', icon: FileCheck2, badge: pendingCount },
+            { id: 'overview', label: 'Overview', icon: LayoutDashboard },
+            { id: 'verifications', label: 'Approvals', icon: FileCheck2, badge: pendingCount },
+            { id: 'donors', label: 'Users', icon: Users },
+            { id: 'inventory', label: 'Blood Matrix', icon: Database },
           ],
         },
         {
-          group: 'USER & STAFF DIRECTORY',
+          group: 'COMMUNICATIONS',
           items: [
-            { id: 'donors', label: 'Users & Donor Directory', icon: Users },
-            { id: 'inventory', label: 'National Blood Matrix', icon: Database },
-            { id: 'messages', label: 'Direct Donor Messages', icon: MessageSquare, onClick: onOpenMessages },
+            { id: 'messages', label: 'Messages', icon: MessageSquare },
+            { id: 'notifications', label: 'Notifications', icon: Bell, badge: unreadNotificationsCount },
           ],
         },
         {
-          group: 'SYSTEM & SECURITY',
+          group: 'SYSTEM',
           items: [
-            { id: 'audit', label: 'Security & Audit Logs', icon: History },
-            { id: 'settings', label: 'System Settings', icon: Settings },
+            { id: 'audit', label: 'Audit Logs', icon: History },
+            { id: 'settings', label: 'Settings', icon: Settings },
           ],
         },
       ];
     } else if (role === 'HOSPITAL') {
       return [
         {
-          group: 'EMERGENCY OPERATIONS',
+          group: 'OPERATIONS',
           items: [
-            { id: 'requisitions', label: 'Requisition Pipeline', icon: LayoutDashboard },
-            { id: 'donors', label: 'Compatible Donor Finder', icon: Users },
+            { id: 'requisitions', label: 'Requisitions', icon: LayoutDashboard },
+            { id: 'donors', label: 'Donor Finder', icon: Users },
           ],
         },
         {
-          group: 'CLINICAL & COMMUNICATION',
+          group: 'COMMUNICATIONS',
           items: [
-            { id: 'messages', label: 'Direct Donor Messages', icon: MessageSquare, onClick: onOpenMessages },
-            { id: 'staff', label: 'Staff & Positions', icon: UserCheck },
+            { id: 'messages', label: 'Messages', icon: MessageSquare, onClick: onOpenMessages },
+            { id: 'staff', label: 'Staff', icon: UserCheck },
           ],
         },
         {
-          group: 'FACILITY & CREDENTIALS',
+          group: 'FACILITY',
           items: [
-            { id: 'info', label: 'Facility Profile & License', icon: Building2 },
+            { id: 'info', label: 'Profile', icon: Building2 },
           ],
         },
       ];
     } else {
       return [
         {
-          group: 'CRYO-STORAGE OPERATIONS',
+          group: 'OPERATIONS',
           items: [
-            { id: 'inventory', label: 'Cryo-Inventory Matrix', icon: Database },
-            { id: 'walkin', label: 'Walk-In Donor Intake', icon: UserCheck },
-            { id: 'drives', label: 'Blood Donation Drives', icon: Calendar },
+            { id: 'inventory', label: 'Inventory', icon: Database },
+            { id: 'walkin', label: 'Walk-In Intake', icon: UserCheck },
+            { id: 'drives', label: 'Donation Drives', icon: Calendar },
           ],
         },
         {
-          group: 'LAB & COMMUNICATION',
+          group: 'COMMUNICATIONS',
           items: [
-            { id: 'messages', label: 'Direct Donor Messages', icon: MessageSquare, onClick: onOpenMessages },
-            { id: 'staff', label: 'Staff & Technicians', icon: Users },
+            { id: 'messages', label: 'Messages', icon: MessageSquare, onClick: onOpenMessages },
+            { id: 'staff', label: 'Staff', icon: Users },
           ],
         },
         {
-          group: 'SECURITY & AUDIT',
+          group: 'SYSTEM',
           items: [
-            { id: 'audit', label: 'Movement Audit Trail', icon: Layers },
-            { id: 'info', label: 'Facility Credentials', icon: Building2 },
+            { id: 'audit', label: 'Audit Trail', icon: Layers },
+            { id: 'info', label: 'Profile', icon: Building2 },
           ],
         },
       ];

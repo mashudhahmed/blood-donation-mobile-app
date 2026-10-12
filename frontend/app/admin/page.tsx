@@ -4,7 +4,6 @@ import React, { useState, useEffect, useCallback } from 'react';
 import RoleGuard from '@/components/RoleGuard';
 import DashboardSidebar from '@/components/DashboardSidebar';
 import TopHeader from '@/components/TopHeader';
-import DirectChatModal from '@/components/DirectChatModal';
 import BloodGroupBadge from '@/components/BloodGroupBadge';
 import StatusPill from '@/components/StatusPill';
 import { useAuth } from '@/lib/auth-context';
@@ -24,22 +23,53 @@ import {
   Zap,
   ArrowRight,
   FileCheck2,
+  MessageSquare,
+  Send,
+  Bell,
+  MapPin,
+  CheckCheck,
+  Building2,
 } from 'lucide-react';
 import {
   api,
   Donor,
   SystemAuditLog,
+  Conversation,
+  ChatMessage,
   MOCK_ADMIN_METRICS,
   MOCK_DONORS,
   MOCK_HOSPITALS,
   MOCK_INVENTORY,
   MOCK_SYSTEM_AUDIT_LOGS,
   MOCK_REQUISITIONS,
+  MOCK_CONVERSATIONS,
 } from '@/lib/api';
+
+export type AdminTab =
+  | 'overview'
+  | 'verifications'
+  | 'donors'
+  | 'inventory'
+  | 'messages'
+  | 'notifications'
+  | 'audit'
+  | 'settings';
+
+interface AdminNotification {
+  id: string;
+  type: 'EMERGENCY' | 'APPROVAL' | 'SYSTEM' | 'SUCCESS';
+  title: string;
+  description: string;
+  targetInfo?: string;
+  timestamp: string;
+  isRead: boolean;
+  actionLabel?: string;
+  actionTab?: AdminTab;
+}
 
 export default function AdminPortal() {
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState<'overview' | 'verifications' | 'donors' | 'inventory' | 'audit' | 'settings'>('overview');
+  const [activeTab, setActiveTab] = useState<AdminTab>('overview');
   const [metrics, setMetrics] = useState(MOCK_ADMIN_METRICS);
   const [hospitals, setHospitals] = useState(MOCK_HOSPITALS);
   const [donors, setDonors] = useState<Donor[]>(MOCK_DONORS);
@@ -47,8 +77,84 @@ export default function AdminPortal() {
   const [auditLogs, setAuditLogs] = useState<SystemAuditLog[]>(MOCK_SYSTEM_AUDIT_LOGS);
   const [feedbackMsg, setFeedbackMsg] = useState<string | null>(null);
 
-  // Modals & Chat
-  const [showChatModal, setShowChatModal] = useState(false);
+  // In-Page Messages State
+  const [conversations, setConversations] = useState<Conversation[]>(MOCK_CONVERSATIONS);
+  const [selectedConvId, setSelectedConvId] = useState<string>(MOCK_CONVERSATIONS[0].id);
+  const [chatSearchQuery, setChatSearchQuery] = useState('');
+  const [messageInput, setMessageInput] = useState('');
+
+  // In-Page Notifications State
+  const [notifications, setNotifications] = useState<AdminNotification[]>([
+    {
+      id: 'notif-1',
+      type: 'EMERGENCY',
+      title: 'Critical O- Blood Requisition Dispatched',
+      description: 'Dhaka Medical College Hospital broadcast an emergency 2-unit request for OT-3 general surgery.',
+      targetInfo: 'Firebase Cloud Messaging alert delivered to 142 mobile donors in Dhaka district.',
+      timestamp: '2 mins ago',
+      isRead: false,
+      actionLabel: 'View Blood Matrix',
+      actionTab: 'inventory',
+    },
+    {
+      id: 'notif-2',
+      type: 'APPROVAL',
+      title: 'Facility Accreditation Under Review',
+      description: 'Apollo Imperial Hospital (Chittagong) submitted institutional credentials and medical license LIC-2023-1189.',
+      targetInfo: 'Pending Administrator Verification clearance.',
+      timestamp: '18 mins ago',
+      isRead: false,
+      actionLabel: 'Review License',
+      actionTab: 'verifications',
+    },
+    {
+      id: 'notif-3',
+      type: 'APPROVAL',
+      title: 'Blood Center License Renewal',
+      description: 'Evercare Blood Bank submitted cold-chain verification records and storage license LIC-2024-8712.',
+      targetInfo: 'Requires DGHS clearance approval before public mobile drives can be scheduled.',
+      timestamp: '1 hour ago',
+      isRead: false,
+      actionLabel: 'Review License',
+      actionTab: 'verifications',
+    },
+    {
+      id: 'notif-4',
+      type: 'SUCCESS',
+      title: 'Emergency Requisition Fulfilled',
+      description: 'Patient Fatima Begum (O-) matched with 2 verified citizen donors. Cross-match completed at DMC OT desk.',
+      targetInfo: 'Donation logged in central registry; donor cooldown clocks activated.',
+      timestamp: '3 hours ago',
+      isRead: true,
+      actionLabel: 'View Direct Chat',
+      actionTab: 'messages',
+    },
+    {
+      id: 'notif-5',
+      type: 'SYSTEM',
+      title: 'National Registry Telemetry Synchronized',
+      description: '1,420 registered citizen profiles refreshed against Directorate General of Health Services (DGHS) database.',
+      targetInfo: 'All 8 ABO/Rh group availability quotas updated.',
+      timestamp: '5 hours ago',
+      isRead: true,
+      actionLabel: 'Inspect Users',
+      actionTab: 'donors',
+    },
+    {
+      id: 'notif-6',
+      type: 'SYSTEM',
+      title: 'Administrative Security Session Logged',
+      description: 'System Administrator logged in from authenticated terminal IP 192.168.1.100.',
+      targetInfo: 'Cryptographic SHA-256 token valid for 7 days.',
+      timestamp: 'Today, 08:30 AM',
+      isRead: true,
+      actionLabel: 'Inspect Audit Logs',
+      actionTab: 'audit',
+    },
+  ]);
+  const [notificationFilter, setNotificationFilter] = useState<'all' | 'unread' | 'EMERGENCY' | 'APPROVAL' | 'SYSTEM'>('all');
+
+  // Modals & Inspect
   const [selectedAuditLog, setSelectedAuditLog] = useState<SystemAuditLog | null>(null);
   const [selectedUserDetail, setSelectedUserDetail] = useState<Donor | null>(null);
 
@@ -58,8 +164,6 @@ export default function AdminPortal() {
   const [auditSearchQuery, setAuditSearchQuery] = useState('');
   const [auditActionFilter, setAuditActionFilter] = useState('all');
   const [auditResourceFilter, setAuditResourceFilter] = useState('all');
-
-  const bloodGroups = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
 
   const loadData = useCallback(async () => {
     try {
@@ -99,6 +203,7 @@ export default function AdminPortal() {
   };
 
   const pendingCount = hospitals.filter((h) => !h.verified).length;
+  const unreadNotificationsCount = notifications.filter((n) => !n.isRead).length;
 
   // Filtered Donors / Users
   const filteredDonors = donors.filter((d) => {
@@ -119,12 +224,12 @@ export default function AdminPortal() {
 
   // Filtered Audit Logs
   const filteredAuditLogs = auditLogs.filter((log) => {
-    const user = log?.user || '';
+    const userStr = log?.user || '';
     const resourceId = log?.resourceId || '';
     const ipAddress = log?.ipAddress || '';
     const details = log?.details || '';
     const matchesQuery =
-      user.toLowerCase().includes(auditSearchQuery.toLowerCase()) ||
+      userStr.toLowerCase().includes(auditSearchQuery.toLowerCase()) ||
       resourceId.toLowerCase().includes(auditSearchQuery.toLowerCase()) ||
       ipAddress.includes(auditSearchQuery) ||
       details.toLowerCase().includes(auditSearchQuery.toLowerCase());
@@ -133,30 +238,87 @@ export default function AdminPortal() {
     return matchesQuery && matchesAction && matchesResource;
   });
 
+  // In-Page Send Message Handler
+  const handleSendMessage = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!messageInput.trim()) return;
+
+    const newMsg: ChatMessage = {
+      id: `msg-${Date.now()}`,
+      senderId: user.id,
+      senderName: user.name,
+      senderRole: user.role,
+      text: messageInput.trim(),
+      timestamp: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }),
+      isMe: true,
+    };
+
+    setConversations((prev) =>
+      prev.map((c) =>
+        c.id === selectedConvId
+          ? {
+              ...c,
+              lastMessage: newMsg.text,
+              lastMessageTime: newMsg.timestamp,
+              messages: [...c.messages, newMsg],
+            }
+          : c
+      )
+    );
+
+    api.sendMessage(selectedConvId, newMsg.text);
+    setMessageInput('');
+  };
+
+  const currentConv = conversations.find((c) => c.id === selectedConvId) || conversations[0];
+  const filteredConversations = conversations.filter(
+    (c) =>
+      c.participantName.toLowerCase().includes(chatSearchQuery.toLowerCase()) ||
+      c.participantBloodGroup.toLowerCase().includes(chatSearchQuery.toLowerCase()) ||
+      c.participantDistrict.toLowerCase().includes(chatSearchQuery.toLowerCase())
+  );
+
+  // Filtered Notifications
+  const filteredNotifications = notifications.filter((n) => {
+    if (notificationFilter === 'all') return true;
+    if (notificationFilter === 'unread') return !n.isRead;
+    return n.type === notificationFilter;
+  });
+
+  const markAllNotificationsAsRead = () => {
+    setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
+    setFeedbackMsg('All notifications marked as read.');
+    setTimeout(() => setFeedbackMsg(null), 3000);
+  };
+
   return (
     <RoleGuard allowedRole="ADMIN">
       <div className="flex h-screen overflow-hidden bg-[#F8FAFC]">
-        {/* Full-Height Dark Navy Left Sidebar matching Screenshots */}
+        {/* Full-Height Dark Navy Left Sidebar with Simpler Tab Names */}
         <DashboardSidebar
           activeTab={activeTab}
           setActiveTab={setActiveTab}
           pendingCount={pendingCount}
-          onOpenMessages={() => setShowChatModal(true)}
+          unreadNotificationsCount={unreadNotificationsCount}
+          onOpenMessages={() => setActiveTab('messages')}
         />
 
         {/* Right Main Column */}
         <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-          {/* Top Header App Bar matching Screenshots */}
-          <TopHeader onOpenMessages={() => setShowChatModal(true)} />
+          {/* Top Header App Bar with Notifications & Messages triggers */}
+          <TopHeader
+            onOpenMessages={() => setActiveTab('messages')}
+            onOpenNotifications={() => setActiveTab('notifications')}
+          />
 
           {/* Feedback Banner */}
           {feedbackMsg && (
-            <div className="bg-emerald-600 text-white text-xs font-bold px-6 py-2.5 flex items-center justify-between shadow-sm animate-in fade-in">
+            <div className="bg-emerald-600 text-white text-xs font-bold px-6 py-2.5 flex items-center justify-between shadow-sm animate-in fade-in shrink-0">
               <div className="flex items-center space-x-2">
                 <CheckCircle2 className="w-4 h-4 text-emerald-200" />
                 <span>{feedbackMsg}</span>
               </div>
-              <button onClick={() => setFeedbackMsg(null)} className="text-emerald-200 hover:text-white">
+              <button onClick={() => setFeedbackMsg(null)} className="text-emerald-200 hover:text-white cursor-pointer">
                 <X className="w-4 h-4" />
               </button>
             </div>
@@ -165,7 +327,7 @@ export default function AdminPortal() {
           {/* Scrollable Workspace Content */}
           <main className="flex-1 overflow-y-auto p-6 sm:p-8 space-y-6">
             {/* ============================================================== */}
-            {/* VIEW 1: EXECUTIVE ANALYTICS / ACTIVITY OVERVIEW (Screenshot 2) */}
+            {/* VIEW 1: OVERVIEW (Screenshot 2 Reference)                       */}
             {/* ============================================================== */}
             {activeTab === 'overview' && (
               <div className="space-y-6">
@@ -188,143 +350,145 @@ export default function AdminPortal() {
                     </p>
                   </div>
 
-                  <div className="flex items-center space-x-2 shrink-0">
+                  <div className="flex flex-wrap items-center gap-2.5 shrink-0">
                     <button
                       onClick={() => setActiveTab('donors')}
                       className="inline-flex items-center space-x-2 px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs shadow-sm transition-all cursor-pointer"
                     >
                       <Users className="w-4 h-4 text-slate-300" />
-                      <span>Executive Directory</span>
+                      <span>Users Directory</span>
                     </button>
                     <button
                       onClick={() => setActiveTab('verifications')}
                       className="inline-flex items-center space-x-2 px-4 py-2.5 rounded-xl bg-[#C62828] hover:bg-[#B71C1C] text-white font-bold text-xs shadow-md shadow-[#C62828]/20 transition-all cursor-pointer"
                     >
                       <FileCheck2 className="w-4 h-4 text-white" />
-                      <span>Facility Approvals ({pendingCount})</span>
+                      <span>Approvals ({pendingCount})</span>
+                    </button>
+                    <button
+                      onClick={() => setActiveTab('messages')}
+                      className="inline-flex items-center space-x-1.5 px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-bold text-xs shadow-2xs transition-all cursor-pointer"
+                      title="Direct Donor Messaging"
+                    >
+                      <MessageSquare className="w-4 h-4 text-[#C62828]" />
+                      <span>Messages</span>
                     </button>
                   </div>
                 </div>
 
                 {/* 4 Stats Cards matching Screenshot 2 */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
-                  {/* Card 1: Registered Donors */}
                   <div className="bg-white rounded-2xl p-5 border border-slate-200/90 shadow-xs flex items-center justify-between">
                     <div>
                       <span className="block text-[11px] font-extrabold uppercase tracking-wider text-slate-400">
-                        TOTAL REGISTERED USERS
+                        TOTAL USERS
                       </span>
                       <div className="text-2xl font-black text-slate-900 mt-1 tracking-tight">
                         {metrics.totalDonors.toLocaleString()}
                       </div>
                       <span className="text-xs text-slate-500 font-medium mt-0.5 block">
-                        Platform registry
+                        Registered citizen donors
                       </span>
                     </div>
-                    <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+                    <div className="w-12 h-12 rounded-2xl bg-blue-50 border border-blue-200 flex items-center justify-center text-blue-600 shadow-2xs">
                       <Users className="w-6 h-6" />
                     </div>
                   </div>
 
-                  {/* Card 2: Active Requisitions */}
                   <div className="bg-white rounded-2xl p-5 border border-slate-200/90 shadow-xs flex items-center justify-between">
                     <div>
                       <span className="block text-[11px] font-extrabold uppercase tracking-wider text-slate-400">
-                        ACTIVE REQUISITIONS
+                        HEALTHCARE FACILITIES
                       </span>
                       <div className="text-2xl font-black text-slate-900 mt-1 tracking-tight">
+                        {hospitals.length}
+                      </div>
+                      <span className="text-xs text-slate-500 font-medium mt-0.5 block">
+                        Hospitals & blood centers
+                      </span>
+                    </div>
+                    <div className="w-12 h-12 rounded-2xl bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-600 shadow-2xs">
+                      <Building2 className="w-6 h-6" />
+                    </div>
+                  </div>
+
+                  <div className="bg-white rounded-2xl p-5 border border-slate-200/90 shadow-xs flex items-center justify-between">
+                    <div>
+                      <span className="block text-[11px] font-extrabold uppercase tracking-wider text-slate-400">
+                        ACTIVE BROADCASTS
+                      </span>
+                      <div className="text-2xl font-black text-[#C62828] mt-1 tracking-tight">
                         {metrics.activeUrgentRequests}
                       </div>
                       <span className="text-xs text-slate-500 font-medium mt-0.5 block">
-                        Scheduled & emergency
+                        Emergency FCM dispatches
                       </span>
                     </div>
-                    <div className="w-12 h-12 rounded-2xl bg-rose-50 text-[#C62828] flex items-center justify-center shrink-0">
+                    <div className="w-12 h-12 rounded-2xl bg-[#FFEBEE] border border-[#FFCDD2] flex items-center justify-center text-[#C62828] shadow-2xs">
                       <Zap className="w-6 h-6" />
                     </div>
                   </div>
 
-                  {/* Card 3: Practitioner / Facility Pool */}
                   <div className="bg-white rounded-2xl p-5 border border-slate-200/90 shadow-xs flex items-center justify-between">
                     <div>
                       <span className="block text-[11px] font-extrabold uppercase tracking-wider text-slate-400">
-                        PRACTITIONER POOL
+                        PENDING CLEARANCE
                       </span>
-                      <div className="text-2xl font-black text-slate-900 mt-1 tracking-tight">
-                        Active
+                      <div className="text-2xl font-black text-amber-600 mt-1 tracking-tight">
+                        {pendingCount}
                       </div>
                       <span className="text-xs text-slate-500 font-medium mt-0.5 block">
-                        {metrics.verifiedHospitals} verified facilities
+                        Licensing verification queue
                       </span>
                     </div>
-                    <div className="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
-                      <ShieldCheck className="w-6 h-6" />
-                    </div>
-                  </div>
-
-                  {/* Card 4: Security & Audits */}
-                  <div className="bg-white rounded-2xl p-5 border border-slate-200/90 shadow-xs flex items-center justify-between">
-                    <div>
-                      <span className="block text-[11px] font-extrabold uppercase tracking-wider text-slate-400">
-                        SECURITY & AUDITS
-                      </span>
-                      <div className="text-2xl font-black text-slate-900 mt-1 tracking-tight">
-                        Secured
-                      </div>
-                      <span className="text-xs text-slate-500 font-medium mt-0.5 block">
-                        Immutable logs
-                      </span>
-                    </div>
-                    <div className="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
-                      <Shield className="w-6 h-6" />
+                    <div className="w-12 h-12 rounded-2xl bg-amber-50 border border-amber-200 flex items-center justify-center text-amber-600 shadow-2xs">
+                      <FileCheck2 className="w-6 h-6" />
                     </div>
                   </div>
                 </div>
 
-                {/* Recent Clinical Requisitions List matching Screenshot 2 layout */}
+                {/* Live Urgent Requisitions Section */}
                 <div className="bg-white rounded-2xl border border-slate-200/90 p-6 shadow-xs space-y-4">
                   <div className="flex items-center justify-between pb-3 border-b border-slate-100">
                     <div>
-                      <h3 className="text-base font-extrabold text-slate-900">Recent Urgent Requisitions</h3>
-                      <p className="text-xs text-slate-500">Scheduled clinical requests and emergency transfusions</p>
+                      <h3 className="text-sm font-extrabold text-slate-900 uppercase tracking-wider">
+                        Live Hospital Emergency Requisitions
+                      </h3>
+                      <p className="text-xs text-slate-500 mt-0.5">
+                        Real-time clinical dispatches notified to nearby mobile app donors via Firebase Cloud Messaging
+                      </p>
                     </div>
                     <button
                       onClick={() => setActiveTab('donors')}
-                      className="text-xs font-bold text-[#C62828] hover:underline flex items-center space-x-1"
+                      className="text-xs font-bold text-[#C62828] hover:text-[#B71C1C] flex items-center space-x-1 cursor-pointer"
                     >
-                      <span>View All</span>
+                      <span>View Donors</span>
                       <ArrowRight className="w-3.5 h-3.5" />
                     </button>
                   </div>
 
-                  <div className="divide-y divide-slate-100">
-                    {MOCK_REQUISITIONS.slice(0, 4).map((req) => (
-                      <div key={req.id} className="py-3.5 flex items-center justify-between hover:bg-slate-50/80 rounded-xl px-2 transition-colors">
-                        <div className="flex items-center space-x-3.5">
-                          <div className="w-10 h-10 rounded-2xl bg-rose-50 border border-rose-100 flex items-center justify-center shrink-0">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {MOCK_REQUISITIONS.slice(0, 3).map((req) => (
+                      <div
+                        key={req.id}
+                        className="p-4 rounded-xl border border-slate-200 bg-slate-50/50 flex flex-col justify-between space-y-3"
+                      >
+                        <div className="flex items-start justify-between">
+                          <div className="flex items-center space-x-2.5">
                             <BloodGroupBadge bloodGroup={req.bloodGroup} size="sm" />
-                          </div>
-                          <div>
-                            <div className="flex items-center space-x-2">
-                              <span className="text-xs font-bold text-slate-900">{req.patientName}</span>
-                              <span className="text-slate-300">&bull;</span>
-                              <span className="text-[11px] text-slate-600">{req.hospitalName}</span>
+                            <div>
+                              <h4 className="font-extrabold text-slate-900 text-xs">Patient: {req.patientName}</h4>
+                              <span className="text-[11px] text-slate-500">{req.hospitalName}</span>
                             </div>
-                            <span className="text-[11px] text-slate-400 mt-0.5 block">
-                              {req.units} Unit(s) needed &bull; {req.district} &bull; {req.notes || 'Emergency surgery'}
-                            </span>
                           </div>
+                          <StatusPill status={req.urgency} />
                         </div>
-
-                        <div className="flex items-center space-x-3">
+                        <div className="text-[11px] text-slate-600 bg-white p-2.5 rounded-lg border border-slate-200/80">
+                          <strong>Note:</strong> {req.notes || 'Emergency ICU requisition'}
+                        </div>
+                        <div className="flex items-center justify-between text-[11px] pt-1">
+                          <span className="text-slate-500">{req.district}, Bangladesh</span>
                           <StatusPill status={req.status} />
-                          <button
-                            onClick={() => setShowChatModal(true)}
-                            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
-                            title="Direct Message"
-                          >
-                            <ArrowRight className="w-4 h-4" />
-                          </button>
                         </div>
                       </div>
                     ))}
@@ -334,76 +498,66 @@ export default function AdminPortal() {
             )}
 
             {/* ============================================================== */}
-            {/* VIEW 2: FACILITY & DOCTOR APPROVALS QUEUE                     */}
+            {/* VIEW 2: APPROVALS (Facility Verifications Queue)               */}
             {/* ============================================================== */}
             {activeTab === 'verifications' && (
               <div className="space-y-6">
-                <div className="bg-white rounded-2xl border border-slate-200/90 p-6 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
-                  <div>
-                    <div className="flex items-center space-x-2">
-                      <h2 className="text-lg font-extrabold text-slate-900">Doctor & Facility Approvals</h2>
-                      <span className="text-xs font-bold bg-[#FFEBEE] text-[#C62828] px-2.5 py-0.5 rounded-full border border-[#FFCDD2]">
-                        {pendingCount} Pending Review
-                      </span>
+                <div className="bg-white rounded-2xl border border-slate-200/90 p-6 shadow-xs">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
+                    <div>
+                      <div className="flex items-center space-x-2">
+                        <h2 className="text-lg font-black text-slate-900 tracking-tight">
+                          Doctor & Healthcare Facility Approvals
+                        </h2>
+                        <span className="text-[11px] font-bold bg-amber-50 text-amber-800 border border-amber-200 px-2.5 py-0.5 rounded-full">
+                          {pendingCount} Pending Review
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-500 mt-1">
+                        Inspect institutional credentials, DGHS hospital permits, and blood bank licenses before clearing emergency broadcasting permissions.
+                      </p>
                     </div>
-                    <p className="text-xs text-slate-500 mt-1">
-                      Validate Directorate General of Health Services (DGHS) medical licenses before enabling mobile push notifications.
-                    </p>
                   </div>
-                  <button
-                    onClick={loadData}
-                    className="inline-flex items-center space-x-1.5 px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-colors cursor-pointer"
-                  >
-                    <RefreshCw className="w-3.5 h-3.5" />
-                    <span>Refresh Queue</span>
-                  </button>
-                </div>
 
-                {/* Table of Facilities */}
-                <div className="bg-white rounded-2xl border border-slate-200/90 overflow-hidden shadow-xs">
-                  <div className="overflow-x-auto">
+                  <div className="overflow-x-auto mt-4">
                     <table className="w-full text-left text-xs">
                       <thead className="bg-slate-50 text-slate-500 font-bold border-b border-slate-200 uppercase tracking-wider text-[11px]">
                         <tr>
-                          <th className="px-6 py-3.5">Facility / Hospital</th>
-                          <th className="px-6 py-3.5">District</th>
-                          <th className="px-6 py-3.5">Medical License No.</th>
-                          <th className="px-6 py-3.5">Direct Hotline</th>
-                          <th className="px-6 py-3.5">Status</th>
-                          <th className="px-6 py-3.5 text-right">Actions</th>
+                          <th className="px-6 py-3.5">INSTITUTION</th>
+                          <th className="px-6 py-3.5">LICENSE / REG NO.</th>
+                          <th className="px-6 py-3.5">DISTRICT</th>
+                          <th className="px-6 py-3.5">HOTLINE</th>
+                          <th className="px-6 py-3.5">CLEARANCE STATUS</th>
+                          <th className="px-6 py-3.5 text-right">ACTION</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-100">
                         {hospitals.map((h) => (
                           <tr key={h.id} className="hover:bg-slate-50/80 transition-colors">
                             <td className="px-6 py-4">
-                              <div className="flex items-center space-x-3">
-                                <div className="w-8 h-8 rounded-xl bg-slate-900 text-white flex items-center justify-center font-bold text-xs shrink-0">
-                                  {h.name.charAt(0)}
-                                </div>
-                                <span className="font-extrabold text-slate-900">{h.name}</span>
-                              </div>
+                              <div className="font-extrabold text-slate-900">{h.name}</div>
+                              <span className="text-[11px] text-slate-400">Hospital / Trauma Center</span>
                             </td>
-                            <td className="px-6 py-4 font-medium text-slate-600">{h.district}</td>
                             <td className="px-6 py-4 font-mono font-bold text-slate-800">{h.licenseNumber}</td>
-                            <td className="px-6 py-4 text-slate-600 font-medium">{h.contactPhone}</td>
+                            <td className="px-6 py-4 font-semibold text-slate-600">{h.district}</td>
+                            <td className="px-6 py-4 font-mono text-slate-700">{h.contactPhone}</td>
                             <td className="px-6 py-4">
                               {h.verified ? (
                                 <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
-                                  <Check className="w-3 h-3 mr-1 text-emerald-600" />
-                                  Approved
+                                  <ShieldCheck className="w-3.5 h-3.5 mr-1 text-emerald-600" />
+                                  DGHS Verified
                                 </span>
                               ) : (
                                 <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-50 text-amber-800 border border-amber-200">
-                                  <Clock className="w-3 h-3 mr-1 text-amber-600" />
-                                  Awaiting Review
+                                  <Clock className="w-3.5 h-3.5 mr-1 text-amber-600" />
+                                  Awaiting Approval
                                 </span>
                               )}
                             </td>
                             <td className="px-6 py-4 text-right">
                               <button
                                 onClick={() => handleVerify(h.id, h.verified)}
-                                className={`text-xs font-bold px-3 py-1.5 rounded-xl border transition-all cursor-pointer ${
+                                className={`px-4 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
                                   h.verified
                                     ? 'text-rose-600 border-rose-200 hover:bg-rose-50'
                                     : 'bg-emerald-600 text-white border-emerald-600 hover:bg-emerald-700 shadow-sm'
@@ -422,11 +576,10 @@ export default function AdminPortal() {
             )}
 
             {/* ============================================================== */}
-            {/* VIEW 3: USERS & DONOR DIRECTORY (Screenshot 4 Reference)        */}
+            {/* VIEW 3: USERS (Screenshot 4 Reference)                          */}
             {/* ============================================================== */}
             {activeTab === 'donors' && (
               <div className="space-y-6">
-                {/* Header with Metric Summary Chips matching Screenshot 4 */}
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div>
                     <div className="flex items-center space-x-2.5">
@@ -440,7 +593,6 @@ export default function AdminPortal() {
                     </p>
                   </div>
 
-                  {/* Summary Metric Chips matching Screenshot 4 */}
                   <div className="flex items-center space-x-2 shrink-0">
                     <div className="px-3.5 py-1.5 rounded-xl bg-white border border-slate-200 text-center shadow-xs">
                       <span className="block text-[10px] font-extrabold uppercase text-slate-400">TOTAL</span>
@@ -461,7 +613,6 @@ export default function AdminPortal() {
                   </div>
                 </div>
 
-                {/* Search & Filter Bar matching Screenshot 4 */}
                 <div className="bg-white rounded-2xl border border-slate-200/90 p-4 shadow-xs flex flex-col sm:flex-row items-center gap-3">
                   <div className="relative flex-1 w-full">
                     <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
@@ -491,7 +642,7 @@ export default function AdminPortal() {
 
                     <button
                       onClick={loadData}
-                      className="p-2.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-600 transition-colors"
+                      className="p-2.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-600 transition-colors cursor-pointer"
                       title="Refresh"
                     >
                       <RefreshCw className="w-4 h-4" />
@@ -499,7 +650,6 @@ export default function AdminPortal() {
                   </div>
                 </div>
 
-                {/* Users Directory Table matching Screenshot 4 */}
                 <div className="bg-white rounded-2xl border border-slate-200/90 overflow-hidden shadow-xs">
                   <div className="overflow-x-auto">
                     <table className="w-full text-left text-xs">
@@ -556,16 +706,19 @@ export default function AdminPortal() {
                               <div className="inline-flex items-center space-x-2">
                                 <button
                                   onClick={() => setSelectedUserDetail(donor)}
-                                  className="inline-flex items-center space-x-1 px-2.5 py-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold text-[11px] transition-colors cursor-pointer"
+                                  className="px-3 py-1.5 rounded-xl border border-slate-200 hover:bg-slate-100 text-slate-700 font-bold transition-all cursor-pointer"
                                 >
-                                  <Eye className="w-3.5 h-3.5 text-slate-500" />
-                                  <span>View Profile</span>
+                                  Inspect
                                 </button>
                                 <button
-                                  onClick={() => setShowChatModal(true)}
-                                  className="px-2.5 py-1.5 rounded-lg bg-rose-50 text-[#C62828] border border-rose-200 hover:bg-rose-100 font-bold text-[11px] transition-colors cursor-pointer"
+                                  onClick={() => {
+                                    const conv = conversations.find((c) => c.participantId === donor.id);
+                                    if (conv) setSelectedConvId(conv.id);
+                                    setActiveTab('messages');
+                                  }}
+                                  className="px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold transition-all cursor-pointer"
                                 >
-                                  Contact
+                                  Message
                                 </button>
                               </div>
                             </td>
@@ -579,112 +732,446 @@ export default function AdminPortal() {
             )}
 
             {/* ============================================================== */}
-            {/* VIEW 4: NATIONAL BLOOD MATRIX                                   */}
+            {/* VIEW 4: BLOOD MATRIX (National Cryo Matrix)                    */}
             {/* ============================================================== */}
             {activeTab === 'inventory' && (
               <div className="space-y-6">
-                <div className="bg-white rounded-2xl border border-slate-200/90 p-6 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
-                  <div>
-                    <h2 className="text-lg font-extrabold text-slate-900">National Blood Matrix</h2>
-                    <p className="text-xs text-slate-500 mt-1">
-                      Aggregated cryo-storage inventory across all 12 government-approved blood centers in Bangladesh.
-                    </p>
+                <div className="bg-white rounded-2xl border border-slate-200/90 p-6 shadow-xs">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
+                    <div>
+                      <h2 className="text-base font-extrabold text-slate-900">National Blood Bank Cryo-Matrix (8 Groups)</h2>
+                      <p className="text-xs text-slate-500 mt-0.5">
+                        Central inventory levels preserved across registered transfusion facilities in Bangladesh
+                      </p>
+                    </div>
+                    <span className="text-xs font-mono font-bold text-slate-700 bg-slate-100 px-3 py-1.5 rounded-xl border border-slate-200">
+                      Total Network Stock: {Object.values(inventory).reduce((acc, curr) => acc + curr.units, 0)} Bags
+                    </span>
                   </div>
-                  <span className="text-xs font-bold text-slate-700 bg-slate-100 px-3 py-1.5 rounded-xl border border-slate-200">
-                    Network Total: <strong>485 Units</strong>
-                  </span>
-                </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
-                  {bloodGroups.map((bg) => {
-                    const info = inventory[bg] || { units: 15, status: 'NORMAL' as const };
-                    const isCritical = info.units <= 5;
-                    const isLow = info.units > 5 && info.units <= 10;
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-5">
+                    {Object.entries(inventory).map(([bg, data]) => {
+                      const isCritical = data.status === 'CRITICAL';
+                      const isLow = data.status === 'LOW';
+                      const maxCapacity = 50;
+                      const percentage = Math.min(100, Math.round((data.units / maxCapacity) * 100));
 
-                    return (
-                      <div
-                        key={bg}
-                        className={`bg-white rounded-2xl p-5 border shadow-xs transition-all relative overflow-hidden ${
-                          isCritical
-                            ? 'border-rose-300 ring-2 ring-rose-500/10'
-                            : isLow
-                            ? 'border-amber-300'
-                            : 'border-slate-200/90'
-                        }`}
-                      >
-                        <div className="flex items-center justify-between mb-3">
-                          <BloodGroupBadge bloodGroup={bg} size="lg" />
-                          <span
-                            className={`text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full border ${
-                              isCritical
-                                ? 'bg-rose-50 text-rose-800 border-rose-200'
-                                : isLow
-                                ? 'bg-amber-50 text-amber-800 border-amber-200'
-                                : 'bg-emerald-50 text-emerald-800 border-emerald-200'
-                            }`}
-                          >
-                            {info.status}
-                          </span>
-                        </div>
-
-                        <div className="mt-2">
-                          <div className="text-2xl font-black text-slate-900 tracking-tight">
-                            {info.units}{' '}
-                            <span className="text-xs font-medium text-slate-500">Units in Network</span>
+                      return (
+                        <div
+                          key={bg}
+                          className={`p-4.5 rounded-2xl border flex flex-col justify-between space-y-3.5 transition-all shadow-xs ${
+                            isCritical
+                              ? 'border-red-300 bg-red-50/40 ring-1 ring-red-400'
+                              : isLow
+                              ? 'border-amber-300 bg-amber-50/40'
+                              : 'border-slate-200 bg-white hover:border-slate-300'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <BloodGroupBadge bloodGroup={bg} size="lg" />
+                            <StatusPill status={data.status} />
                           </div>
-                          <div className="w-full bg-slate-100 h-2 rounded-full mt-3 overflow-hidden">
-                            <div
-                              className={`h-full rounded-full transition-all duration-500 ${
-                                isCritical ? 'bg-rose-500' : isLow ? 'bg-amber-500' : 'bg-emerald-500'
-                              }`}
-                              style={{ width: `${Math.min((info.units / 45) * 100, 100)}%` }}
-                            />
+
+                          <div>
+                            <div className="flex items-baseline space-x-1.5">
+                              <span className="text-3xl font-black text-slate-900 tracking-tight">
+                                {data.units}
+                              </span>
+                              <span className="text-xs text-slate-500 font-semibold">Units</span>
+                            </div>
+
+                            <div className="mt-2.5 w-full bg-slate-100 rounded-full h-2 overflow-hidden border border-slate-200">
+                              <div
+                                className={`h-2 rounded-full transition-all duration-500 ${
+                                  isCritical
+                                    ? 'bg-red-600'
+                                    : isLow
+                                    ? 'bg-amber-500'
+                                    : 'bg-emerald-600'
+                                }`}
+                                style={{ width: `${percentage}%` }}
+                              />
+                            </div>
+                          </div>
+
+                          <div className="flex items-center justify-between text-[11px] text-slate-500 font-medium pt-1 border-t border-slate-100">
+                            <span>Network Quota: {percentage}%</span>
+                            <span className="font-semibold text-slate-700">Storage 2°C-6°C</span>
                           </div>
                         </div>
-                      </div>
-                    );
-                  })}
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
             )}
 
             {/* ============================================================== */}
-            {/* VIEW 5: SECURITY & SYSTEM AUDIT LOGS (Screenshot 1 Reference)   */}
+            {/* VIEW 5: MESSAGES (In-Page Right Space - NOT A MODAL!)          */}
+            {/* ============================================================== */}
+            {activeTab === 'messages' && (
+              <div className="bg-white rounded-2xl border border-slate-200/90 shadow-xs h-[calc(100vh-10.5rem)] flex flex-col overflow-hidden">
+                {/* Messages Top Bar */}
+                <div className="px-6 py-3.5 bg-[#0B1528] text-white flex items-center justify-between shrink-0">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-9 h-9 rounded-xl bg-[#C62828] text-white flex items-center justify-center shadow-md">
+                      <MessageSquare className="w-4.5 h-4.5" />
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-extrabold text-white flex items-center space-x-2">
+                        <span>Direct Donor Communications</span>
+                        <span className="text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded-full">
+                          Mobile App Synced
+                        </span>
+                      </h3>
+                      <p className="text-[11px] text-slate-300">
+                        Real-time live chat thread synchronized with registered citizen donors across Bangladesh
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <span className="text-[11px] text-slate-400 font-medium">
+                      {conversations.length} Active Donor Threads
+                    </span>
+                  </div>
+                </div>
+
+                {/* 2-Column Split Workspace */}
+                <div className="flex-1 flex overflow-hidden">
+                  {/* Left Column: Conversation Directory */}
+                  <div className="w-80 border-r border-slate-200 flex flex-col bg-slate-50 shrink-0">
+                    <div className="p-3 border-b border-slate-200 bg-white">
+                      <div className="relative">
+                        <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                        <input
+                          type="text"
+                          placeholder="Search donor, district or group..."
+                          value={chatSearchQuery}
+                          onChange={(e) => setChatSearchQuery(e.target.value)}
+                          className="w-full pl-8 pr-3 py-2 rounded-xl border border-slate-200 text-xs bg-slate-50 focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#C62828]"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex-1 overflow-y-auto divide-y divide-slate-100">
+                      {filteredConversations.map((c) => {
+                        const isSelected = c.id === selectedConvId;
+                        return (
+                          <button
+                            key={c.id}
+                            onClick={() => setSelectedConvId(c.id)}
+                            className={`w-full p-3.5 text-left flex items-start space-x-3 transition-colors cursor-pointer ${
+                              isSelected ? 'bg-white border-l-4 border-[#C62828] shadow-xs' : 'hover:bg-slate-100/70'
+                            }`}
+                          >
+                            <div className="relative shrink-0">
+                              <div className="w-10 h-10 rounded-full bg-slate-800 text-white font-bold flex items-center justify-center text-xs">
+                                {c.participantName.charAt(0)}
+                              </div>
+                              <span className="absolute -bottom-1 -right-1">
+                                <BloodGroupBadge bloodGroup={c.participantBloodGroup} size="sm" />
+                              </span>
+                            </div>
+
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center justify-between mb-0.5">
+                                <span className="text-xs font-bold text-slate-900 truncate">
+                                  {c.participantName}
+                                </span>
+                                <span className="text-[10px] text-slate-400">{c.lastMessageTime}</span>
+                              </div>
+                              <p className="text-[11px] text-slate-500 truncate leading-snug">
+                                {c.lastMessage}
+                              </p>
+                              <div className="flex items-center space-x-2 mt-1 text-[10px] text-slate-400">
+                                <span className="flex items-center">
+                                  <MapPin className="w-2.5 h-2.5 mr-0.5" />
+                                  {c.participantDistrict}
+                                </span>
+                              </div>
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Right Column: Live Chat Thread */}
+                  <div className="flex-1 flex flex-col bg-white">
+                    {/* Chat Header */}
+                    <div className="p-3.5 px-6 border-b border-slate-200 flex items-center justify-between bg-slate-50/50 shrink-0">
+                      <div className="flex items-center space-x-3">
+                        <div className="w-10 h-10 rounded-full bg-slate-800 text-white font-bold flex items-center justify-center text-xs">
+                          {currentConv.participantName.charAt(0)}
+                        </div>
+                        <div>
+                          <div className="flex items-center space-x-2">
+                            <h4 className="text-sm font-bold text-slate-900">{currentConv.participantName}</h4>
+                            <BloodGroupBadge bloodGroup={currentConv.participantBloodGroup} size="sm" />
+                            <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                              Verified Donor
+                            </span>
+                          </div>
+                          <span className="text-[11px] text-slate-500 flex items-center space-x-2 mt-0.5">
+                            <span>{currentConv.participantDistrict}, Bangladesh</span>
+                            <span>&bull;</span>
+                            <span className="font-mono">{currentConv.participantPhone}</span>
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center space-x-2">
+                        <a
+                          href={`tel:${currentConv.participantPhone}`}
+                          className="px-3 py-1.5 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-100 text-xs font-bold flex items-center space-x-1.5 transition-colors"
+                        >
+                          <Phone className="w-3.5 h-3.5 text-[#C62828]" />
+                          <span>Call Donor</span>
+                        </a>
+                      </div>
+                    </div>
+
+                    {/* Messages Body */}
+                    <div className="flex-1 p-5 overflow-y-auto space-y-3.5 bg-[#F8FAFC]">
+                      <div className="flex justify-center my-2">
+                        <span className="text-[10px] font-bold text-slate-400 bg-white border border-slate-200 px-3 py-1 rounded-full uppercase tracking-wider">
+                          Encrypted Live Session &bull; Monday, Oct 12, 2026
+                        </span>
+                      </div>
+
+                      {currentConv.messages.map((m) => (
+                        <div
+                          key={m.id}
+                          className={`flex flex-col ${m.isMe ? 'items-end' : 'items-start'}`}
+                        >
+                          <div
+                            className={`max-w-md px-4 py-2.5 rounded-2xl text-xs shadow-2xs ${
+                              m.isMe
+                                ? 'bg-[#C62828] text-white rounded-br-xs'
+                                : 'bg-white text-slate-800 border border-slate-200 rounded-bl-xs'
+                            }`}
+                          >
+                            <p className="leading-relaxed whitespace-pre-wrap">{m.text}</p>
+                          </div>
+                          <div className="flex items-center space-x-1 mt-1 text-[10px] text-slate-400 px-1">
+                            <span>{m.timestamp}</span>
+                            {m.isMe && <CheckCheck className="w-3 h-3 text-emerald-600" />}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Quick Suggestion Chips */}
+                    <div className="px-5 py-2 bg-slate-50 border-t border-slate-100 flex items-center space-x-2 overflow-x-auto shrink-0">
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider shrink-0">Quick Prompts:</span>
+                      {[
+                        'Are you available to donate today?',
+                        'Can you proceed to DMC Hospital OT-3?',
+                        'Emergency cross-matching complete.',
+                      ].map((prompt) => (
+                        <button
+                          key={prompt}
+                          onClick={() => setMessageInput(prompt)}
+                          className="px-2.5 py-1 rounded-lg bg-white border border-slate-200 hover:border-[#C62828] hover:text-[#C62828] text-slate-600 text-[11px] font-medium transition-colors shrink-0 cursor-pointer"
+                        >
+                          {prompt}
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Input Bar */}
+                    <form onSubmit={handleSendMessage} className="p-3.5 px-5 border-t border-slate-200 bg-white flex items-center space-x-3 shrink-0">
+                      <input
+                        type="text"
+                        placeholder={`Type direct message to ${currentConv.participantName}...`}
+                        value={messageInput}
+                        onChange={(e) => setMessageInput(e.target.value)}
+                        className="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 text-xs focus:outline-none focus:ring-2 focus:ring-[#C62828]/20 focus:border-[#C62828]"
+                      />
+                      <button
+                        type="submit"
+                        disabled={!messageInput.trim()}
+                        className="px-5 py-2.5 rounded-xl bg-[#C62828] hover:bg-[#B71C1C] text-white font-bold text-xs flex items-center space-x-1.5 shadow-md shadow-[#C62828]/20 transition-all cursor-pointer disabled:opacity-50"
+                      >
+                        <Send className="w-3.5 h-3.5" />
+                        <span>Send</span>
+                      </button>
+                    </form>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* ============================================================== */}
+            {/* VIEW 6: NOTIFICATIONS (In-Page Feed)                           */}
+            {/* ============================================================== */}
+            {activeTab === 'notifications' && (
+              <div className="space-y-6">
+                {/* Header Card */}
+                <div className="bg-white rounded-2xl border border-slate-200/90 p-6 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div>
+                    <div className="flex items-center space-x-2.5">
+                      <div className="w-9 h-9 rounded-xl bg-slate-900 text-white flex items-center justify-center font-bold">
+                        <Bell className="w-4.5 h-4.5 text-white" />
+                      </div>
+                      <div>
+                        <h2 className="text-xl font-black text-slate-900 tracking-tight">System Notification Center</h2>
+                        <span className="text-[11px] text-slate-500">
+                          Real-time platform dispatches, mobile push delivery logs, facility verifications & audit alerts
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center space-x-2 shrink-0">
+                    <button
+                      onClick={markAllNotificationsAsRead}
+                      className="px-3.5 py-2 rounded-xl border border-slate-200 hover:bg-slate-100 text-slate-700 font-bold text-xs transition-colors cursor-pointer"
+                    >
+                      Mark All as Read
+                    </button>
+                  </div>
+                </div>
+
+                {/* Filter Tabs */}
+                <div className="flex flex-wrap items-center gap-2">
+                  {([
+                    { id: 'all', label: `ALL (${notifications.length})` },
+                    { id: 'unread', label: `UNREAD (${unreadNotificationsCount})` },
+                    { id: 'EMERGENCY', label: `EMERGENCY (${notifications.filter((n) => n.type === 'EMERGENCY').length})` },
+                    { id: 'APPROVAL', label: `APPROVALS (${notifications.filter((n) => n.type === 'APPROVAL').length})` },
+                    { id: 'SYSTEM', label: `SYSTEM (${notifications.filter((n) => n.type === 'SYSTEM' || n.type === 'SUCCESS').length})` },
+                  ] as const).map((tab) => (
+                    <button
+                      key={tab.id}
+                      onClick={() => setNotificationFilter(tab.id)}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                        notificationFilter === tab.id
+                          ? 'bg-[#C62828] text-white shadow-xs'
+                          : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
+                      }`}
+                    >
+                      {tab.label}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Notification Feed List */}
+                <div className="space-y-3.5">
+                  {filteredNotifications.map((n) => (
+                    <div
+                      key={n.id}
+                      className={`p-5 rounded-2xl border transition-all flex flex-col sm:flex-row items-start justify-between gap-4 shadow-xs ${
+                        !n.isRead
+                          ? 'bg-white border-[#C62828]/40 ring-1 ring-[#C62828]/15'
+                          : 'bg-white border-slate-200/90'
+                      }`}
+                    >
+                      <div className="flex items-start space-x-3.5 flex-1">
+                        <div
+                          className={`w-10 h-10 rounded-2xl flex items-center justify-center font-bold shrink-0 shadow-2xs ${
+                            n.type === 'EMERGENCY'
+                              ? 'bg-rose-50 border border-rose-200 text-[#C62828]'
+                              : n.type === 'APPROVAL'
+                              ? 'bg-blue-50 border border-blue-200 text-blue-600'
+                              : n.type === 'SUCCESS'
+                              ? 'bg-emerald-50 border border-emerald-200 text-emerald-600'
+                              : 'bg-purple-50 border border-purple-200 text-purple-600'
+                          }`}
+                        >
+                          {n.type === 'EMERGENCY' ? (
+                            <Zap className="w-5 h-5 animate-pulse" />
+                          ) : n.type === 'APPROVAL' ? (
+                            <FileCheck2 className="w-5 h-5" />
+                          ) : n.type === 'SUCCESS' ? (
+                            <CheckCircle2 className="w-5 h-5" />
+                          ) : (
+                            <Shield className="w-5 h-5" />
+                          )}
+                        </div>
+
+                        <div className="space-y-1">
+                          <div className="flex items-center space-x-2">
+                            <span
+                              className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded ${
+                                n.type === 'EMERGENCY'
+                                  ? 'bg-[#FFEBEE] text-[#C62828]'
+                                  : n.type === 'APPROVAL'
+                                  ? 'bg-blue-50 text-blue-700'
+                                  : n.type === 'SUCCESS'
+                                  ? 'bg-emerald-50 text-emerald-700'
+                                  : 'bg-purple-50 text-purple-700'
+                              }`}
+                            >
+                              {n.type}
+                            </span>
+                            <span className="text-xs text-slate-400">&bull;</span>
+                            <span className="text-xs text-slate-400 font-medium">{n.timestamp}</span>
+                            {!n.isRead && (
+                              <span className="w-2 h-2 rounded-full bg-[#C62828] animate-pulse" />
+                            )}
+                          </div>
+
+                          <h4 className="text-sm font-extrabold text-slate-900">{n.title}</h4>
+                          <p className="text-xs text-slate-600 leading-relaxed">{n.description}</p>
+                          {n.targetInfo && (
+                            <div className="text-[11px] font-mono text-slate-500 bg-slate-50 p-2 rounded-lg border border-slate-200/80 mt-1">
+                              {n.targetInfo}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {n.actionLabel && n.actionTab && (
+                        <div className="shrink-0 self-end sm:self-center">
+                          <button
+                            onClick={() => {
+                              setNotifications((prev) =>
+                                prev.map((item) => (item.id === n.id ? { ...item, isRead: true } : item))
+                              );
+                              if (n.actionTab) setActiveTab(n.actionTab);
+                            }}
+                            className="inline-flex items-center space-x-1.5 px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs transition-all cursor-pointer shadow-xs"
+                          >
+                            <span>{n.actionLabel}</span>
+                            <ArrowRight className="w-3.5 h-3.5 text-slate-300" />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* ============================================================== */}
+            {/* VIEW 7: AUDIT LOGS (Screenshot 1 Reference)                     */}
             {/* ============================================================== */}
             {activeTab === 'audit' && (
               <div className="space-y-6">
-                {/* Page Header matching Screenshot 1 */}
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div>
                     <div className="flex items-center space-x-2.5">
                       <div className="w-8 h-8 rounded-xl bg-slate-900 text-white flex items-center justify-center font-bold">
                         <Shield className="w-4 h-4 text-white" />
                       </div>
-                      <h2 className="text-xl font-black text-slate-900 tracking-tight">
-                        Security & System Audit Logs
-                      </h2>
+                      <h2 className="text-xl font-black text-slate-900 tracking-tight">Security & Audit Logs</h2>
                     </div>
                     <p className="text-xs text-slate-500 mt-1">
-                      Real-time immutable audit trail of system activities, user authentication, and data modifications.
+                      Cryptographically tracked administrative actions, status advancements, and inventory movements.
                     </p>
                   </div>
-
-                  <button
-                    onClick={loadData}
-                    className="inline-flex items-center space-x-2 px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs shadow-sm transition-all cursor-pointer shrink-0"
-                  >
-                    <RefreshCw className="w-3.5 h-3.5" />
-                    <span>Refresh Logs</span>
-                  </button>
+                  <span className="text-xs font-mono font-bold text-slate-700 bg-white border border-slate-200 px-3.5 py-1.5 rounded-xl self-start sm:self-auto shadow-xs">
+                    {filteredAuditLogs.length} Verified Entries
+                  </span>
                 </div>
 
-                {/* Filter & Search Bar matching Screenshot 1 */}
                 <div className="bg-white rounded-2xl border border-slate-200/90 p-4 shadow-xs flex flex-col md:flex-row items-center gap-3">
                   <div className="relative flex-1 w-full">
                     <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                     <input
                       type="text"
-                      placeholder="Search by user email, resource ID, or IP address..."
+                      placeholder="Search by user, IP address, resource ID, or details..."
                       value={auditSearchQuery}
                       onChange={(e) => setAuditSearchQuery(e.target.value)}
                       className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 text-xs bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#C62828]"
@@ -720,7 +1207,6 @@ export default function AdminPortal() {
                   </div>
                 </div>
 
-                {/* Audit Logs Table matching Screenshot 1 */}
                 <div className="bg-white rounded-2xl border border-slate-200/90 overflow-hidden shadow-xs">
                   <div className="overflow-x-auto">
                     <table className="w-full text-left text-xs">
@@ -788,11 +1274,10 @@ export default function AdminPortal() {
             )}
 
             {/* ============================================================== */}
-            {/* VIEW 6: SYSTEM SETTINGS / PROFILE (Screenshot 3 Reference)      */}
+            {/* VIEW 8: SETTINGS / PROFILE (Screenshot 3 Reference)            */}
             {/* ============================================================== */}
             {activeTab === 'settings' && (
               <div className="space-y-6 max-w-4xl">
-                {/* Hero Profile Banner matching Screenshot 3 */}
                 <div className="bg-[#0B1528] rounded-3xl p-6 sm:p-8 text-white relative overflow-hidden shadow-xl border border-slate-800">
                   <div className="flex flex-col sm:flex-row items-center sm:items-start space-y-4 sm:space-y-0 sm:space-x-6">
                     <div className="w-24 h-24 rounded-3xl bg-white/10 border-2 border-emerald-500/40 p-2 flex items-center justify-center shrink-0">
@@ -801,8 +1286,8 @@ export default function AdminPortal() {
                       </div>
                     </div>
 
-                    <div className="flex-1 text-center sm:text-left">
-                      <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 mb-2">
+                    <div className="flex-1 text-center sm:text-left space-y-1">
+                      <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
                         <h2 className="text-xl font-black text-white">{user.name}</h2>
                         <span className="text-[10px] font-extrabold uppercase px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
                           ADMIN
@@ -823,7 +1308,6 @@ export default function AdminPortal() {
                         </div>
                       </div>
 
-                      {/* Profile Health Bar matching Screenshot 3 */}
                       <div className="mt-4 pt-3 border-t border-white/10 max-w-xs">
                         <div className="flex justify-between text-[11px] font-bold mb-1">
                           <span className="text-slate-400">Profile Health</span>
@@ -840,7 +1324,6 @@ export default function AdminPortal() {
                   </div>
                 </div>
 
-                {/* Personal & Contact Information Card matching Screenshot 3 */}
                 <div className="bg-white rounded-2xl border border-slate-200/90 p-6 sm:p-7 shadow-xs space-y-5">
                   <div className="flex items-center justify-between pb-3 border-b border-slate-100">
                     <div>
@@ -867,38 +1350,39 @@ export default function AdminPortal() {
                         className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 font-semibold text-slate-900"
                       />
                     </div>
+
                     <div>
                       <label className="block font-bold text-slate-700 uppercase tracking-wider text-[11px] mb-1">
-                        Primary Email
+                        Official Email
                       </label>
                       <input
                         type="email"
                         readOnly
                         value={user.email}
-                        className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 font-semibold text-slate-900"
+                        className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 font-mono text-slate-900"
                       />
-                      <span className="text-[10px] text-slate-400 mt-1 block">Account login email cannot be changed</span>
                     </div>
 
                     <div>
                       <label className="block font-bold text-slate-700 uppercase tracking-wider text-[11px] mb-1">
-                        Phone Number
-                      </label>
-                      <input
-                        type="tel"
-                        readOnly
-                        value="+880222334455"
-                        className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 font-semibold text-slate-900"
-                      />
-                    </div>
-                    <div>
-                      <label className="block font-bold text-slate-700 uppercase tracking-wider text-[11px] mb-1">
-                        System Access Role
+                        Administrative Role
                       </label>
                       <input
                         type="text"
                         readOnly
-                        value="SUPER ADMINISTRATOR / NATIONAL NOC"
+                        value="Platform Super Administrator"
+                        className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 font-semibold text-slate-900"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block font-bold text-slate-700 uppercase tracking-wider text-[11px] mb-1">
+                        Operating District
+                      </label>
+                      <input
+                        type="text"
+                        readOnly
+                        value="Dhaka (National Directorate)"
                         className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 font-semibold text-slate-900"
                       />
                     </div>
@@ -921,9 +1405,6 @@ export default function AdminPortal() {
           </main>
         </div>
 
-        {/* Direct Donor Messaging Modal (Mobile App Sync) */}
-        <DirectChatModal isOpen={showChatModal} onClose={() => setShowChatModal(false)} />
-
         {/* Audit Log Detail Modal */}
         {selectedAuditLog && (
           <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
@@ -935,7 +1416,7 @@ export default function AdminPortal() {
                 </div>
                 <button
                   onClick={() => setSelectedAuditLog(null)}
-                  className="text-slate-400 hover:text-slate-600 text-lg font-bold"
+                  className="text-slate-400 hover:text-slate-600 text-lg font-bold cursor-pointer"
                 >
                   &times;
                 </button>
@@ -973,7 +1454,7 @@ export default function AdminPortal() {
               <div className="pt-2 flex justify-end">
                 <button
                   onClick={() => setSelectedAuditLog(null)}
-                  className="px-4 py-2 rounded-xl bg-slate-900 text-white font-bold text-xs"
+                  className="px-4 py-2 rounded-xl bg-slate-900 text-white font-bold text-xs cursor-pointer"
                 >
                   Close
                 </button>
@@ -998,7 +1479,7 @@ export default function AdminPortal() {
                 </div>
                 <button
                   onClick={() => setSelectedUserDetail(null)}
-                  className="text-slate-400 hover:text-slate-600 text-lg font-bold"
+                  className="text-slate-400 hover:text-slate-600 text-lg font-bold cursor-pointer"
                 >
                   &times;
                 </button>
@@ -1015,29 +1496,31 @@ export default function AdminPortal() {
                 </div>
                 <div className="flex justify-between py-1.5 border-b border-slate-100">
                   <span className="text-slate-400">Total Donations:</span>
-                  <span className="font-bold text-slate-900">{selectedUserDetail.totalDonations || 0} times</span>
+                  <span className="font-bold text-slate-900">{selectedUserDetail?.totalDonations || 0} times</span>
                 </div>
                 <div className="flex justify-between py-1.5 border-b border-slate-100">
                   <span className="text-slate-400">Eligibility Status:</span>
-                  <span className={`font-bold ${selectedUserDetail.canDonate ? 'text-emerald-600' : 'text-slate-400'}`}>
-                    {selectedUserDetail.canDonate ? 'Eligible to Donate' : 'In 90-Day Cooldown'}
+                  <span className={`font-bold ${selectedUserDetail?.canDonate ? 'text-emerald-600' : 'text-slate-400'}`}>
+                    {selectedUserDetail?.canDonate ? 'Eligible to Donate' : 'In 90-Day Cooldown'}
                   </span>
                 </div>
               </div>
 
               <div className="pt-3 flex justify-between space-x-2">
                 <a
-                  href={`tel:${selectedUserDetail.phone}`}
+                  href={`tel:${selectedUserDetail?.phone || ''}`}
                   className="flex-1 py-2 rounded-xl bg-emerald-50 text-emerald-800 border border-emerald-200 font-bold text-center"
                 >
                   Call Donor
                 </a>
                 <button
                   onClick={() => {
+                    const conv = conversations.find((c) => c.participantId === selectedUserDetail.id);
+                    if (conv) setSelectedConvId(conv.id);
                     setSelectedUserDetail(null);
-                    setShowChatModal(true);
+                    setActiveTab('messages');
                   }}
-                  className="flex-1 py-2 rounded-xl bg-[#C62828] text-white font-bold"
+                  className="flex-1 py-2 rounded-xl bg-[#C62828] text-white font-bold cursor-pointer"
                 >
                   Send Message
                 </button>

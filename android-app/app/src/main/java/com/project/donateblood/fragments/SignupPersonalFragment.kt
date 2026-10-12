@@ -1,17 +1,26 @@
 package com.project.donateblood.fragments
 
 import android.annotation.SuppressLint
+import android.app.Activity
 import android.app.DatePickerDialog
+import android.net.Uri
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
+import com.github.dhaval2404.imagepicker.ImagePicker
 import com.project.donateblood.R
 import com.project.donateblood.databinding.FragmentSignupPersonalBinding
+import com.project.donateblood.utils.ProfileImageManager
 import com.project.donateblood.utils.SignupData
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.util.Calendar
 import java.util.regex.Pattern
 
@@ -19,6 +28,21 @@ class SignupPersonalFragment : Fragment() {
 
     private var _binding: FragmentSignupPersonalBinding? = null
     private val binding get() = _binding!!
+
+    private val imagePickerLauncher =
+        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+            val resultCode = result.resultCode
+            val data = result.data
+
+            if (resultCode == Activity.RESULT_OK) {
+                val fileUri: Uri? = data?.data
+                if (fileUri != null) {
+                    processProfileImage(fileUri)
+                }
+            } else if (resultCode == ImagePicker.RESULT_ERROR) {
+                Toast.makeText(requireContext(), ImagePicker.getError(data), Toast.LENGTH_SHORT).show()
+            }
+        }
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -32,6 +56,14 @@ class SignupPersonalFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        // Restore avatar if already selected
+        if (SignupData.profileImage.isNotBlank()) {
+            ProfileImageManager.loadAvatar(binding.ivProfile, SignupData.profileImage)
+        }
+
+        binding.ivProfile.setOnClickListener { showAvatarOptions() }
+        binding.ivCamera.setOnClickListener { showAvatarOptions() }
+
         binding.etDateOfBirth.setOnClickListener { showDatePicker() }
 
         binding.btnNextSignup.setOnClickListener {
@@ -40,6 +72,46 @@ class SignupPersonalFragment : Fragment() {
 
         binding.tvLogin.setOnClickListener {
             findNavController().navigate(R.id.action_signupPersonalFragment_to_loginFragment)
+        }
+    }
+
+    private fun showAvatarOptions() {
+        val hasExistingPhoto = SignupData.profileImage.isNotBlank()
+        ProfileImageManager.showAvatarOptionsDialog(
+            context = requireContext(),
+            hasExistingPhoto = hasExistingPhoto,
+            onTakePhoto = {
+                ProfileImageManager.launchCamera(this, imagePickerLauncher)
+            },
+            onChooseGallery = {
+                ProfileImageManager.launchGallery(this, imagePickerLauncher)
+            },
+            onRemovePhoto = {
+                SignupData.profileImage = ""
+                binding.ivProfile.setImageResource(R.drawable.ic_user_placeholder)
+                Toast.makeText(requireContext(), "Profile photo removed", Toast.LENGTH_SHORT).show()
+            }
+        )
+    }
+
+    private fun processProfileImage(uri: Uri) {
+        lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                val dataUrl = ProfileImageManager.processAndCompressImage(requireContext(), uri)
+                withContext(Dispatchers.Main) {
+                    if (dataUrl != null) {
+                        SignupData.profileImage = dataUrl
+                        ProfileImageManager.loadAvatar(binding.ivProfile, dataUrl)
+                        Toast.makeText(requireContext(), "Profile photo selected", Toast.LENGTH_SHORT).show()
+                    } else {
+                        Toast.makeText(requireContext(), "Failed to process photo", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(requireContext(), "Error processing photo: ${e.message}", Toast.LENGTH_SHORT).show()
+                }
+            }
         }
     }
 

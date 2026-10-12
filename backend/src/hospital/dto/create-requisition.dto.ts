@@ -3,9 +3,9 @@ import { IsNotEmpty, IsString, IsNumber, IsOptional, IsIn } from 'class-validato
 
 export class CreateRequisitionDto {
   @ApiProperty({ example: 'Dhaka Medical College Hospital' })
-  @IsNotEmpty()
+  @IsOptional()
   @IsString()
-  hospitalName: string;
+  hospitalName?: string;
 
   @ApiProperty({ example: 'O+' })
   @IsNotEmpty()
@@ -39,12 +39,17 @@ export class CreateRequisitionDto {
   district: string;
 
   @ApiProperty({ example: '+8801711000000' })
-  @IsNotEmpty()
+  @IsOptional()
   @IsString()
-  contactPhone: string;
+  contactPhone?: string;
 
   @ApiProperty({ example: 'Severe anemia following emergency surgery' })
   @IsOptional()
   @IsString()
   medicalReason?: string;
+
+  @ApiProperty({ example: 'Please send donors directly to Room 402' })
+  @IsOptional()
+  @IsString()
+  notes?: string;
 }

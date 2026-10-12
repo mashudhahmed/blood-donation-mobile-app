@@ -8,6 +8,7 @@ import { AdminModule } from './admin/admin.module';
 import { HospitalModule } from './hospital/hospital.module';
 import { BloodBankModule } from './bloodbank/bloodbank.module';
 import { AuthModule } from './auth/auth.module';
+import { ChatModule } from './chat/chat.module';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { AuthModule } from './auth/auth.module';
     }),
     FirebaseModule,
     AuthModule,
+    ChatModule,
     BloodModule,
     MatchingModule,
     NotificationsModule,

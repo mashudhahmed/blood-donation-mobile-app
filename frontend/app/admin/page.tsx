@@ -36,13 +36,9 @@ import {
   SystemAuditLog,
   Conversation,
   ChatMessage,
-  MOCK_ADMIN_METRICS,
-  MOCK_DONORS,
-  MOCK_HOSPITALS,
-  MOCK_INVENTORY,
-  MOCK_SYSTEM_AUDIT_LOGS,
-  MOCK_REQUISITIONS,
-  MOCK_CONVERSATIONS,
+  Organization,
+  Requisition,
+  AdminMetrics,
 } from '@/lib/api';
 
 export type AdminTab =
@@ -70,16 +66,28 @@ interface AdminNotification {
 export default function AdminPortal() {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<AdminTab>('overview');
-  const [metrics, setMetrics] = useState(MOCK_ADMIN_METRICS);
-  const [hospitals, setHospitals] = useState(MOCK_HOSPITALS);
-  const [donors, setDonors] = useState<Donor[]>(MOCK_DONORS);
-  const [inventory, setInventory] = useState(MOCK_INVENTORY);
-  const [auditLogs, setAuditLogs] = useState<SystemAuditLog[]>(MOCK_SYSTEM_AUDIT_LOGS);
+  const [metrics, setMetrics] = useState<AdminMetrics>({
+    totalUsers: 0,
+    totalDonors: 0,
+    availableDonors: 0,
+    totalRequests: 0,
+    activeRequests: 0,
+    fulfilledRequests: 0,
+    totalHospitals: 0,
+    totalBloodBanks: 0,
+    donorBloodDistribution: { 'A+': 0, 'A-': 0, 'B+': 0, 'B-': 0, 'O+': 0, 'O-': 0, 'AB+': 0, 'AB-': 0 },
+    bloodGroupDemand: { 'A+': 0, 'A-': 0, 'B+': 0, 'B-': 0, 'O+': 0, 'O-': 0, 'AB+': 0, 'AB-': 0 },
+  });
+  const [hospitals, setHospitals] = useState<Organization[]>([]);
+  const [donors, setDonors] = useState<Donor[]>([]);
+  const [inventory, setInventory] = useState<Record<string, { units: number; status: 'CRITICAL' | 'LOW' | 'NORMAL' | 'ABUNDANT' }>>({});
+  const [auditLogs, setAuditLogs] = useState<SystemAuditLog[]>([]);
+  const [requisitions, setRequisitions] = useState<Requisition[]>([]);
   const [feedbackMsg, setFeedbackMsg] = useState<string | null>(null);
 
   // In-Page Messages State
-  const [conversations, setConversations] = useState<Conversation[]>(MOCK_CONVERSATIONS);
-  const [selectedConvId, setSelectedConvId] = useState<string>(MOCK_CONVERSATIONS[0].id);
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [selectedConvId, setSelectedConvId] = useState<string>('');
   const [chatSearchQuery, setChatSearchQuery] = useState('');
   const [messageInput, setMessageInput] = useState('');
 
@@ -167,17 +175,40 @@ export default function AdminPortal() {
 
   const loadData = useCallback(async () => {
     try {
-      const mRes = await api.getAdminMetrics();
-      if (mRes?.metrics) setMetrics(mRes.metrics);
+      const [mRes, orgRes, dRes, invRes, aRes, reqRes, convRes] = await Promise.allSettled([
+        api.getAdminMetrics(),
+        api.getOrganizations('hospital'),
+        api.getAdminDonors(),
+        api.getInventory(),
+        api.getSystemAuditLogs(),
+        api.getHospitalRequisitions(),
+        api.getConversations(),
+      ]);
 
-      const dRes = await api.getAdminDonors();
-      if (dRes?.donors) setDonors(dRes.donors);
-
-      const invRes = await api.getInventory();
-      if (invRes?.inventory) setInventory(invRes.inventory);
-
-      const aRes = await api.getSystemAuditLogs();
-      if (aRes?.logs) setAuditLogs(aRes.logs);
+      if (mRes.status === 'fulfilled' && mRes.value?.metrics) {
+        setMetrics((prev) => ({ ...prev, ...mRes.value.metrics }));
+      }
+      if (orgRes.status === 'fulfilled' && orgRes.value?.organizations) {
+        setHospitals(orgRes.value.organizations);
+      }
+      if (dRes.status === 'fulfilled' && dRes.value?.donors) {
+        setDonors(dRes.value.donors);
+      }
+      if (invRes.status === 'fulfilled' && invRes.value?.inventory) {
+        setInventory(invRes.value.inventory);
+      }
+      if (aRes.status === 'fulfilled' && aRes.value?.logs) {
+        setAuditLogs(aRes.value.logs);
+      }
+      if (reqRes.status === 'fulfilled' && reqRes.value?.requisitions) {
+        setRequisitions(reqRes.value.requisitions);
+      }
+      if (convRes.status === 'fulfilled' && convRes.value?.conversations) {
+        setConversations(convRes.value.conversations);
+        if (convRes.value.conversations.length > 0) {
+          setSelectedConvId((prev) => prev || convRes.value.conversations[0].id);
+        }
+      }
     } catch (err) {
       console.warn('Admin fetch error', err);
     }
@@ -270,7 +301,7 @@ export default function AdminPortal() {
     setMessageInput('');
   };
 
-  const currentConv = conversations.find((c) => c.id === selectedConvId) || conversations[0];
+  const currentConv = conversations.find((c) => c.id === selectedConvId) || conversations[0] || null;
   const filteredConversations = conversations.filter(
     (c) =>
       c.participantName.toLowerCase().includes(chatSearchQuery.toLowerCase()) ||
@@ -417,7 +448,7 @@ export default function AdminPortal() {
                         ACTIVE BROADCASTS
                       </span>
                       <div className="text-2xl font-black text-[#C62828] mt-1 tracking-tight">
-                        {metrics.activeUrgentRequests}
+                        {metrics.activeRequests || metrics.activeUrgentRequests || 0}
                       </div>
                       <span className="text-xs text-slate-500 font-medium mt-0.5 block">
                         Emergency FCM dispatches
@@ -466,32 +497,39 @@ export default function AdminPortal() {
                     </button>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {MOCK_REQUISITIONS.slice(0, 3).map((req) => (
-                      <div
-                        key={req.id}
-                        className="p-4 rounded-xl border border-slate-200 bg-slate-50/50 flex flex-col justify-between space-y-3"
-                      >
-                        <div className="flex items-start justify-between">
-                          <div className="flex items-center space-x-2.5">
-                            <BloodGroupBadge bloodGroup={req.bloodGroup} size="sm" />
-                            <div>
-                              <h4 className="font-extrabold text-slate-900 text-xs">Patient: {req.patientName}</h4>
-                              <span className="text-[11px] text-slate-500">{req.hospitalName}</span>
+                  {requisitions.length === 0 ? (
+                    <div className="p-8 text-center bg-slate-50 rounded-xl border border-dashed border-slate-200">
+                      <p className="text-xs font-bold text-slate-600">No active emergency requisitions in the network</p>
+                      <p className="text-[11px] text-slate-400 mt-1">Clinical requests submitted by hospitals or mobile users will display here in real-time.</p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {requisitions.slice(0, 3).map((req) => (
+                        <div
+                          key={req.id}
+                          className="p-4 rounded-xl border border-slate-200 bg-slate-50/50 flex flex-col justify-between space-y-3"
+                        >
+                          <div className="flex items-start justify-between">
+                            <div className="flex items-center space-x-2.5">
+                              <BloodGroupBadge bloodGroup={req.bloodGroup} size="sm" />
+                              <div>
+                                <h4 className="font-extrabold text-slate-900 text-xs">Patient: {req.patientName}</h4>
+                                <span className="text-[11px] text-slate-500">{req.hospitalName || req.hospital || 'Dhaka Medical College'}</span>
+                              </div>
                             </div>
+                            <StatusPill status={req.urgency} />
                           </div>
-                          <StatusPill status={req.urgency} />
+                          <div className="text-[11px] text-slate-600 bg-white p-2.5 rounded-lg border border-slate-200/80">
+                            <strong>Note:</strong> {req.notes || req.medicalReason || 'Emergency clinical requisition'}
+                          </div>
+                          <div className="flex items-center justify-between text-[11px] pt-1">
+                            <span className="text-slate-500">{req.district || 'Dhaka'}, Bangladesh</span>
+                            <StatusPill status={req.status} />
+                          </div>
                         </div>
-                        <div className="text-[11px] text-slate-600 bg-white p-2.5 rounded-lg border border-slate-200/80">
-                          <strong>Note:</strong> {req.notes || 'Emergency ICU requisition'}
-                        </div>
-                        <div className="flex items-center justify-between text-[11px] pt-1">
-                          <span className="text-slate-500">{req.district}, Bangladesh</span>
-                          <StatusPill status={req.status} />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
             )}
@@ -897,105 +935,119 @@ export default function AdminPortal() {
 
                   {/* Right Column: Live Chat Thread */}
                   <div className="flex-1 flex flex-col bg-white">
-                    {/* Chat Header */}
-                    <div className="p-3.5 px-6 border-b border-slate-200 flex items-center justify-between bg-slate-50/50 shrink-0">
-                      <div className="flex items-center space-x-3">
-                        <div className="w-10 h-10 rounded-full bg-slate-800 text-white font-bold flex items-center justify-center text-xs">
-                          {currentConv.participantName.charAt(0)}
-                        </div>
-                        <div>
+                    {currentConv ? (
+                      <>
+                        {/* Chat Header */}
+                        <div className="p-3.5 px-6 border-b border-slate-200 flex items-center justify-between bg-slate-50/50 shrink-0">
+                          <div className="flex items-center space-x-3">
+                            <div className="w-10 h-10 rounded-full bg-slate-800 text-white font-bold flex items-center justify-center text-xs">
+                              {currentConv.participantName.charAt(0)}
+                            </div>
+                            <div>
+                              <div className="flex items-center space-x-2">
+                                <h4 className="text-sm font-bold text-slate-900">{currentConv.participantName}</h4>
+                                <BloodGroupBadge bloodGroup={currentConv.participantBloodGroup} size="sm" />
+                                <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                                  Verified Donor
+                                </span>
+                              </div>
+                              <span className="text-[11px] text-slate-500 flex items-center space-x-2 mt-0.5">
+                                <span>{currentConv.participantDistrict}, Bangladesh</span>
+                                <span>&bull;</span>
+                                <span className="font-mono">{currentConv.participantPhone}</span>
+                              </span>
+                            </div>
+                          </div>
+
                           <div className="flex items-center space-x-2">
-                            <h4 className="text-sm font-bold text-slate-900">{currentConv.participantName}</h4>
-                            <BloodGroupBadge bloodGroup={currentConv.participantBloodGroup} size="sm" />
-                            <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
-                              Verified Donor
+                            <a
+                              href={`tel:${currentConv.participantPhone}`}
+                              className="px-3 py-1.5 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-100 text-xs font-bold flex items-center space-x-1.5 transition-colors"
+                            >
+                              <Phone className="w-3.5 h-3.5 text-[#C62828]" />
+                              <span>Call Donor</span>
+                            </a>
+                          </div>
+                        </div>
+
+                        {/* Messages Body */}
+                        <div className="flex-1 p-5 overflow-y-auto space-y-3.5 bg-[#F8FAFC]">
+                          <div className="flex justify-center my-2">
+                            <span className="text-[10px] font-bold text-slate-400 bg-white border border-slate-200 px-3 py-1 rounded-full uppercase tracking-wider">
+                              Encrypted Live Session &bull; Monday, Oct 12, 2026
                             </span>
                           </div>
-                          <span className="text-[11px] text-slate-500 flex items-center space-x-2 mt-0.5">
-                            <span>{currentConv.participantDistrict}, Bangladesh</span>
-                            <span>&bull;</span>
-                            <span className="font-mono">{currentConv.participantPhone}</span>
-                          </span>
+
+                          {currentConv.messages.map((m) => (
+                            <div
+                              key={m.id}
+                              className={`flex flex-col ${m.isMe ? 'items-end' : 'items-start'}`}
+                            >
+                              <div
+                                className={`max-w-md px-4 py-2.5 rounded-2xl text-xs shadow-2xs ${
+                                  m.isMe
+                                    ? 'bg-[#C62828] text-white rounded-br-xs'
+                                    : 'bg-white text-slate-800 border border-slate-200 rounded-bl-xs'
+                                }`}
+                              >
+                                <p className="leading-relaxed whitespace-pre-wrap">{m.text}</p>
+                              </div>
+                              <div className="flex items-center space-x-1 mt-1 text-[10px] text-slate-400 px-1">
+                                <span>{m.timestamp}</span>
+                                {m.isMe && <CheckCheck className="w-3 h-3 text-emerald-600" />}
+                              </div>
+                            </div>
+                          ))}
                         </div>
-                      </div>
 
-                      <div className="flex items-center space-x-2">
-                        <a
-                          href={`tel:${currentConv.participantPhone}`}
-                          className="px-3 py-1.5 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-100 text-xs font-bold flex items-center space-x-1.5 transition-colors"
-                        >
-                          <Phone className="w-3.5 h-3.5 text-[#C62828]" />
-                          <span>Call Donor</span>
-                        </a>
-                      </div>
-                    </div>
+                        {/* Quick Suggestion Chips */}
+                        <div className="px-5 py-2 bg-slate-50 border-t border-slate-100 flex items-center space-x-2 overflow-x-auto shrink-0">
+                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider shrink-0">Quick Prompts:</span>
+                          {[
+                            'Are you available to donate today?',
+                            'Can you proceed to DMC Hospital OT-3?',
+                            'Emergency cross-matching complete.',
+                          ].map((prompt) => (
+                            <button
+                              key={prompt}
+                              onClick={() => setMessageInput(prompt)}
+                              className="px-2.5 py-1 rounded-lg bg-white border border-slate-200 hover:border-[#C62828] hover:text-[#C62828] text-slate-600 text-[11px] font-medium transition-colors shrink-0 cursor-pointer"
+                            >
+                              {prompt}
+                            </button>
+                          ))}
+                        </div>
 
-                    {/* Messages Body */}
-                    <div className="flex-1 p-5 overflow-y-auto space-y-3.5 bg-[#F8FAFC]">
-                      <div className="flex justify-center my-2">
-                        <span className="text-[10px] font-bold text-slate-400 bg-white border border-slate-200 px-3 py-1 rounded-full uppercase tracking-wider">
-                          Encrypted Live Session &bull; Monday, Oct 12, 2026
-                        </span>
-                      </div>
-
-                      {currentConv.messages.map((m) => (
-                        <div
-                          key={m.id}
-                          className={`flex flex-col ${m.isMe ? 'items-end' : 'items-start'}`}
-                        >
-                          <div
-                            className={`max-w-md px-4 py-2.5 rounded-2xl text-xs shadow-2xs ${
-                              m.isMe
-                                ? 'bg-[#C62828] text-white rounded-br-xs'
-                                : 'bg-white text-slate-800 border border-slate-200 rounded-bl-xs'
-                            }`}
+                        {/* Input Bar */}
+                        <form onSubmit={handleSendMessage} className="p-3.5 px-5 border-t border-slate-200 bg-white flex items-center space-x-3 shrink-0">
+                          <input
+                            type="text"
+                            placeholder={`Type direct message to ${currentConv.participantName}...`}
+                            value={messageInput}
+                            onChange={(e) => setMessageInput(e.target.value)}
+                            className="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 text-xs focus:outline-none focus:ring-2 focus:ring-[#C62828]/20 focus:border-[#C62828]"
+                          />
+                          <button
+                            type="submit"
+                            disabled={!messageInput.trim()}
+                            className="px-5 py-2.5 rounded-xl bg-[#C62828] hover:bg-[#B71C1C] text-white font-bold text-xs flex items-center space-x-1.5 shadow-md shadow-[#C62828]/20 transition-all cursor-pointer disabled:opacity-50"
                           >
-                            <p className="leading-relaxed whitespace-pre-wrap">{m.text}</p>
-                          </div>
-                          <div className="flex items-center space-x-1 mt-1 text-[10px] text-slate-400 px-1">
-                            <span>{m.timestamp}</span>
-                            {m.isMe && <CheckCheck className="w-3 h-3 text-emerald-600" />}
-                          </div>
+                            <Send className="w-3.5 h-3.5" />
+                            <span>Send</span>
+                          </button>
+                        </form>
+                      </>
+                    ) : (
+                      <div className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-slate-50">
+                        <div className="w-12 h-12 rounded-2xl bg-slate-200 text-slate-500 flex items-center justify-center mb-3">
+                          <MessageSquare className="w-6 h-6" />
                         </div>
-                      ))}
-                    </div>
-
-                    {/* Quick Suggestion Chips */}
-                    <div className="px-5 py-2 bg-slate-50 border-t border-slate-100 flex items-center space-x-2 overflow-x-auto shrink-0">
-                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider shrink-0">Quick Prompts:</span>
-                      {[
-                        'Are you available to donate today?',
-                        'Can you proceed to DMC Hospital OT-3?',
-                        'Emergency cross-matching complete.',
-                      ].map((prompt) => (
-                        <button
-                          key={prompt}
-                          onClick={() => setMessageInput(prompt)}
-                          className="px-2.5 py-1 rounded-lg bg-white border border-slate-200 hover:border-[#C62828] hover:text-[#C62828] text-slate-600 text-[11px] font-medium transition-colors shrink-0 cursor-pointer"
-                        >
-                          {prompt}
-                        </button>
-                      ))}
-                    </div>
-
-                    {/* Input Bar */}
-                    <form onSubmit={handleSendMessage} className="p-3.5 px-5 border-t border-slate-200 bg-white flex items-center space-x-3 shrink-0">
-                      <input
-                        type="text"
-                        placeholder={`Type direct message to ${currentConv.participantName}...`}
-                        value={messageInput}
-                        onChange={(e) => setMessageInput(e.target.value)}
-                        className="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 text-xs focus:outline-none focus:ring-2 focus:ring-[#C62828]/20 focus:border-[#C62828]"
-                      />
-                      <button
-                        type="submit"
-                        disabled={!messageInput.trim()}
-                        className="px-5 py-2.5 rounded-xl bg-[#C62828] hover:bg-[#B71C1C] text-white font-bold text-xs flex items-center space-x-1.5 shadow-md shadow-[#C62828]/20 transition-all cursor-pointer disabled:opacity-50"
-                      >
-                        <Send className="w-3.5 h-3.5" />
-                        <span>Send</span>
-                      </button>
-                    </form>
+                        <h4 className="text-sm font-bold text-slate-700">No Conversation Selected</h4>
+                        <p className="text-xs text-slate-400 mt-1 max-w-sm">
+                          Select a donor thread on the left to review messages, or wait for citizen donors to send messages from the mobile app.
+                        </p>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>

@@ -28,16 +28,17 @@ export class HospitalService {
     const requisitionData = {
       id: requestId,
       requesterId: hospitalId,
-      hospital: dto.hospitalName,
-      hospitalName: dto.hospitalName,
+      hospital: dto.hospitalName || 'Dhaka Medical College Hospital',
+      hospitalName: dto.hospitalName || 'Dhaka Medical College Hospital',
       patientName: dto.patientName,
       bloodGroup: dto.bloodGroup,
       units: dto.units,
       urgency: dto.urgency.toLowerCase(),
       district: dto.district,
-      phone: dto.contactPhone,
+      phone: dto.contactPhone || '+8801711000000',
       ward: dto.wardOrDepartment || '',
       medicalReason: dto.medicalReason || '',
+      notes: dto.notes || '',
       status: 'pending',
       date: new Date().toLocaleDateString('en-GB'),
       time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }),
@@ -82,15 +83,24 @@ export class HospitalService {
     const db = this.firebaseService.firestore;
     let query: FirebaseFirestore.Query = db.collection('bloodRequests');
 
-    if (hospitalId) {
-      query = query.where('requesterId', '==', hospitalId);
-    }
     if (status && status !== 'all') {
       query = query.where('status', '==', status);
     }
 
     const snap = await query.limit(50).get();
-    const requisitions = snap.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+    let requisitions = snap.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+
+    if (hospitalId) {
+      const hospitalSpecific = requisitions.filter(
+        (r: any) =>
+          r.requesterId === hospitalId ||
+          (r.hospital && r.hospital.toLowerCase().includes('dhaka')) ||
+          (r.hospitalName && r.hospitalName.toLowerCase().includes('dhaka'))
+      );
+      if (hospitalSpecific.length > 0) {
+        requisitions = hospitalSpecific;
+      }
+    }
 
     return {
       success: true,

@@ -146,6 +146,8 @@ class SignupBloodGroupFragment : Fragment() {
             "userType" to "user",
             "isAvailable" to false,
             "registrationComplete" to SignupData.registrationComplete,
+            "profileImage" to SignupData.profileImage,
+            "imageUrl" to SignupData.profileImage,
             "createdAt" to System.currentTimeMillis(),
             "updatedAt" to System.currentTimeMillis()
         )

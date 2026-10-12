@@ -108,6 +108,55 @@ object ProfileImageManager {
     }
 
     /**
+     * Synchronously compress and format an image into a crisp 256x256 Base64 JPEG data URL.
+     * Safe to call from Dispatchers.IO or background threads.
+     */
+    fun processAndCompressImage(
+        context: Context,
+        imageUri: Uri,
+        targetDimension: Int = 256,
+        quality: Int = 75
+    ): String? {
+        return try {
+            val inputStream = try {
+                context.contentResolver.openInputStream(imageUri)
+            } catch (e: Exception) {
+                null
+            } ?: if (imageUri.scheme == "file" && imageUri.path != null) {
+                FileInputStream(File(imageUri.path!!))
+            } else null
+
+            if (inputStream == null) return null
+            val originalBitmap = BitmapFactory.decodeStream(inputStream)
+            inputStream.close()
+            if (originalBitmap == null) return null
+
+            val scaledBitmap = Bitmap.createScaledBitmap(
+                originalBitmap,
+                targetDimension,
+                targetDimension,
+                true
+            )
+
+            val outputStream = ByteArrayOutputStream()
+            scaledBitmap.compress(Bitmap.CompressFormat.JPEG, quality, outputStream)
+            val imageBytes = outputStream.toByteArray()
+            outputStream.close()
+
+            if (originalBitmap != scaledBitmap) {
+                originalBitmap.recycle()
+            }
+            scaledBitmap.recycle()
+
+            val base64Data = Base64.encodeToString(imageBytes, Base64.NO_WRAP)
+            "data:image/jpeg;base64,$base64Data"
+        } catch (e: Exception) {
+            Timber.e(e, "Failed to compress image to Base64")
+            null
+        }
+    }
+
+    /**
      * Optimize cropped image and save directly to Cloud Firestore.
      * 100% Free on Spark plan, requires zero credit card or billing.
      * Generates a crisp 256x256 JPEG (~15KB) Base64 data URL.

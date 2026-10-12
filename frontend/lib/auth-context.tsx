@@ -105,26 +105,49 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
 
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem('bloodlink_auth_v2');
-      const savedToken = localStorage.getItem('bloodlink_jwt_token');
+    async function restoreSession() {
+      try {
+        const stored = localStorage.getItem('bloodlink_auth_v2');
+        const savedToken = localStorage.getItem('bloodlink_jwt_token');
 
-      if (savedToken && stored) {
-        const parsed = JSON.parse(stored);
-        if (parsed.role && ROLE_PROFILES[parsed.role as UserRole]) {
-          setToken(savedToken);
-          api.setToken(savedToken);
-          setRole(parsed.role as UserRole);
-          setUser(parsed.user || ROLE_PROFILES[parsed.role as UserRole]);
-          setIsAuthenticated(true);
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          const currentRole: UserRole = parsed.role && ROLE_PROFILES[parsed.role as UserRole] ? (parsed.role as UserRole) : 'ADMIN';
+
+          if (savedToken) {
+            setToken(savedToken);
+            api.setToken(savedToken);
+            setRole(currentRole);
+            setUser(parsed.user || ROLE_PROFILES[currentRole]);
+            setIsAuthenticated(true);
+          } else {
+            // Auto-fetch JWT for stored role from seeded credentials
+            try {
+              const defaultEmail = ROLE_PROFILES[currentRole].email;
+              const res = await api.authLogin({ email: defaultEmail, password: 'password123' });
+              if (res && res.token) {
+                setToken(res.token);
+                api.setToken(res.token);
+                localStorage.setItem('bloodlink_jwt_token', res.token);
+                setRole(currentRole);
+                setUser(parsed.user || ROLE_PROFILES[currentRole]);
+                setIsAuthenticated(true);
+                return;
+              }
+            } catch (err) {
+              console.warn('Could not auto-fetch JWT for stored session', err);
+            }
+            setIsAuthenticated(false);
+          }
+        } else {
+          setIsAuthenticated(false);
         }
-      } else {
+      } catch (e) {
+        console.warn('Could not restore auth session', e);
         setIsAuthenticated(false);
       }
-    } catch (e) {
-      console.warn('Could not restore auth session', e);
-      setIsAuthenticated(false);
     }
+    restoreSession();
   }, []);
 
   const saveState = (newRole: UserRole, newUser: AuthUser, authState: boolean, jwtToken?: string) => {
@@ -144,17 +167,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         );
       } else {
         localStorage.removeItem('bloodlink_auth_v2');
+        localStorage.removeItem('bloodlink_jwt_token');
       }
     } catch (e) {
       console.warn('Storage error', e);
     }
   };
 
-  const login = (selectedRole: UserRole, customEmail?: string) => {
+  const login = async (selectedRole: UserRole, customEmail?: string) => {
     const baseUser = ROLE_PROFILES[selectedRole];
+    const emailToUse = customEmail || baseUser.email;
+
+    try {
+      const res = await api.authLogin({ email: emailToUse, password: 'password123' });
+      if (res && res.token) {
+        const loggedUser: AuthUser = {
+          ...baseUser,
+          ...(res.user || {}),
+          email: emailToUse,
+        };
+        saveState(selectedRole, loggedUser, true, res.token);
+        return;
+      }
+    } catch (err) {
+      console.warn('JWT login fell back:', err);
+    }
+
     const loggedUser: AuthUser = {
       ...baseUser,
-      email: customEmail || baseUser.email,
+      email: emailToUse,
     };
     saveState(selectedRole, loggedUser, true);
   };
@@ -238,8 +279,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     router.push('/login');
   };
 
-  const switchRole = (newRole: UserRole) => {
+  const switchRole = async (newRole: UserRole) => {
     const newUser = ROLE_PROFILES[newRole];
+    try {
+      const res = await api.authLogin({ email: newUser.email, password: 'password123' });
+      if (res && res.token) {
+        saveState(newRole, { ...newUser, ...(res.user || {}) }, true, res.token);
+        return;
+      }
+    } catch (e) {
+      console.warn('Switch role JWT login error:', e);
+    }
     saveState(newRole, newUser, true);
   };
 

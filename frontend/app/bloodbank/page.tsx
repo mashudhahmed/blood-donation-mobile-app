@@ -390,12 +390,11 @@ export default function BloodBankPortal() {
   const currentConv = conversations.find((c) => c.id === selectedConvId) || conversations[0] || null;
   const filteredConversations = conversations.filter((c) => {
     const q = chatSearchQuery.toLowerCase();
-    return (
-      c.participantName.toLowerCase().includes(q) ||
-      c.participantBloodGroup.toLowerCase().includes(q) ||
-      c.participantDistrict.toLowerCase().includes(q) ||
-      (c.lastMessage || '').toLowerCase().includes(q)
-    );
+    const pName = (c?.participantName || '').toLowerCase();
+    const pBlood = (c?.participantBloodGroup || '').toLowerCase();
+    const pDistrict = (c?.participantDistrict || '').toLowerCase();
+    const pLast = (c?.lastMessage || '').toLowerCase();
+    return pName.includes(q) || pBlood.includes(q) || pDistrict.includes(q) || pLast.includes(q);
   });
 
   const handleSendMessage = (e: React.FormEvent) => {
@@ -443,10 +442,11 @@ export default function BloodBankPortal() {
   // Filtered Audit Transactions matching Screenshot 1
   const filteredTransactions = transactions.filter((tx) => {
     const matchesAction = auditActionFilter === 'all' || tx.type === auditActionFilter;
-    const matchesQuery =
-      tx.bloodGroup.toLowerCase().includes(auditSearchQuery.toLowerCase()) ||
-      (tx.reason || '').toLowerCase().includes(auditSearchQuery.toLowerCase()) ||
-      tx.id.toLowerCase().includes(auditSearchQuery.toLowerCase());
+    const query = auditSearchQuery.toLowerCase();
+    const bg = (tx?.bloodGroup || '').toLowerCase();
+    const reason = (tx?.reason || '').toLowerCase();
+    const txId = (tx?.id || '').toLowerCase();
+    const matchesQuery = bg.includes(query) || reason.includes(query) || txId.includes(query);
     return matchesAction && matchesQuery;
   });
 

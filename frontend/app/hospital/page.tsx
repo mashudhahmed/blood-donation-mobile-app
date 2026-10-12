@@ -327,13 +327,22 @@ export default function HospitalPortal() {
 
   // Filtered Requisitions
   const filteredRequisitions = requisitions.filter((req) => {
-    const matchesStatus = filteredStatus === 'all' || req.status === filteredStatus;
-    const matchesUrgency = urgencyFilter === 'all' || req.urgency === urgencyFilter;
+    const status = (req?.status || '').toLowerCase();
+    const matchesStatus = filteredStatus === 'all' || status === filteredStatus.toLowerCase();
+    const urgency = (req?.urgency || '').toUpperCase();
+    const matchesUrgency = urgencyFilter === 'all' || urgency === urgencyFilter.toUpperCase();
+    const query = reqSearchQuery.toLowerCase();
+    const patientName = (req?.patientName || '').toLowerCase();
+    const notes = (req?.notes || req?.medicalReason || '').toLowerCase();
+    const bloodGroup = (req?.bloodGroup || '').toLowerCase();
+    const district = (req?.district || '').toLowerCase();
+    const hospital = (req?.hospitalName || req?.hospital || '').toLowerCase();
     const matchesQuery =
-      req.patientName.toLowerCase().includes(reqSearchQuery.toLowerCase()) ||
-      (req.notes || '').toLowerCase().includes(reqSearchQuery.toLowerCase()) ||
-      req.bloodGroup.toLowerCase().includes(reqSearchQuery.toLowerCase()) ||
-      req.district.toLowerCase().includes(reqSearchQuery.toLowerCase());
+      patientName.includes(query) ||
+      notes.includes(query) ||
+      bloodGroup.includes(query) ||
+      district.includes(query) ||
+      hospital.includes(query);
     return matchesStatus && matchesUrgency && matchesQuery;
   });
 
@@ -349,10 +358,10 @@ export default function HospitalPortal() {
     );
   });
 
-  const activeRequisitionsCount = requisitions.filter((r) => r.status !== 'fulfilled').length;
-  const criticalCount = requisitions.filter((r) => r.urgency === 'CRITICAL' && r.status !== 'fulfilled').length;
-  const matchedCount = requisitions.filter((r) => r.status === 'matched').length;
-  const fulfilledCount = requisitions.filter((r) => r.status === 'fulfilled').length;
+  const activeRequisitionsCount = requisitions.filter((r) => (r?.status || '').toLowerCase() !== 'fulfilled').length;
+  const criticalCount = requisitions.filter((r) => (r?.urgency || '').toUpperCase() === 'CRITICAL' && (r?.status || '').toLowerCase() !== 'fulfilled').length;
+  const matchedCount = requisitions.filter((r) => (r?.status || '').toLowerCase() === 'matched').length;
+  const fulfilledCount = requisitions.filter((r) => (r?.status || '').toLowerCase() === 'fulfilled').length;
 
   // Messages and Notifications Logic
   const unreadNotificationsCount = notifications.filter((n) => !n.isRead).length;
@@ -360,12 +369,11 @@ export default function HospitalPortal() {
   const currentConv = conversations.find((c) => c.id === selectedConvId) || conversations[0] || null;
   const filteredConversations = conversations.filter((c) => {
     const q = chatSearchQuery.toLowerCase();
-    return (
-      c.participantName.toLowerCase().includes(q) ||
-      c.participantBloodGroup.toLowerCase().includes(q) ||
-      c.participantDistrict.toLowerCase().includes(q) ||
-      (c.lastMessage || '').toLowerCase().includes(q)
-    );
+    const pName = (c?.participantName || '').toLowerCase();
+    const pBlood = (c?.participantBloodGroup || '').toLowerCase();
+    const pDistrict = (c?.participantDistrict || '').toLowerCase();
+    const pLast = (c?.lastMessage || '').toLowerCase();
+    return pName.includes(q) || pBlood.includes(q) || pDistrict.includes(q) || pLast.includes(q);
   });
 
   const handleSendMessage = (e: React.FormEvent) => {

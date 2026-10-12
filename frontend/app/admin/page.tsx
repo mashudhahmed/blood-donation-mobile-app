@@ -302,12 +302,14 @@ export default function AdminPortal() {
   };
 
   const currentConv = conversations.find((c) => c.id === selectedConvId) || conversations[0] || null;
-  const filteredConversations = conversations.filter(
-    (c) =>
-      c.participantName.toLowerCase().includes(chatSearchQuery.toLowerCase()) ||
-      c.participantBloodGroup.toLowerCase().includes(chatSearchQuery.toLowerCase()) ||
-      c.participantDistrict.toLowerCase().includes(chatSearchQuery.toLowerCase())
-  );
+  const filteredConversations = conversations.filter((c) => {
+    const q = chatSearchQuery.toLowerCase();
+    const pName = (c?.participantName || '').toLowerCase();
+    const pBlood = (c?.participantBloodGroup || '').toLowerCase();
+    const pDistrict = (c?.participantDistrict || '').toLowerCase();
+    const pLast = (c?.lastMessage || '').toLowerCase();
+    return pName.includes(q) || pBlood.includes(q) || pDistrict.includes(q) || pLast.includes(q);
+  });
 
   // Filtered Notifications
   const filteredNotifications = notifications.filter((n) => {

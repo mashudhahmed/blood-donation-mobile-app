@@ -103,12 +103,13 @@ export default function DirectChatModal({ isOpen, onClose, initialDonorId }: Dir
     }
   };
 
-  const filteredConversations = conversations.filter(
-    (c) =>
-      c.participantName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      c.participantBloodGroup.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      c.participantDistrict.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredConversations = conversations.filter((c) => {
+    const q = searchQuery.toLowerCase();
+    const pName = (c?.participantName || '').toLowerCase();
+    const pBlood = (c?.participantBloodGroup || '').toLowerCase();
+    const pDistrict = (c?.participantDistrict || '').toLowerCase();
+    return pName.includes(q) || pBlood.includes(q) || pDistrict.includes(q);
+  });
 
   return (
     <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-6 animate-in fade-in">

@@ -10,6 +10,7 @@ export interface Donor {
   canDonate: boolean;
   totalDonations?: number;
   lastDonationDate?: number;
+  location?: string;
 }
 
 export interface Requisition {

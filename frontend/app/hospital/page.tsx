@@ -242,10 +242,13 @@ export default function HospitalPortal() {
 
   // Filtered Matched Donors
   const searchedDonors = matchedDonors.filter((d) => {
+    const name = d?.name || '';
+    const phone = d?.phone || '';
+    const district = d?.district || d?.location || '';
     return (
-      d.name.toLowerCase().includes(donorSearchQuery.toLowerCase()) ||
-      d.phone.includes(donorSearchQuery) ||
-      d.district.toLowerCase().includes(donorSearchQuery.toLowerCase())
+      name.toLowerCase().includes(donorSearchQuery.toLowerCase()) ||
+      phone.includes(donorSearchQuery) ||
+      district.toLowerCase().includes(donorSearchQuery.toLowerCase())
     );
   });
 
@@ -781,20 +784,20 @@ export default function HospitalPortal() {
                     >
                       <div className="flex items-start space-x-3">
                         <div className="w-11 h-11 rounded-full bg-[#FFEBEE] text-[#C62828] border border-[#FECDD3] flex items-center justify-center font-bold text-sm shrink-0">
-                          {donor.name.charAt(0)}
+                          {(donor?.name || 'Donor').charAt(0)}
                         </div>
 
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center justify-between">
-                            <h4 className="font-bold text-xs text-slate-900 truncate">{donor.name}</h4>
-                            <BloodGroupBadge bloodGroup={donor.bloodGroup} size="sm" />
+                            <h4 className="font-bold text-xs text-slate-900 truncate">{donor?.name || 'Anonymous Donor'}</h4>
+                            <BloodGroupBadge bloodGroup={donor?.bloodGroup || 'O+'} size="sm" />
                           </div>
                           <div className="flex items-center space-x-1.5 mt-1">
                             <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
                               Available
                             </span>
                             <span className="text-[10px] text-slate-500 font-medium">
-                              {donor.district}
+                              {donor?.district || donor?.location || 'Dhaka'}
                             </span>
                           </div>
                         </div>
@@ -803,11 +806,11 @@ export default function HospitalPortal() {
                       <div className="flex items-center justify-between pt-2.5 border-t border-slate-100 text-xs">
                         <div className="flex items-center space-x-1.5">
                           <a
-                            href={`tel:${donor.phone}`}
+                            href={`tel:${donor?.phone || ''}`}
                             className="inline-flex items-center space-x-1 text-[#C62828] hover:text-[#B71C1C] font-bold text-xs"
                           >
                             <Phone className="w-3 h-3" />
-                            <span>{donor.phone}</span>
+                            <span>{donor?.phone || 'N/A'}</span>
                           </a>
                         </div>
                         <button

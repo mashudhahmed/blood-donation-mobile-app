@@ -102,27 +102,34 @@ export default function AdminPortal() {
 
   // Filtered Donors / Users
   const filteredDonors = donors.filter((d) => {
+    const donorName = d?.name || '';
+    const donorDistrict = d?.district || d?.location || '';
+    const donorPhone = d?.phone || '';
     const matchesSearch =
-      d.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      d.district.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      d.phone.includes(searchQuery);
+      donorName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      donorDistrict.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      donorPhone.includes(searchQuery);
     const matchesRole =
       selectedRoleFilter === 'all' ||
-      (selectedRoleFilter === 'eligible' && d.canDonate) ||
-      (selectedRoleFilter === 'cooldown' && !d.canDonate) ||
-      d.bloodGroup === selectedRoleFilter;
+      (selectedRoleFilter === 'eligible' && d?.canDonate) ||
+      (selectedRoleFilter === 'cooldown' && !d?.canDonate) ||
+      d?.bloodGroup === selectedRoleFilter;
     return matchesSearch && matchesRole;
   });
 
   // Filtered Audit Logs
   const filteredAuditLogs = auditLogs.filter((log) => {
+    const user = log?.user || '';
+    const resourceId = log?.resourceId || '';
+    const ipAddress = log?.ipAddress || '';
+    const details = log?.details || '';
     const matchesQuery =
-      log.user.toLowerCase().includes(auditSearchQuery.toLowerCase()) ||
-      log.resourceId.toLowerCase().includes(auditSearchQuery.toLowerCase()) ||
-      log.ipAddress.includes(auditSearchQuery) ||
-      log.details.toLowerCase().includes(auditSearchQuery.toLowerCase());
-    const matchesAction = auditActionFilter === 'all' || log.action === auditActionFilter;
-    const matchesResource = auditResourceFilter === 'all' || log.resource === auditResourceFilter;
+      user.toLowerCase().includes(auditSearchQuery.toLowerCase()) ||
+      resourceId.toLowerCase().includes(auditSearchQuery.toLowerCase()) ||
+      ipAddress.includes(auditSearchQuery) ||
+      details.toLowerCase().includes(auditSearchQuery.toLowerCase());
+    const matchesAction = auditActionFilter === 'all' || log?.action === auditActionFilter;
+    const matchesResource = auditResourceFilter === 'all' || log?.resource === auditResourceFilter;
     return matchesQuery && matchesAction && matchesResource;
   });
 
@@ -512,10 +519,10 @@ export default function AdminPortal() {
                             <td className="px-6 py-4">
                               <div className="flex items-center space-x-3">
                                 <div className="w-9 h-9 rounded-full bg-slate-800 text-white font-bold flex items-center justify-center text-xs shrink-0">
-                                  {donor.name.charAt(0)}
+                                  {(donor?.name || 'Donor').charAt(0)}
                                 </div>
                                 <div>
-                                  <div className="font-extrabold text-slate-900">{donor.name}</div>
+                                  <div className="font-extrabold text-slate-900">{donor?.name || 'Anonymous Donor'}</div>
                                   <span className="text-[11px] text-slate-400 font-mono">
                                     donor.{donor.id}@bloodlink.network
                                   </span>
@@ -524,14 +531,14 @@ export default function AdminPortal() {
                             </td>
                             <td className="px-6 py-4">
                               <div className="flex items-center space-x-2">
-                                <BloodGroupBadge bloodGroup={donor.bloodGroup} size="sm" />
+                                <BloodGroupBadge bloodGroup={donor?.bloodGroup || 'O+'} size="sm" />
                                 <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200">
                                   Donor
                                 </span>
                               </div>
                             </td>
                             <td className="px-6 py-4">
-                              {donor.canDonate ? (
+                              {donor?.canDonate ? (
                                 <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
                                   <Check className="w-3 h-3 mr-1 text-emerald-600" />
                                   Approved
@@ -543,8 +550,8 @@ export default function AdminPortal() {
                                 </span>
                               )}
                             </td>
-                            <td className="px-6 py-4 font-mono font-medium text-slate-700">{donor.phone}</td>
-                            <td className="px-6 py-4 font-medium text-slate-600">{donor.district}</td>
+                            <td className="px-6 py-4 font-mono font-medium text-slate-700">{donor?.phone || 'N/A'}</td>
+                            <td className="px-6 py-4 font-medium text-slate-600">{donor?.district || donor?.location || 'Dhaka'}</td>
                             <td className="px-6 py-4 text-right">
                               <div className="inline-flex items-center space-x-2">
                                 <button
@@ -982,11 +989,11 @@ export default function AdminPortal() {
               <div className="flex items-center justify-between pb-3 border-b border-slate-100">
                 <div className="flex items-center space-x-2.5">
                   <div className="w-10 h-10 rounded-full bg-slate-800 text-white font-bold flex items-center justify-center">
-                    {selectedUserDetail.name.charAt(0)}
+                    {(selectedUserDetail?.name || 'Donor').charAt(0)}
                   </div>
                   <div>
-                    <h3 className="text-base font-extrabold text-slate-900">{selectedUserDetail.name}</h3>
-                    <BloodGroupBadge bloodGroup={selectedUserDetail.bloodGroup} size="sm" />
+                    <h3 className="text-base font-extrabold text-slate-900">{selectedUserDetail?.name || 'Anonymous Donor'}</h3>
+                    <BloodGroupBadge bloodGroup={selectedUserDetail?.bloodGroup || 'O+'} size="sm" />
                   </div>
                 </div>
                 <button
@@ -1000,11 +1007,11 @@ export default function AdminPortal() {
               <div className="space-y-2">
                 <div className="flex justify-between py-1.5 border-b border-slate-100">
                   <span className="text-slate-400">Direct Phone:</span>
-                  <span className="font-bold text-slate-900">{selectedUserDetail.phone}</span>
+                  <span className="font-bold text-slate-900">{selectedUserDetail?.phone || 'N/A'}</span>
                 </div>
                 <div className="flex justify-between py-1.5 border-b border-slate-100">
                   <span className="text-slate-400">Operating District:</span>
-                  <span className="font-bold text-slate-900">{selectedUserDetail.district}</span>
+                  <span className="font-bold text-slate-900">{selectedUserDetail?.district || selectedUserDetail?.location || 'Dhaka'}</span>
                 </div>
                 <div className="flex justify-between py-1.5 border-b border-slate-100">
                   <span className="text-slate-400">Total Donations:</span>

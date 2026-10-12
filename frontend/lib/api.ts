@@ -69,6 +69,41 @@ export interface StaffMember {
   createdAt?: number;
 }
 
+export interface SystemAuditLog {
+  id: string;
+  timestamp: string;
+  user: string;
+  role: string;
+  action: 'LOGIN' | 'LOGOUT' | 'INTAKE' | 'DISPATCH' | 'REQUISITION' | 'APPROVAL' | 'REJECT';
+  resource: 'User' | 'Requisition' | 'BloodStock' | 'Facility' | 'Staff';
+  resourceId: string;
+  ipAddress: string;
+  details: string;
+}
+
+export interface ChatMessage {
+  id: string;
+  senderId: string;
+  senderName: string;
+  senderRole: 'DONOR' | 'HOSPITAL' | 'BLOOD_BANK' | 'ADMIN';
+  text: string;
+  timestamp: string;
+  isMe: boolean;
+}
+
+export interface Conversation {
+  id: string;
+  participantId: string;
+  participantName: string;
+  participantPhone: string;
+  participantBloodGroup: string;
+  participantDistrict: string;
+  lastMessage: string;
+  lastMessageTime: string;
+  unreadCount: number;
+  messages: ChatMessage[];
+}
+
 // Fallback Mock Data for resilient offline/dev previews
 export const MOCK_ADMIN_METRICS = {
   totalDonors: 1420,
@@ -218,6 +253,124 @@ export const MOCK_BLOODBANK_STAFF: StaffMember[] = [
     permissions: ['manage_inventory', 'manage_drives'],
     isActive: true,
     createdAt: Date.now() - 86400000 * 4,
+  },
+];
+
+export const MOCK_SYSTEM_AUDIT_LOGS: SystemAuditLog[] = [
+  {
+    id: 'log-001',
+    timestamp: '10/12/2026, 12:55:49 PM',
+    user: 'admin@bloodlink.org',
+    role: 'ADMIN',
+    action: 'LOGIN',
+    resource: 'User',
+    resourceId: 'usr_admin_001',
+    ipAddress: '123.200.14.194',
+    details: 'Successful 2FA enterprise administrative authentication from Dhaka NOC',
+  },
+  {
+    id: 'log-002',
+    timestamp: '10/12/2026, 12:40:12 PM',
+    user: 'kamal.icu@dmc.edu.bd',
+    role: 'HOSPITAL',
+    action: 'REQUISITION',
+    resource: 'Requisition',
+    resourceId: 'req-101',
+    ipAddress: '103.158.4.237',
+    details: 'Broadcasted emergency requisition for 2 units O- (Patient Fatima Begum, OT-3)',
+  },
+  {
+    id: 'log-003',
+    timestamp: '10/12/2026, 11:15:30 AM',
+    user: 'sumon.lab@redcrescent.org.bd',
+    role: 'BLOOD_BANK',
+    action: 'INTAKE',
+    resource: 'BloodStock',
+    resourceId: 'stk_o_pos',
+    ipAddress: '123.200.14.194',
+    details: 'Recorded 4 units O+ voluntary drive intake with barcode BD-2026-X992',
+  },
+  {
+    id: 'log-004',
+    timestamp: '10/12/2026, 10:20:00 AM',
+    user: 'admin@bloodlink.org',
+    role: 'ADMIN',
+    action: 'APPROVAL',
+    resource: 'Facility',
+    resourceId: 'h1',
+    ipAddress: '123.200.14.194',
+    details: 'Verified license LIC-2021-9921 for Dhaka Medical College Hospital',
+  },
+  {
+    id: 'log-005',
+    timestamp: '10/11/2026, 06:14:22 PM',
+    user: 'hospital@dmc.edu.bd',
+    role: 'HOSPITAL',
+    action: 'DISPATCH',
+    resource: 'BloodStock',
+    resourceId: 'stk_ab_neg',
+    ipAddress: '103.158.4.237',
+    details: 'Received dispatch of 1 unit AB- from Red Crescent cryo-bank',
+  },
+  {
+    id: 'log-006',
+    timestamp: '10/11/2026, 04:30:10 PM',
+    user: 'contact@redcrescent.org.bd',
+    role: 'BLOOD_BANK',
+    action: 'LOGOUT',
+    resource: 'User',
+    resourceId: 'usr_bb_001',
+    ipAddress: '103.158.4.237',
+    details: 'Session gracefully closed by facility director',
+  },
+];
+
+export const MOCK_CONVERSATIONS: Conversation[] = [
+  {
+    id: 'conv-001',
+    participantId: 'd1',
+    participantName: 'Zayed Khan',
+    participantPhone: '+8801711223344',
+    participantBloodGroup: 'O+',
+    participantDistrict: 'Dhaka',
+    lastMessage: 'I am on my way to the blood bank now. ETA 20 mins.',
+    lastMessageTime: '12:42 PM',
+    unreadCount: 1,
+    messages: [
+      { id: 'm1', senderId: 'hosp', senderName: 'DMC Hospital', senderRole: 'HOSPITAL', text: 'Hello Zayed! We have an emergency requisition for O+ blood in OT-3. Are you available to donate today?', timestamp: '12:30 PM', isMe: true },
+      { id: 'm2', senderId: 'd1', senderName: 'Zayed Khan', senderRole: 'DONOR', text: 'Yes, absolutely! I am available. Which gate should I enter?', timestamp: '12:35 PM', isMe: false },
+      { id: 'm3', senderId: 'hosp', senderName: 'DMC Hospital', senderRole: 'HOSPITAL', text: 'Please enter via Emergency Gate 2, 2nd floor Transfusion Medicine unit.', timestamp: '12:38 PM', isMe: true },
+      { id: 'm4', senderId: 'd1', senderName: 'Zayed Khan', senderRole: 'DONOR', text: 'I am on my way to the blood bank now. ETA 20 mins.', timestamp: '12:42 PM', isMe: false },
+    ],
+  },
+  {
+    id: 'conv-002',
+    participantId: 'd4',
+    participantName: 'Rakib Hasan',
+    participantPhone: '+8801644556677',
+    participantBloodGroup: 'O-',
+    participantDistrict: 'Dhaka',
+    lastMessage: 'Verified my appointment for tomorrow morning.',
+    lastMessageTime: '11:15 AM',
+    unreadCount: 0,
+    messages: [
+      { id: 'm5', senderId: 'bb', senderName: 'Red Crescent Hub', senderRole: 'BLOOD_BANK', text: 'Dear Rakib, thank you for your voluntary donor pledge! Can you join the cold-chain drive tomorrow?', timestamp: '11:00 AM', isMe: true },
+      { id: 'm6', senderId: 'd4', senderName: 'Rakib Hasan', senderRole: 'DONOR', text: 'Verified my appointment for tomorrow morning.', timestamp: '11:15 AM', isMe: false },
+    ],
+  },
+  {
+    id: 'conv-003',
+    participantId: 'd2',
+    participantName: 'Tanvir Hossain',
+    participantPhone: '+8801822334455',
+    participantBloodGroup: 'A+',
+    participantDistrict: 'Dhaka',
+    lastMessage: 'Can you confirm if cross-matching is already completed?',
+    lastMessageTime: 'Yesterday',
+    unreadCount: 0,
+    messages: [
+      { id: 'm7', senderId: 'd2', senderName: 'Tanvir Hossain', senderRole: 'DONOR', text: 'Can you confirm if cross-matching is already completed?', timestamp: 'Yesterday', isMe: false },
+    ],
   },
 ];
 
@@ -590,6 +743,36 @@ class ApiClient {
       success: true,
       id,
       message: 'Staff account deleted.',
+    });
+  }
+
+  // System Audit Stream API
+  async getSystemAuditLogs() {
+    return this.fetchWithFallback('/admin/audit-logs', { method: 'GET' }, {
+      success: true,
+      count: MOCK_SYSTEM_AUDIT_LOGS.length,
+      logs: MOCK_SYSTEM_AUDIT_LOGS,
+    });
+  }
+
+  // Live Donor Messages & Chat API
+  async getConversations() {
+    return this.fetchWithFallback('/messages/conversations', { method: 'GET' }, {
+      success: true,
+      count: MOCK_CONVERSATIONS.length,
+      conversations: MOCK_CONVERSATIONS,
+    });
+  }
+
+  async sendMessage(conversationId: string, text: string) {
+    return this.fetchWithFallback(`/messages/conversations/${conversationId}/send`, {
+      method: 'POST',
+      body: JSON.stringify({ text }),
+    }, {
+      success: true,
+      messageId: `msg-${Date.now().toString().slice(-4)}`,
+      text,
+      timestamp: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }),
     });
   }
 }

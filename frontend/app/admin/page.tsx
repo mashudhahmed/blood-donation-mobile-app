@@ -3,404 +3,1041 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import RoleGuard from '@/components/RoleGuard';
 import DashboardSidebar from '@/components/DashboardSidebar';
+import TopHeader from '@/components/TopHeader';
+import DirectChatModal from '@/components/DirectChatModal';
+import BloodGroupBadge from '@/components/BloodGroupBadge';
+import StatusPill from '@/components/StatusPill';
+import { useAuth } from '@/lib/auth-context';
 import {
   ShieldCheck,
-  Building2,
   Users,
   CheckCircle2,
   Search,
-  Filter,
-  Flame,
   Phone,
   Clock,
   RefreshCw,
   Shield,
   Check,
   X,
+  Eye,
+  Mail,
+  Zap,
+  ArrowRight,
+  FileCheck2,
 } from 'lucide-react';
-import StatsCard from '@/components/StatsCard';
-import BloodGroupBadge from '@/components/BloodGroupBadge';
-import StatusPill from '@/components/StatusPill';
 import {
   api,
   Donor,
+  SystemAuditLog,
   MOCK_ADMIN_METRICS,
   MOCK_DONORS,
   MOCK_HOSPITALS,
   MOCK_INVENTORY,
+  MOCK_SYSTEM_AUDIT_LOGS,
+  MOCK_REQUISITIONS,
 } from '@/lib/api';
 
 export default function AdminPortal() {
-  const [activeTab, setActiveTab] = useState<'overview' | 'verifications' | 'donors' | 'inventory' | 'audit'>('overview');
+  const { user } = useAuth();
+  const [activeTab, setActiveTab] = useState<'overview' | 'verifications' | 'donors' | 'inventory' | 'audit' | 'settings'>('overview');
   const [metrics, setMetrics] = useState(MOCK_ADMIN_METRICS);
   const [hospitals, setHospitals] = useState(MOCK_HOSPITALS);
   const [donors, setDonors] = useState<Donor[]>(MOCK_DONORS);
   const [inventory, setInventory] = useState(MOCK_INVENTORY);
-  const [loading, setLoading] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedBloodGroup, setSelectedBloodGroup] = useState('all');
+  const [auditLogs, setAuditLogs] = useState<SystemAuditLog[]>(MOCK_SYSTEM_AUDIT_LOGS);
   const [feedbackMsg, setFeedbackMsg] = useState<string | null>(null);
 
-  const bloodGroups = ['all', 'A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
+  // Modals & Chat
+  const [showChatModal, setShowChatModal] = useState(false);
+  const [selectedAuditLog, setSelectedAuditLog] = useState<SystemAuditLog | null>(null);
+  const [selectedUserDetail, setSelectedUserDetail] = useState<Donor | null>(null);
+
+  // Search & Filter States
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedRoleFilter, setSelectedRoleFilter] = useState('all');
+  const [auditSearchQuery, setAuditSearchQuery] = useState('');
+  const [auditActionFilter, setAuditActionFilter] = useState('all');
+  const [auditResourceFilter, setAuditResourceFilter] = useState('all');
+
+  const bloodGroups = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
 
   const loadData = useCallback(async () => {
-    setLoading(true);
     try {
       const mRes = await api.getAdminMetrics();
       if (mRes?.metrics) setMetrics(mRes.metrics);
 
-      const dRes = await api.getAdminDonors(selectedBloodGroup);
+      const dRes = await api.getAdminDonors();
       if (dRes?.donors) setDonors(dRes.donors);
 
       const invRes = await api.getInventory();
       if (invRes?.inventory) setInventory(invRes.inventory);
+
+      const aRes = await api.getSystemAuditLogs();
+      if (aRes?.logs) setAuditLogs(aRes.logs);
     } catch (err) {
       console.warn('Admin fetch error', err);
-    } finally {
-      setLoading(false);
     }
-  }, [selectedBloodGroup]);
+  }, []);
 
   useEffect(() => {
     loadData();
   }, [loadData]);
 
-  const toggleVerification = async (id: string, currentStatus: boolean) => {
-    const updatedStatus = !currentStatus;
+  const handleVerify = async (id: string, currentVerified: boolean) => {
+    const updatedStatus = !currentVerified;
     setHospitals((prev) =>
       prev.map((h) => (h.id === id ? { ...h, verified: updatedStatus } : h))
     );
 
     try {
       await api.verifyOrganization(id, 'hospital', updatedStatus);
-      setFeedbackMsg(`Hospital license ${updatedStatus ? 'approved & authorized' : 'revoked'} successfully.`);
+      setFeedbackMsg(`Facility license ${updatedStatus ? 'approved & cleared for broadcasts' : 'revoked'} successfully.`);
       setTimeout(() => setFeedbackMsg(null), 3500);
     } catch {
-      setFeedbackMsg('Failed to update hospital status in Firestore');
+      setFeedbackMsg('Failed to update facility status in Firestore');
     }
   };
 
   const pendingCount = hospitals.filter((h) => !h.verified).length;
 
+  // Filtered Donors / Users
   const filteredDonors = donors.filter((d) => {
     const matchesSearch =
       d.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       d.district.toLowerCase().includes(searchQuery.toLowerCase()) ||
       d.phone.includes(searchQuery);
-    const matchesBg = selectedBloodGroup === 'all' || d.bloodGroup === selectedBloodGroup;
-    return matchesSearch && matchesBg;
+    const matchesRole =
+      selectedRoleFilter === 'all' ||
+      (selectedRoleFilter === 'eligible' && d.canDonate) ||
+      (selectedRoleFilter === 'cooldown' && !d.canDonate) ||
+      d.bloodGroup === selectedRoleFilter;
+    return matchesSearch && matchesRole;
+  });
+
+  // Filtered Audit Logs
+  const filteredAuditLogs = auditLogs.filter((log) => {
+    const matchesQuery =
+      log.user.toLowerCase().includes(auditSearchQuery.toLowerCase()) ||
+      log.resourceId.toLowerCase().includes(auditSearchQuery.toLowerCase()) ||
+      log.ipAddress.includes(auditSearchQuery) ||
+      log.details.toLowerCase().includes(auditSearchQuery.toLowerCase());
+    const matchesAction = auditActionFilter === 'all' || log.action === auditActionFilter;
+    const matchesResource = auditResourceFilter === 'all' || log.resource === auditResourceFilter;
+    return matchesQuery && matchesAction && matchesResource;
   });
 
   return (
     <RoleGuard allowedRole="ADMIN">
-      <div className="flex min-h-[calc(100vh-4rem)] bg-[#F5F5F5]">
-        {/* Production Dashboard Leftbar */}
+      <div className="flex h-screen overflow-hidden bg-[#F8FAFC]">
+        {/* Full-Height Dark Navy Left Sidebar matching Screenshots */}
         <DashboardSidebar
           activeTab={activeTab}
           setActiveTab={setActiveTab}
           pendingCount={pendingCount}
+          onOpenMessages={() => setShowChatModal(true)}
         />
 
-        {/* Main Content Area */}
-        <main className="flex-1 p-6 sm:p-8 space-y-8 overflow-y-auto">
-          {/* Admin Command Header (2026 Standard) */}
-          <div className="bg-white rounded-2xl border border-[#E2E8F0] p-6 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-xs">
-            <div className="flex items-center space-x-3.5">
-              <div className="w-12 h-12 rounded-2xl bg-slate-900 text-white flex items-center justify-center font-black shadow-md shadow-slate-900/10 shrink-0">
-                <ShieldCheck className="w-6 h-6 text-white" />
-              </div>
-              <div>
-                <div className="flex items-center space-x-2">
-                  <h1 className="text-xl font-black text-slate-900">Admin Command Hub</h1>
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 flex items-center space-x-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                    <span>System Operational</span>
-                  </span>
-                </div>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  Facility licensing approvals, citizen donor registry & real-time blood analytics
-                </p>
-              </div>
-            </div>
+        {/* Right Main Column */}
+        <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+          {/* Top Header App Bar matching Screenshots */}
+          <TopHeader onOpenMessages={() => setShowChatModal(true)} />
 
-            <div className="flex items-center space-x-3">
-              {feedbackMsg && (
-                <div className="px-3 py-1.5 rounded-lg bg-emerald-50 text-emerald-800 text-xs font-bold border border-emerald-200 animate-fadeIn flex items-center space-x-1.5">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                  <span>{feedbackMsg}</span>
-                </div>
-              )}
-              <button
-                onClick={loadData}
-                disabled={loading}
-                className="inline-flex items-center space-x-1.5 px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-xs font-bold text-slate-700 hover:bg-slate-50 transition-colors shadow-2xs cursor-pointer"
-              >
-                <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
-                <span>Sync Database</span>
+          {/* Feedback Banner */}
+          {feedbackMsg && (
+            <div className="bg-emerald-600 text-white text-xs font-bold px-6 py-2.5 flex items-center justify-between shadow-sm animate-in fade-in">
+              <div className="flex items-center space-x-2">
+                <CheckCircle2 className="w-4 h-4 text-emerald-200" />
+                <span>{feedbackMsg}</span>
+              </div>
+              <button onClick={() => setFeedbackMsg(null)} className="text-emerald-200 hover:text-white">
+                <X className="w-4 h-4" />
               </button>
             </div>
-          </div>
+          )}
 
-          {/* Tab 1: Executive Overview */}
-          {(activeTab === 'overview' || activeTab === 'verifications') && (
-            <div className="space-y-8">
-              {/* KPI Metrics */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <StatsCard
-                  label="Registered Mobile Donors"
-                  value={metrics.totalDonors}
-                  subtitle={`${metrics.eligibleDonors} eligible donors ready`}
-                  icon={Users}
-                  variant="blood"
-                  trend="+14% this month"
-                />
-                <StatsCard
-                  label="Hospital Facilities"
-                  value={metrics.registeredHospitals}
-                  subtitle={`${pendingCount} pending administrative verification`}
-                  icon={Building2}
-                  variant="emerald"
-                />
-                <StatsCard
-                  label="Emergency Broadcasts"
-                  value={metrics.activeUrgentRequests}
-                  subtitle="Active alerts sent to Android donors"
-                  icon={Flame}
-                  variant="amber"
-                />
-                <StatsCard
-                  label="National Reserve"
-                  value={`${metrics.totalUnitsInNetwork} Bags`}
-                  subtitle="Across regional blood bank centers"
-                  icon={ShieldCheck}
-                  variant="slate"
-                />
-              </div>
-
-              {/* Hospital & Blood Bank Verification Queue Table */}
-              <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-xs">
-                <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
+          {/* Scrollable Workspace Content */}
+          <main className="flex-1 overflow-y-auto p-6 sm:p-8 space-y-6">
+            {/* ============================================================== */}
+            {/* VIEW 1: EXECUTIVE ANALYTICS / ACTIVITY OVERVIEW (Screenshot 2) */}
+            {/* ============================================================== */}
+            {activeTab === 'overview' && (
+              <div className="space-y-6">
+                {/* Greeting Hero Card matching Screenshot 2 */}
+                <div className="bg-white rounded-2xl border border-slate-200/90 p-6 sm:p-7 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-5">
                   <div>
-                    <h2 className="text-base font-bold text-slate-900">
-                      Facility Licensing & Administrative Approval Queue
-                    </h2>
-                    <p className="text-xs text-slate-500">
-                      Super Administrator must approve medical licenses to unlock direct FCM push broadcasts to citizen mobile donors
+                    <div className="flex items-center space-x-2 mb-2">
+                      <span className="inline-flex items-center space-x-1.5 text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                        <span>Admin Portal</span>
+                      </span>
+                      <span className="text-slate-300">&bull;</span>
+                      <span className="text-xs text-slate-500 font-medium">Monday, Oct 12, 2026</span>
+                    </div>
+                    <h1 className="text-2xl font-black text-slate-900 tracking-tight">
+                      Good afternoon, System Administrator
+                    </h1>
+                    <p className="text-xs text-slate-500 mt-1 max-w-2xl leading-relaxed">
+                      Monitor national telemetry, practitioner and facility license approvals, 8-group cryo-matrix inventory, and hospital compliance audit logs.
                     </p>
                   </div>
-                  <span className="text-xs font-bold px-3 py-1 rounded-full bg-amber-50 text-amber-800 border border-amber-200">
-                    {pendingCount} Awaiting Authorization
-                  </span>
-                </div>
 
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left text-xs">
-                    <thead className="bg-slate-50 text-slate-500 font-semibold border-b border-slate-200 uppercase tracking-wider">
-                      <tr>
-                        <th className="px-6 py-3">Facility Name</th>
-                        <th className="px-6 py-3">District</th>
-                        <th className="px-6 py-3">License / Reg No</th>
-                        <th className="px-6 py-3">Emergency Phone</th>
-                        <th className="px-6 py-3">Verification State</th>
-                        <th className="px-6 py-3 text-right">Administrative Action</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100 text-slate-700">
-                      {hospitals.map((h) => (
-                        <tr key={h.id} className="hover:bg-slate-50/80 transition-colors">
-                          <td className="px-6 py-3.5 font-bold text-slate-900">{h.name}</td>
-                          <td className="px-6 py-3.5">{h.district}</td>
-                          <td className="px-6 py-3.5 font-mono text-slate-600 font-semibold">{h.licenseNumber}</td>
-                          <td className="px-6 py-3.5 text-slate-600">{h.contactPhone}</td>
-                          <td className="px-6 py-3.5">
-                            {h.verified ? (
-                              <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                                <CheckCircle2 className="w-3 h-3 mr-1 text-emerald-600" />
-                                Approved Partner
-                              </span>
-                            ) : (
-                              <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
-                                <Clock className="w-3 h-3 mr-1 text-amber-600" />
-                                Pending Verification
-                              </span>
-                            )}
-                          </td>
-                          <td className="px-6 py-3.5 text-right">
-                            <button
-                              onClick={() => toggleVerification(h.id, h.verified)}
-                              className={`px-3 py-1.5 rounded-xl font-bold text-xs transition-all flex items-center space-x-1.5 ml-auto ${
-                                h.verified
-                                  ? 'bg-slate-100 hover:bg-red-50 text-slate-700 hover:text-red-700 border border-slate-200'
-                                  : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs'
-                              }`}
-                            >
-                              {h.verified ? (
-                                <>
-                                  <X className="w-3.5 h-3.5" />
-                                  <span>Revoke Clearance</span>
-                                </>
-                              ) : (
-                                <>
-                                  <Check className="w-3.5 h-3.5" />
-                                  <span>Approve & Authorize</span>
-                                </>
-                              )}
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Tab 2: National Blood Matrix */}
-          {(activeTab === 'overview' || activeTab === 'inventory') && (
-            <div className="bg-white rounded-2xl border border-slate-200 p-6 space-y-4 shadow-xs">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="text-base font-bold text-slate-900">National Blood Bank Reserve Heatmap</h2>
-                  <p className="text-xs text-slate-500">Live units across all 8 ABO/Rh groups in registered bank facilities</p>
-                </div>
-                <span className="text-xs font-extrabold text-app-primary bg-app-badgeBg px-2.5 py-1 rounded-full border border-app-primary/20">
-                  8 Groups Monitored
-                </span>
-              </div>
-
-              <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
-                {Object.entries(inventory).map(([bg, data]) => (
-                  <div
-                    key={bg}
-                    className="p-3.5 rounded-xl border border-slate-200 bg-slate-50/50 flex flex-col items-center justify-center space-y-2 text-center"
-                  >
-                    <BloodGroupBadge bloodGroup={bg} size="lg" />
-                    <div className="text-2xl font-black text-slate-900">{data.units}</div>
-                    <StatusPill status={data.status} />
+                  <div className="flex items-center space-x-2 shrink-0">
+                    <button
+                      onClick={() => setActiveTab('donors')}
+                      className="inline-flex items-center space-x-2 px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs shadow-sm transition-all cursor-pointer"
+                    >
+                      <Users className="w-4 h-4 text-slate-300" />
+                      <span>Executive Directory</span>
+                    </button>
+                    <button
+                      onClick={() => setActiveTab('verifications')}
+                      className="inline-flex items-center space-x-2 px-4 py-2.5 rounded-xl bg-[#C62828] hover:bg-[#B71C1C] text-white font-bold text-xs shadow-md shadow-[#C62828]/20 transition-all cursor-pointer"
+                    >
+                      <FileCheck2 className="w-4 h-4 text-white" />
+                      <span>Facility Approvals ({pendingCount})</span>
+                    </button>
                   </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Tab 3: Donor Directory */}
-          {(activeTab === 'donors') && (
-            <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-xs space-y-4 p-6">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div>
-                  <h2 className="text-base font-bold text-slate-900">Registered Citizen Donors</h2>
-                  <p className="text-xs text-slate-500">
-                    Synchronized from Android mobile app registrations
-                  </p>
                 </div>
 
-                {/* Search & Filter Bar */}
-                <div className="flex flex-wrap items-center gap-2">
-                  <div className="relative">
-                    <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5" />
+                {/* 4 Stats Cards matching Screenshot 2 */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
+                  {/* Card 1: Registered Donors */}
+                  <div className="bg-white rounded-2xl p-5 border border-slate-200/90 shadow-xs flex items-center justify-between">
+                    <div>
+                      <span className="block text-[11px] font-extrabold uppercase tracking-wider text-slate-400">
+                        TOTAL REGISTERED USERS
+                      </span>
+                      <div className="text-2xl font-black text-slate-900 mt-1 tracking-tight">
+                        {metrics.totalDonors.toLocaleString()}
+                      </div>
+                      <span className="text-xs text-slate-500 font-medium mt-0.5 block">
+                        Platform registry
+                      </span>
+                    </div>
+                    <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+                      <Users className="w-6 h-6" />
+                    </div>
+                  </div>
+
+                  {/* Card 2: Active Requisitions */}
+                  <div className="bg-white rounded-2xl p-5 border border-slate-200/90 shadow-xs flex items-center justify-between">
+                    <div>
+                      <span className="block text-[11px] font-extrabold uppercase tracking-wider text-slate-400">
+                        ACTIVE REQUISITIONS
+                      </span>
+                      <div className="text-2xl font-black text-slate-900 mt-1 tracking-tight">
+                        {metrics.activeUrgentRequests}
+                      </div>
+                      <span className="text-xs text-slate-500 font-medium mt-0.5 block">
+                        Scheduled & emergency
+                      </span>
+                    </div>
+                    <div className="w-12 h-12 rounded-2xl bg-rose-50 text-[#C62828] flex items-center justify-center shrink-0">
+                      <Zap className="w-6 h-6" />
+                    </div>
+                  </div>
+
+                  {/* Card 3: Practitioner / Facility Pool */}
+                  <div className="bg-white rounded-2xl p-5 border border-slate-200/90 shadow-xs flex items-center justify-between">
+                    <div>
+                      <span className="block text-[11px] font-extrabold uppercase tracking-wider text-slate-400">
+                        PRACTITIONER POOL
+                      </span>
+                      <div className="text-2xl font-black text-slate-900 mt-1 tracking-tight">
+                        Active
+                      </div>
+                      <span className="text-xs text-slate-500 font-medium mt-0.5 block">
+                        {metrics.verifiedHospitals} verified facilities
+                      </span>
+                    </div>
+                    <div className="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+                      <ShieldCheck className="w-6 h-6" />
+                    </div>
+                  </div>
+
+                  {/* Card 4: Security & Audits */}
+                  <div className="bg-white rounded-2xl p-5 border border-slate-200/90 shadow-xs flex items-center justify-between">
+                    <div>
+                      <span className="block text-[11px] font-extrabold uppercase tracking-wider text-slate-400">
+                        SECURITY & AUDITS
+                      </span>
+                      <div className="text-2xl font-black text-slate-900 mt-1 tracking-tight">
+                        Secured
+                      </div>
+                      <span className="text-xs text-slate-500 font-medium mt-0.5 block">
+                        Immutable logs
+                      </span>
+                    </div>
+                    <div className="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
+                      <Shield className="w-6 h-6" />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Recent Clinical Requisitions List matching Screenshot 2 layout */}
+                <div className="bg-white rounded-2xl border border-slate-200/90 p-6 shadow-xs space-y-4">
+                  <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                    <div>
+                      <h3 className="text-base font-extrabold text-slate-900">Recent Urgent Requisitions</h3>
+                      <p className="text-xs text-slate-500">Scheduled clinical requests and emergency transfusions</p>
+                    </div>
+                    <button
+                      onClick={() => setActiveTab('donors')}
+                      className="text-xs font-bold text-[#C62828] hover:underline flex items-center space-x-1"
+                    >
+                      <span>View All</span>
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+
+                  <div className="divide-y divide-slate-100">
+                    {MOCK_REQUISITIONS.slice(0, 4).map((req) => (
+                      <div key={req.id} className="py-3.5 flex items-center justify-between hover:bg-slate-50/80 rounded-xl px-2 transition-colors">
+                        <div className="flex items-center space-x-3.5">
+                          <div className="w-10 h-10 rounded-2xl bg-rose-50 border border-rose-100 flex items-center justify-center shrink-0">
+                            <BloodGroupBadge bloodGroup={req.bloodGroup} size="sm" />
+                          </div>
+                          <div>
+                            <div className="flex items-center space-x-2">
+                              <span className="text-xs font-bold text-slate-900">{req.patientName}</span>
+                              <span className="text-slate-300">&bull;</span>
+                              <span className="text-[11px] text-slate-600">{req.hospitalName}</span>
+                            </div>
+                            <span className="text-[11px] text-slate-400 mt-0.5 block">
+                              {req.units} Unit(s) needed &bull; {req.district} &bull; {req.notes || 'Emergency surgery'}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center space-x-3">
+                          <StatusPill status={req.status} />
+                          <button
+                            onClick={() => setShowChatModal(true)}
+                            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+                            title="Direct Message"
+                          >
+                            <ArrowRight className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* ============================================================== */}
+            {/* VIEW 2: FACILITY & DOCTOR APPROVALS QUEUE                     */}
+            {/* ============================================================== */}
+            {activeTab === 'verifications' && (
+              <div className="space-y-6">
+                <div className="bg-white rounded-2xl border border-slate-200/90 p-6 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+                  <div>
+                    <div className="flex items-center space-x-2">
+                      <h2 className="text-lg font-extrabold text-slate-900">Doctor & Facility Approvals</h2>
+                      <span className="text-xs font-bold bg-[#FFEBEE] text-[#C62828] px-2.5 py-0.5 rounded-full border border-[#FFCDD2]">
+                        {pendingCount} Pending Review
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-500 mt-1">
+                      Validate Directorate General of Health Services (DGHS) medical licenses before enabling mobile push notifications.
+                    </p>
+                  </div>
+                  <button
+                    onClick={loadData}
+                    className="inline-flex items-center space-x-1.5 px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-colors cursor-pointer"
+                  >
+                    <RefreshCw className="w-3.5 h-3.5" />
+                    <span>Refresh Queue</span>
+                  </button>
+                </div>
+
+                {/* Table of Facilities */}
+                <div className="bg-white rounded-2xl border border-slate-200/90 overflow-hidden shadow-xs">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-xs">
+                      <thead className="bg-slate-50 text-slate-500 font-bold border-b border-slate-200 uppercase tracking-wider text-[11px]">
+                        <tr>
+                          <th className="px-6 py-3.5">Facility / Hospital</th>
+                          <th className="px-6 py-3.5">District</th>
+                          <th className="px-6 py-3.5">Medical License No.</th>
+                          <th className="px-6 py-3.5">Direct Hotline</th>
+                          <th className="px-6 py-3.5">Status</th>
+                          <th className="px-6 py-3.5 text-right">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100">
+                        {hospitals.map((h) => (
+                          <tr key={h.id} className="hover:bg-slate-50/80 transition-colors">
+                            <td className="px-6 py-4">
+                              <div className="flex items-center space-x-3">
+                                <div className="w-8 h-8 rounded-xl bg-slate-900 text-white flex items-center justify-center font-bold text-xs shrink-0">
+                                  {h.name.charAt(0)}
+                                </div>
+                                <span className="font-extrabold text-slate-900">{h.name}</span>
+                              </div>
+                            </td>
+                            <td className="px-6 py-4 font-medium text-slate-600">{h.district}</td>
+                            <td className="px-6 py-4 font-mono font-bold text-slate-800">{h.licenseNumber}</td>
+                            <td className="px-6 py-4 text-slate-600 font-medium">{h.contactPhone}</td>
+                            <td className="px-6 py-4">
+                              {h.verified ? (
+                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
+                                  <Check className="w-3 h-3 mr-1 text-emerald-600" />
+                                  Approved
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-50 text-amber-800 border border-amber-200">
+                                  <Clock className="w-3 h-3 mr-1 text-amber-600" />
+                                  Awaiting Review
+                                </span>
+                              )}
+                            </td>
+                            <td className="px-6 py-4 text-right">
+                              <button
+                                onClick={() => handleVerify(h.id, h.verified)}
+                                className={`text-xs font-bold px-3 py-1.5 rounded-xl border transition-all cursor-pointer ${
+                                  h.verified
+                                    ? 'text-rose-600 border-rose-200 hover:bg-rose-50'
+                                    : 'bg-emerald-600 text-white border-emerald-600 hover:bg-emerald-700 shadow-sm'
+                                }`}
+                              >
+                                {h.verified ? 'Revoke Access' : 'Approve Facility'}
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* ============================================================== */}
+            {/* VIEW 3: USERS & DONOR DIRECTORY (Screenshot 4 Reference)        */}
+            {/* ============================================================== */}
+            {activeTab === 'donors' && (
+              <div className="space-y-6">
+                {/* Header with Metric Summary Chips matching Screenshot 4 */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div>
+                    <div className="flex items-center space-x-2.5">
+                      <div className="w-8 h-8 rounded-xl bg-slate-900 text-white flex items-center justify-center font-bold">
+                        <Users className="w-4 h-4 text-white" />
+                      </div>
+                      <h2 className="text-xl font-black text-slate-900 tracking-tight">Users Directory</h2>
+                    </div>
+                    <p className="text-xs text-slate-500 mt-1">
+                      Manage user accounts, inspect clinical profiles, verify credentials, and regulate platform access.
+                    </p>
+                  </div>
+
+                  {/* Summary Metric Chips matching Screenshot 4 */}
+                  <div className="flex items-center space-x-2 shrink-0">
+                    <div className="px-3.5 py-1.5 rounded-xl bg-white border border-slate-200 text-center shadow-xs">
+                      <span className="block text-[10px] font-extrabold uppercase text-slate-400">TOTAL</span>
+                      <span className="font-black text-sm text-slate-900">1,420</span>
+                    </div>
+                    <div className="px-3.5 py-1.5 rounded-xl bg-blue-50/70 border border-blue-200/80 text-center shadow-xs">
+                      <span className="block text-[10px] font-extrabold uppercase text-blue-600">DONORS</span>
+                      <span className="font-black text-sm text-blue-900">890</span>
+                    </div>
+                    <div className="px-3.5 py-1.5 rounded-xl bg-emerald-50/70 border border-emerald-200/80 text-center shadow-xs">
+                      <span className="block text-[10px] font-extrabold uppercase text-emerald-600">HOSPITALS</span>
+                      <span className="font-black text-sm text-emerald-900">28</span>
+                    </div>
+                    <div className="px-3.5 py-1.5 rounded-xl bg-purple-50/70 border border-purple-200/80 text-center shadow-xs">
+                      <span className="block text-[10px] font-extrabold uppercase text-purple-600">ADMINS</span>
+                      <span className="font-black text-sm text-purple-900">4</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Search & Filter Bar matching Screenshot 4 */}
+                <div className="bg-white rounded-2xl border border-slate-200/90 p-4 shadow-xs flex flex-col sm:flex-row items-center gap-3">
+                  <div className="relative flex-1 w-full">
+                    <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                     <input
                       type="text"
-                      placeholder="Search name, phone, district..."
+                      placeholder="Search by full name, email, or phone..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      className="pl-8 pr-3 py-1.5 text-xs rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-app-primary w-48 sm:w-64"
+                      className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 text-xs bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#C62828]"
                     />
                   </div>
 
-                  <div className="flex items-center space-x-1.5 bg-slate-100 p-1 rounded-lg border border-slate-200 text-xs">
-                    <Filter className="w-3.5 h-3.5 text-slate-500 ml-1" />
+                  <div className="flex items-center space-x-2 w-full sm:w-auto">
                     <select
-                      value={selectedBloodGroup}
-                      onChange={(e) => setSelectedBloodGroup(e.target.value)}
-                      className="bg-white text-xs font-bold py-1 px-2 rounded-md border border-slate-200 focus:outline-none"
+                      value={selectedRoleFilter}
+                      onChange={(e) => setSelectedRoleFilter(e.target.value)}
+                      className="px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold bg-slate-50 focus:bg-white focus:outline-none"
                     >
-                      {bloodGroups.map((bg) => (
-                        <option key={bg} value={bg}>
-                          {bg === 'all' ? 'All Blood Groups' : bg}
-                        </option>
-                      ))}
+                      <option value="all">All Roles & Groups</option>
+                      <option value="eligible">Eligible Donors Only</option>
+                      <option value="cooldown">In 90-Day Cooldown</option>
+                      <option value="O-">O- Negative (Universal)</option>
+                      <option value="O+">O+ Positive</option>
+                      <option value="A+">A+ Positive</option>
+                      <option value="B+">B+ Positive</option>
+                    </select>
+
+                    <button
+                      onClick={loadData}
+                      className="p-2.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-600 transition-colors"
+                      title="Refresh"
+                    >
+                      <RefreshCw className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Users Directory Table matching Screenshot 4 */}
+                <div className="bg-white rounded-2xl border border-slate-200/90 overflow-hidden shadow-xs">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-xs">
+                      <thead className="bg-slate-50 text-slate-500 font-bold border-b border-slate-200 uppercase tracking-wider text-[11px]">
+                        <tr>
+                          <th className="px-6 py-3.5">USER DETAILS</th>
+                          <th className="px-6 py-3.5">ROLE / GROUP</th>
+                          <th className="px-6 py-3.5">STATUS</th>
+                          <th className="px-6 py-3.5">CONTACT PHONE</th>
+                          <th className="px-6 py-3.5">DISTRICT</th>
+                          <th className="px-6 py-3.5 text-right">ACTIONS</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100">
+                        {filteredDonors.map((donor) => (
+                          <tr key={donor.id} className="hover:bg-slate-50/80 transition-colors">
+                            <td className="px-6 py-4">
+                              <div className="flex items-center space-x-3">
+                                <div className="w-9 h-9 rounded-full bg-slate-800 text-white font-bold flex items-center justify-center text-xs shrink-0">
+                                  {donor.name.charAt(0)}
+                                </div>
+                                <div>
+                                  <div className="font-extrabold text-slate-900">{donor.name}</div>
+                                  <span className="text-[11px] text-slate-400 font-mono">
+                                    donor.{donor.id}@bloodlink.network
+                                  </span>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="px-6 py-4">
+                              <div className="flex items-center space-x-2">
+                                <BloodGroupBadge bloodGroup={donor.bloodGroup} size="sm" />
+                                <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200">
+                                  Donor
+                                </span>
+                              </div>
+                            </td>
+                            <td className="px-6 py-4">
+                              {donor.canDonate ? (
+                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
+                                  <Check className="w-3 h-3 mr-1 text-emerald-600" />
+                                  Approved
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-slate-100 text-slate-700 border border-slate-200">
+                                  <Clock className="w-3 h-3 mr-1 text-slate-500" />
+                                  90-Day Cooldown
+                                </span>
+                              )}
+                            </td>
+                            <td className="px-6 py-4 font-mono font-medium text-slate-700">{donor.phone}</td>
+                            <td className="px-6 py-4 font-medium text-slate-600">{donor.district}</td>
+                            <td className="px-6 py-4 text-right">
+                              <div className="inline-flex items-center space-x-2">
+                                <button
+                                  onClick={() => setSelectedUserDetail(donor)}
+                                  className="inline-flex items-center space-x-1 px-2.5 py-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold text-[11px] transition-colors cursor-pointer"
+                                >
+                                  <Eye className="w-3.5 h-3.5 text-slate-500" />
+                                  <span>View Profile</span>
+                                </button>
+                                <button
+                                  onClick={() => setShowChatModal(true)}
+                                  className="px-2.5 py-1.5 rounded-lg bg-rose-50 text-[#C62828] border border-rose-200 hover:bg-rose-100 font-bold text-[11px] transition-colors cursor-pointer"
+                                >
+                                  Contact
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* ============================================================== */}
+            {/* VIEW 4: NATIONAL BLOOD MATRIX                                   */}
+            {/* ============================================================== */}
+            {activeTab === 'inventory' && (
+              <div className="space-y-6">
+                <div className="bg-white rounded-2xl border border-slate-200/90 p-6 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+                  <div>
+                    <h2 className="text-lg font-extrabold text-slate-900">National Blood Matrix</h2>
+                    <p className="text-xs text-slate-500 mt-1">
+                      Aggregated cryo-storage inventory across all 12 government-approved blood centers in Bangladesh.
+                    </p>
+                  </div>
+                  <span className="text-xs font-bold text-slate-700 bg-slate-100 px-3 py-1.5 rounded-xl border border-slate-200">
+                    Network Total: <strong>485 Units</strong>
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
+                  {bloodGroups.map((bg) => {
+                    const info = inventory[bg] || { units: 15, status: 'NORMAL' as const };
+                    const isCritical = info.units <= 5;
+                    const isLow = info.units > 5 && info.units <= 10;
+
+                    return (
+                      <div
+                        key={bg}
+                        className={`bg-white rounded-2xl p-5 border shadow-xs transition-all relative overflow-hidden ${
+                          isCritical
+                            ? 'border-rose-300 ring-2 ring-rose-500/10'
+                            : isLow
+                            ? 'border-amber-300'
+                            : 'border-slate-200/90'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between mb-3">
+                          <BloodGroupBadge bloodGroup={bg} size="lg" />
+                          <span
+                            className={`text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full border ${
+                              isCritical
+                                ? 'bg-rose-50 text-rose-800 border-rose-200'
+                                : isLow
+                                ? 'bg-amber-50 text-amber-800 border-amber-200'
+                                : 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                            }`}
+                          >
+                            {info.status}
+                          </span>
+                        </div>
+
+                        <div className="mt-2">
+                          <div className="text-2xl font-black text-slate-900 tracking-tight">
+                            {info.units}{' '}
+                            <span className="text-xs font-medium text-slate-500">Units in Network</span>
+                          </div>
+                          <div className="w-full bg-slate-100 h-2 rounded-full mt-3 overflow-hidden">
+                            <div
+                              className={`h-full rounded-full transition-all duration-500 ${
+                                isCritical ? 'bg-rose-500' : isLow ? 'bg-amber-500' : 'bg-emerald-500'
+                              }`}
+                              style={{ width: `${Math.min((info.units / 45) * 100, 100)}%` }}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* ============================================================== */}
+            {/* VIEW 5: SECURITY & SYSTEM AUDIT LOGS (Screenshot 1 Reference)   */}
+            {/* ============================================================== */}
+            {activeTab === 'audit' && (
+              <div className="space-y-6">
+                {/* Page Header matching Screenshot 1 */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div>
+                    <div className="flex items-center space-x-2.5">
+                      <div className="w-8 h-8 rounded-xl bg-slate-900 text-white flex items-center justify-center font-bold">
+                        <Shield className="w-4 h-4 text-white" />
+                      </div>
+                      <h2 className="text-xl font-black text-slate-900 tracking-tight">
+                        Security & System Audit Logs
+                      </h2>
+                    </div>
+                    <p className="text-xs text-slate-500 mt-1">
+                      Real-time immutable audit trail of system activities, user authentication, and data modifications.
+                    </p>
+                  </div>
+
+                  <button
+                    onClick={loadData}
+                    className="inline-flex items-center space-x-2 px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs shadow-sm transition-all cursor-pointer shrink-0"
+                  >
+                    <RefreshCw className="w-3.5 h-3.5" />
+                    <span>Refresh Logs</span>
+                  </button>
+                </div>
+
+                {/* Filter & Search Bar matching Screenshot 1 */}
+                <div className="bg-white rounded-2xl border border-slate-200/90 p-4 shadow-xs flex flex-col md:flex-row items-center gap-3">
+                  <div className="relative flex-1 w-full">
+                    <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="text"
+                      placeholder="Search by user email, resource ID, or IP address..."
+                      value={auditSearchQuery}
+                      onChange={(e) => setAuditSearchQuery(e.target.value)}
+                      className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 text-xs bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#C62828]"
+                    />
+                  </div>
+
+                  <div className="flex items-center space-x-2 w-full md:w-auto">
+                    <select
+                      value={auditActionFilter}
+                      onChange={(e) => setAuditActionFilter(e.target.value)}
+                      className="px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold bg-slate-50 focus:bg-white focus:outline-none"
+                    >
+                      <option value="all">All Actions</option>
+                      <option value="LOGIN">LOGIN</option>
+                      <option value="LOGOUT">LOGOUT</option>
+                      <option value="REQUISITION">REQUISITION</option>
+                      <option value="INTAKE">INTAKE</option>
+                      <option value="DISPATCH">DISPATCH</option>
+                      <option value="APPROVAL">APPROVAL</option>
+                    </select>
+
+                    <select
+                      value={auditResourceFilter}
+                      onChange={(e) => setAuditResourceFilter(e.target.value)}
+                      className="px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold bg-slate-50 focus:bg-white focus:outline-none"
+                    >
+                      <option value="all">All Resources</option>
+                      <option value="User">User</option>
+                      <option value="Requisition">Requisition</option>
+                      <option value="BloodStock">BloodStock</option>
+                      <option value="Facility">Facility</option>
                     </select>
                   </div>
                 </div>
+
+                {/* Audit Logs Table matching Screenshot 1 */}
+                <div className="bg-white rounded-2xl border border-slate-200/90 overflow-hidden shadow-xs">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-xs">
+                      <thead className="bg-slate-50 text-slate-500 font-bold border-b border-slate-200 uppercase tracking-wider text-[11px]">
+                        <tr>
+                          <th className="px-6 py-3.5">TIMESTAMP</th>
+                          <th className="px-6 py-3.5">USER</th>
+                          <th className="px-6 py-3.5">ACTION</th>
+                          <th className="px-6 py-3.5">RESOURCE</th>
+                          <th className="px-6 py-3.5">RESOURCE ID</th>
+                          <th className="px-6 py-3.5">IP ADDRESS</th>
+                          <th className="px-6 py-3.5 text-right">DETAILS</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100">
+                        {filteredAuditLogs.map((log) => (
+                          <tr key={log.id} className="hover:bg-slate-50/80 transition-colors">
+                            <td className="px-6 py-4 font-mono text-slate-600 whitespace-nowrap">
+                              {log.timestamp}
+                            </td>
+                            <td className="px-6 py-4">
+                              <div>
+                                <span className="font-extrabold text-slate-900 block">{log.user}</span>
+                                <span className="text-[10px] text-slate-400 uppercase font-bold">{log.role}</span>
+                              </div>
+                            </td>
+                            <td className="px-6 py-4">
+                              <span
+                                className={`inline-block px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider ${
+                                  log.action === 'LOGIN'
+                                    ? 'bg-indigo-50 text-indigo-700 border border-indigo-200'
+                                    : log.action === 'LOGOUT'
+                                    ? 'bg-slate-100 text-slate-700 border border-slate-200'
+                                    : log.action === 'INTAKE'
+                                    ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
+                                    : log.action === 'DISPATCH'
+                                    ? 'bg-blue-50 text-blue-800 border border-blue-200'
+                                    : log.action === 'APPROVAL'
+                                    ? 'bg-teal-50 text-teal-800 border border-teal-200'
+                                    : 'bg-rose-50 text-rose-800 border border-rose-200'
+                                }`}
+                              >
+                                {log.action}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4 font-semibold text-slate-700">{log.resource}</td>
+                            <td className="px-6 py-4 font-mono text-slate-500">{log.resourceId}</td>
+                            <td className="px-6 py-4 font-mono text-slate-600">{log.ipAddress}</td>
+                            <td className="px-6 py-4 text-right">
+                              <button
+                                onClick={() => setSelectedAuditLog(log)}
+                                className="inline-flex items-center space-x-1 text-slate-700 hover:text-slate-900 font-bold hover:underline cursor-pointer"
+                              >
+                                <Eye className="w-3.5 h-3.5 text-slate-400" />
+                                <span>View</span>
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* ============================================================== */}
+            {/* VIEW 6: SYSTEM SETTINGS / PROFILE (Screenshot 3 Reference)      */}
+            {/* ============================================================== */}
+            {activeTab === 'settings' && (
+              <div className="space-y-6 max-w-4xl">
+                {/* Hero Profile Banner matching Screenshot 3 */}
+                <div className="bg-[#0B1528] rounded-3xl p-6 sm:p-8 text-white relative overflow-hidden shadow-xl border border-slate-800">
+                  <div className="flex flex-col sm:flex-row items-center sm:items-start space-y-4 sm:space-y-0 sm:space-x-6">
+                    <div className="w-24 h-24 rounded-3xl bg-white/10 border-2 border-emerald-500/40 p-2 flex items-center justify-center shrink-0">
+                      <div className="w-full h-full rounded-2xl bg-emerald-700 text-white font-black text-3xl flex items-center justify-center">
+                        {user.avatarLetter || user.name.charAt(0)}
+                      </div>
+                    </div>
+
+                    <div className="flex-1 text-center sm:text-left">
+                      <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 mb-2">
+                        <h2 className="text-xl font-black text-white">{user.name}</h2>
+                        <span className="text-[10px] font-extrabold uppercase px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                          ADMIN
+                        </span>
+                        <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/30 flex items-center space-x-1">
+                          <ShieldCheck className="w-3 h-3 mr-0.5" />
+                          <span>2FA Secured</span>
+                        </span>
+                      </div>
+
+                      <div className="text-xs text-slate-300 space-y-1">
+                        <div className="flex items-center justify-center sm:justify-start space-x-2">
+                          <Mail className="w-3.5 h-3.5 text-slate-400" />
+                          <span>{user.email}</span>
+                          <span>&bull;</span>
+                          <Phone className="w-3.5 h-3.5 text-slate-400" />
+                          <span>+880222334455</span>
+                        </div>
+                      </div>
+
+                      {/* Profile Health Bar matching Screenshot 3 */}
+                      <div className="mt-4 pt-3 border-t border-white/10 max-w-xs">
+                        <div className="flex justify-between text-[11px] font-bold mb-1">
+                          <span className="text-slate-400">Profile Health</span>
+                          <span className="text-emerald-400">100%</span>
+                        </div>
+                        <div className="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
+                          <div className="bg-emerald-400 h-full rounded-full w-full" />
+                        </div>
+                        <span className="text-[10px] text-slate-400 mt-1 block">
+                          Verified & encrypted system administration credentials
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Personal & Contact Information Card matching Screenshot 3 */}
+                <div className="bg-white rounded-2xl border border-slate-200/90 p-6 sm:p-7 shadow-xs space-y-5">
+                  <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                    <div>
+                      <h3 className="text-base font-extrabold text-slate-900">Personal & Contact Information</h3>
+                      <p className="text-xs text-slate-500">Your core profile attributes used across hospital network records</p>
+                    </div>
+                    <button
+                      type="button"
+                      className="px-3.5 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold transition-colors cursor-pointer"
+                    >
+                      Edit Details
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                    <div>
+                      <label className="block font-bold text-slate-700 uppercase tracking-wider text-[11px] mb-1">
+                        Full Name
+                      </label>
+                      <input
+                        type="text"
+                        readOnly
+                        value={user.name}
+                        className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 font-semibold text-slate-900"
+                      />
+                    </div>
+                    <div>
+                      <label className="block font-bold text-slate-700 uppercase tracking-wider text-[11px] mb-1">
+                        Primary Email
+                      </label>
+                      <input
+                        type="email"
+                        readOnly
+                        value={user.email}
+                        className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 font-semibold text-slate-900"
+                      />
+                      <span className="text-[10px] text-slate-400 mt-1 block">Account login email cannot be changed</span>
+                    </div>
+
+                    <div>
+                      <label className="block font-bold text-slate-700 uppercase tracking-wider text-[11px] mb-1">
+                        Phone Number
+                      </label>
+                      <input
+                        type="tel"
+                        readOnly
+                        value="+880222334455"
+                        className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 font-semibold text-slate-900"
+                      />
+                    </div>
+                    <div>
+                      <label className="block font-bold text-slate-700 uppercase tracking-wider text-[11px] mb-1">
+                        System Access Role
+                      </label>
+                      <input
+                        type="text"
+                        readOnly
+                        value="SUPER ADMINISTRATOR / NATIONAL NOC"
+                        className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 font-semibold text-slate-900"
+                      />
+                    </div>
+
+                    <div className="sm:col-span-2">
+                      <label className="block font-bold text-slate-700 uppercase tracking-wider text-[11px] mb-1">
+                        Mailing / Office Address
+                      </label>
+                      <input
+                        type="text"
+                        readOnly
+                        value="Directorate General of Health Services (DGHS), Mohakhali, Dhaka-1212"
+                        className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 font-semibold text-slate-900"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </main>
+        </div>
+
+        {/* Direct Donor Messaging Modal (Mobile App Sync) */}
+        <DirectChatModal isOpen={showChatModal} onClose={() => setShowChatModal(false)} />
+
+        {/* Audit Log Detail Modal */}
+        {selectedAuditLog && (
+          <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+            <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 space-y-4 animate-scaleUp text-xs">
+              <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                <div className="flex items-center space-x-2">
+                  <Shield className="w-5 h-5 text-slate-800" />
+                  <h3 className="text-base font-extrabold text-slate-900">Audit Record Details</h3>
+                </div>
+                <button
+                  onClick={() => setSelectedAuditLog(null)}
+                  className="text-slate-400 hover:text-slate-600 text-lg font-bold"
+                >
+                  &times;
+                </button>
               </div>
 
-              <div className="overflow-x-auto -mx-6">
-                <table className="w-full text-left text-xs">
-                  <thead className="bg-slate-50 text-slate-500 font-semibold border-y border-slate-200 uppercase tracking-wider">
-                    <tr>
-                      <th className="px-6 py-3">Donor Name</th>
-                      <th className="px-6 py-3">Blood Group</th>
-                      <th className="px-6 py-3">Contact</th>
-                      <th className="px-6 py-3">District</th>
-                      <th className="px-6 py-3">Total Donations</th>
-                      <th className="px-6 py-3">Eligibility State</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100 text-slate-700">
-                    {filteredDonors.map((donor) => (
-                      <tr key={donor.id} className="hover:bg-slate-50 transition-colors">
-                        <td className="px-6 py-3.5 font-bold text-slate-900">{donor.name}</td>
-                        <td className="px-6 py-3.5">
-                          <BloodGroupBadge bloodGroup={donor.bloodGroup} size="sm" />
-                        </td>
-                        <td className="px-6 py-3.5 font-mono text-slate-600 flex items-center space-x-1">
-                          <Phone className="w-3 h-3 text-slate-400" />
-                          <span>{donor.phone}</span>
-                        </td>
-                        <td className="px-6 py-3.5">{donor.district}</td>
-                        <td className="px-6 py-3.5 font-bold text-slate-800">
-                          {donor.totalDonations || 0} times
-                        </td>
-                        <td className="px-6 py-3.5">
-                          {donor.canDonate ? (
-                            <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                              Eligible to Donate
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold bg-slate-100 text-slate-600 border border-slate-200">
-                              In 90-Day Cooling Cooldown
-                            </span>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-
-          {/* Tab 4: Security & Audit Stream */}
-          {activeTab === 'audit' && (
-            <div className="bg-white rounded-2xl border border-slate-200 p-6 space-y-4 shadow-xs">
-              <div className="flex items-center space-x-2.5">
-                <Shield className="w-5 h-5 text-slate-800" />
-                <div>
-                  <h2 className="text-base font-bold text-slate-900">Security & Activity Logs</h2>
-                  <p className="text-xs text-slate-500">Live operational events recorded in transaction ledger</p>
+              <div className="space-y-2 text-slate-700">
+                <div className="flex justify-between py-1 border-b border-slate-100">
+                  <span className="text-slate-400">Timestamp:</span>
+                  <span className="font-mono font-bold">{selectedAuditLog.timestamp}</span>
+                </div>
+                <div className="flex justify-between py-1 border-b border-slate-100">
+                  <span className="text-slate-400">Actor Account:</span>
+                  <span className="font-bold">{selectedAuditLog.user}</span>
+                </div>
+                <div className="flex justify-between py-1 border-b border-slate-100">
+                  <span className="text-slate-400">Action:</span>
+                  <span className="font-bold text-slate-900">{selectedAuditLog.action}</span>
+                </div>
+                <div className="flex justify-between py-1 border-b border-slate-100">
+                  <span className="text-slate-400">Target Resource:</span>
+                  <span>{selectedAuditLog.resource} ({selectedAuditLog.resourceId})</span>
+                </div>
+                <div className="flex justify-between py-1 border-b border-slate-100">
+                  <span className="text-slate-400">IP Address:</span>
+                  <span className="font-mono">{selectedAuditLog.ipAddress}</span>
+                </div>
+                <div className="py-2">
+                  <span className="text-slate-400 block mb-1">Details:</span>
+                  <p className="p-3 bg-slate-50 rounded-xl border border-slate-200 font-mono text-[11px]">
+                    {selectedAuditLog.details}
+                  </p>
                 </div>
               </div>
 
-              <div className="space-y-3 pt-2 text-xs">
-                {[
-                  { event: 'Emergency Requisition Broadcasted', facility: 'Dhaka Medical College Hospital', detail: '2 Units O- broadcasted to 8 nearby mobile app donors via FCM', time: '12 minutes ago' },
-                  { event: 'Walk-in Collection Logged', facility: 'Red Crescent Blood Center', detail: '1 Unit A+ intake from verified mobile donor (d1)', time: '45 minutes ago' },
-                  { event: 'Facility License Verified', facility: 'Sylhet MAG Osmani Medical Hospital', detail: 'Facility clearance approved by Administrator', time: '2 hours ago' },
-                  { event: 'Blood Drive Registered', facility: 'Red Crescent Blood Center', detail: 'Public camp scheduled at TSC Dhaka University', time: '1 day ago' },
-                ].map((log, i) => (
-                  <div key={i} className="p-3.5 rounded-xl border border-slate-200 bg-slate-50/50 flex items-center justify-between">
-                    <div>
-                      <div className="font-bold text-slate-900">{log.event} &bull; <span className="text-app-primary">{log.facility}</span></div>
-                      <div className="text-[11px] text-slate-500 mt-0.5">{log.detail}</div>
-                    </div>
-                    <span className="text-[10px] font-mono text-slate-400">{log.time}</span>
-                  </div>
-                ))}
+              <div className="pt-2 flex justify-end">
+                <button
+                  onClick={() => setSelectedAuditLog(null)}
+                  className="px-4 py-2 rounded-xl bg-slate-900 text-white font-bold text-xs"
+                >
+                  Close
+                </button>
               </div>
             </div>
-          )}
-        </main>
+          </div>
+        )}
+
+        {/* User Detail Profile Modal */}
+        {selectedUserDetail && (
+          <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+            <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4 animate-scaleUp text-xs">
+              <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                <div className="flex items-center space-x-2.5">
+                  <div className="w-10 h-10 rounded-full bg-slate-800 text-white font-bold flex items-center justify-center">
+                    {selectedUserDetail.name.charAt(0)}
+                  </div>
+                  <div>
+                    <h3 className="text-base font-extrabold text-slate-900">{selectedUserDetail.name}</h3>
+                    <BloodGroupBadge bloodGroup={selectedUserDetail.bloodGroup} size="sm" />
+                  </div>
+                </div>
+                <button
+                  onClick={() => setSelectedUserDetail(null)}
+                  className="text-slate-400 hover:text-slate-600 text-lg font-bold"
+                >
+                  &times;
+                </button>
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex justify-between py-1.5 border-b border-slate-100">
+                  <span className="text-slate-400">Direct Phone:</span>
+                  <span className="font-bold text-slate-900">{selectedUserDetail.phone}</span>
+                </div>
+                <div className="flex justify-between py-1.5 border-b border-slate-100">
+                  <span className="text-slate-400">Operating District:</span>
+                  <span className="font-bold text-slate-900">{selectedUserDetail.district}</span>
+                </div>
+                <div className="flex justify-between py-1.5 border-b border-slate-100">
+                  <span className="text-slate-400">Total Donations:</span>
+                  <span className="font-bold text-slate-900">{selectedUserDetail.totalDonations || 0} times</span>
+                </div>
+                <div className="flex justify-between py-1.5 border-b border-slate-100">
+                  <span className="text-slate-400">Eligibility Status:</span>
+                  <span className={`font-bold ${selectedUserDetail.canDonate ? 'text-emerald-600' : 'text-slate-400'}`}>
+                    {selectedUserDetail.canDonate ? 'Eligible to Donate' : 'In 90-Day Cooldown'}
+                  </span>
+                </div>
+              </div>
+
+              <div className="pt-3 flex justify-between space-x-2">
+                <a
+                  href={`tel:${selectedUserDetail.phone}`}
+                  className="flex-1 py-2 rounded-xl bg-emerald-50 text-emerald-800 border border-emerald-200 font-bold text-center"
+                >
+                  Call Donor
+                </a>
+                <button
+                  onClick={() => {
+                    setSelectedUserDetail(null);
+                    setShowChatModal(true);
+                  }}
+                  className="flex-1 py-2 rounded-xl bg-[#C62828] text-white font-bold"
+                >
+                  Send Message
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </RoleGuard>
   );

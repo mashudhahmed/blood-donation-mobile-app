@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import RoleGuard from '@/components/RoleGuard';
 import DashboardSidebar from '@/components/DashboardSidebar';
 import TopHeader from '@/components/TopHeader';
@@ -80,75 +80,8 @@ export default function BloodBankPortal() {
   const [chatSearchQuery, setChatSearchQuery] = useState('');
   const [messageInput, setMessageInput] = useState('');
 
-  // In-Page Notifications State
-  const [notifications, setNotifications] = useState<BloodBankNotification[]>([
-    {
-      id: 'bb-notif-1',
-      type: 'CRITICAL',
-      title: 'Cryo-Reserve Depletion Warning: O- Negative',
-      description: 'Central cold vault indicates O- negative stock is below minimum safe buffer threshold (2 units remaining).',
-      targetInfo: 'Threshold: 4 units buffer required for Level-1 Trauma readiness.',
-      timestamp: '12 mins ago',
-      isRead: false,
-      actionLabel: 'Adjust Stock / Cryo Matrix',
-      actionTab: 'inventory',
-    },
-    {
-      id: 'bb-notif-2',
-      type: 'REQUISITION',
-      title: 'Emergency Hospital Dispatch Requisition',
-      description: 'Dhaka Medical College requested 4 bags of B+ blood for OT Complex Bed 3 with urgent priority dispatch.',
-      targetInfo: 'Requisition ID: req-102 | Cross-match sample sent.',
-      timestamp: '25 mins ago',
-      isRead: false,
-      actionLabel: 'Open Direct Hospital Chat',
-      actionTab: 'messages',
-    },
-    {
-      id: 'bb-notif-3',
-      type: 'DRIVE',
-      title: 'Voluntary Blood Donation Drive Approved',
-      description: 'DGHS and University Authority cleared scheduled drive at Dhaka University Curzon Hall on Oct 30, 2026.',
-      targetInfo: 'Target: 150 units | Mobile cold-chain van assigned.',
-      timestamp: '1 hour ago',
-      isRead: false,
-      actionLabel: 'Inspect Scheduled Drive',
-      actionTab: 'drives',
-    },
-    {
-      id: 'bb-notif-4',
-      type: 'WALKIN',
-      title: 'Walk-In Donor Pre-Screening Cleared',
-      description: 'Volunteer donor Kazi Sumon completed preliminary vitals screening and hemoglobin test (14.2 g/dL). Ready for phlebotomy intake.',
-      targetInfo: 'Vitals: BP 120/80 mmHg | Temperature 98.4°F.',
-      timestamp: '2 hours ago',
-      isRead: true,
-      actionLabel: 'Record Intake Bag',
-      actionTab: 'walkin',
-    },
-    {
-      id: 'bb-notif-5',
-      type: 'SYSTEM',
-      title: 'Cold Storage Vault Temperature Calibrated',
-      description: 'Chamber Vault B4 automatic sensors reported steady 3.8°C (allowed range: 2.0°C - 6.0°C). Sensor telemetry logged.',
-      targetInfo: 'Complies with DGHS Central Blood Bank Standard ISO-15189.',
-      timestamp: '4 hours ago',
-      isRead: true,
-      actionLabel: 'View Audit Trail',
-      actionTab: 'audit',
-    },
-    {
-      id: 'bb-notif-6',
-      type: 'SYSTEM',
-      title: 'Daily Barcode Traceability Sync Completed',
-      description: '48 cryo-preserved whole blood and platelet component units verified against national barcode ledger.',
-      targetInfo: 'Zero discrepancy detected across 8 ABO blood group chambers.',
-      timestamp: 'Today, 09:15 AM',
-      isRead: true,
-      actionLabel: 'Inspect Inventory',
-      actionTab: 'inventory',
-    },
-  ]);
+  // In-Page Notifications State (Populated dynamically from real database records)
+  const [notifications, setNotifications] = useState<BloodBankNotification[]>([]);
   const [notificationFilter, setNotificationFilter] = useState<'all' | 'unread' | 'CRITICAL' | 'REQUISITION' | 'DRIVE' | 'SYSTEM'>('all');
 
   // Selected Transaction for Detail Modal (Screenshot 1)
@@ -196,7 +129,7 @@ export default function BloodBankPortal() {
 
   const isVerifiedFacility = user.licenseNumber && user.licenseNumber.length > 3;
 
-  async function loadData() {
+  const loadData = useCallback(async () => {
     try {
       const invRes = await api.getInventory();
       if (invRes?.inventory) setInventory(invRes.inventory);
@@ -217,14 +150,88 @@ export default function BloodBankPortal() {
           setSelectedConvId((prev) => prev || convRes.conversations[0].id);
         }
       }
+
+      // Generate dynamic notifications from real database records
+      const realNotifs: BloodBankNotification[] = [];
+
+      // 1. Critical or low inventory stocks
+      if (invRes?.inventory) {
+        Object.entries(invRes.inventory).forEach(([group, info]) => {
+          if (info.units <= 3) {
+            realNotifs.push({
+              id: `bb-alert-${group}`,
+              type: 'CRITICAL',
+              title: `Cryo-Vault Buffer Alert: ${group}`,
+              description: `Central stock level for ${group} is critical (${info.units} units remaining). Safe trauma buffer is 4+ units.`,
+              targetInfo: `Component: Whole Blood / Cryo | Buffer: Critical`,
+              timestamp: 'Stock Alert',
+              isRead: false,
+              actionLabel: 'Adjust Stock / Cryo Matrix',
+              actionTab: 'inventory',
+            });
+          }
+        });
+      }
+
+      // 2. Real blood drives
+      if (drvRes?.drives) {
+        drvRes.drives.slice(0, 3).forEach((drive) => {
+          realNotifs.push({
+            id: `bb-drive-${drive.id}`,
+            type: 'DRIVE',
+            title: `Scheduled Blood Drive: ${drive.title || drive.venue}`,
+            description: `Venue: ${drive.venue}, ${drive.district}. Target capacity: ${drive.targetUnits} units.`,
+            targetInfo: `Date: ${drive.date} | Status: ${drive.status || 'SCHEDULED'}`,
+            timestamp: drive.date || 'Scheduled',
+            isRead: false,
+            actionLabel: 'Inspect Scheduled Drive',
+            actionTab: 'drives',
+          });
+        });
+      }
+
+      // 3. Real inventory transactions
+      if (txRes?.transactions) {
+        txRes.transactions.slice(0, 3).forEach((tx) => {
+          const isOut = tx.type === 'DISPATCH';
+          realNotifs.push({
+            id: `bb-tx-${tx.id}`,
+            type: isOut ? 'REQUISITION' : 'WALKIN',
+            title: `${isOut ? 'Hospital Dispatch' : 'Donation Intake'}: ${tx.bloodGroup}`,
+            description: `${tx.units} units ${isOut ? 'dispatched for clinical need' : 'received and logged into vault'}. ${tx.reason || ''}`,
+            targetInfo: `Batch / Barcode: ${tx.batchOrBagNumber || tx.id}`,
+            timestamp: tx.createdAt ? new Date(tx.createdAt).toLocaleDateString() : 'Recent',
+            isRead: true,
+            actionLabel: 'Inspect Inventory',
+            actionTab: 'inventory',
+          });
+        });
+      }
+
+      // 4. Clinical Storage License Verification
+      if (user.licenseNumber) {
+        realNotifs.push({
+          id: 'bb-license-active',
+          type: 'SYSTEM',
+          title: 'Cold Storage Vault Certification Active',
+          description: `${user.organization || 'Blood Center'} authorized with cold-chain storage license ${user.licenseNumber}.`,
+          targetInfo: 'Complies with DGHS Central Blood Bank Standard ISO-15189.',
+          timestamp: 'Active',
+          isRead: true,
+          actionLabel: 'View Audit Trail',
+          actionTab: 'audit',
+        });
+      }
+
+      setNotifications(realNotifs);
     } catch (e) {
       console.warn('Blood bank load error', e);
     }
-  }
+  }, [user.licenseNumber, user.organization]);
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [loadData]);
 
   const handleCreateStaff = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -1457,15 +1464,26 @@ export default function BloodBankPortal() {
 
                 {/* Notification Feed List */}
                 <div className="space-y-3.5">
-                  {filteredNotifications.map((n) => (
-                    <div
-                      key={n.id}
-                      className={`p-5 rounded-2xl border transition-all flex flex-col sm:flex-row items-start justify-between gap-4 shadow-xs ${
-                        !n.isRead
-                          ? 'bg-white border-[#C62828]/40 ring-1 ring-[#C62828]/15'
-                          : 'bg-white border-slate-200/90'
-                      }`}
-                    >
+                  {filteredNotifications.length === 0 ? (
+                    <div className="p-12 text-center bg-white rounded-2xl border border-slate-200/90 shadow-xs">
+                      <div className="w-12 h-12 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center mx-auto mb-3">
+                        <Bell className="w-6 h-6" />
+                      </div>
+                      <h4 className="text-sm font-bold text-slate-800">No Blood Bank Alerts</h4>
+                      <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
+                        Cryo-vault stocks are balanced and cold storage chain is operational. Incoming alerts, low stock alarms, or drive schedules will appear here in real-time.
+                      </p>
+                    </div>
+                  ) : (
+                    filteredNotifications.map((n) => (
+                      <div
+                        key={n.id}
+                        className={`p-5 rounded-2xl border transition-all flex flex-col sm:flex-row items-start justify-between gap-4 shadow-xs ${
+                          !n.isRead
+                            ? 'bg-white border-[#C62828]/40 ring-1 ring-[#C62828]/15'
+                            : 'bg-white border-slate-200/90'
+                        }`}
+                      >
                       <div className="flex items-start space-x-3.5 flex-1">
                         <div
                           className={`w-10 h-10 rounded-2xl flex items-center justify-center font-bold shrink-0 shadow-2xs ${
@@ -1544,7 +1562,8 @@ export default function BloodBankPortal() {
                         </div>
                       )}
                     </div>
-                  ))}
+                  ))
+                )}
                 </div>
               </div>
             )}

@@ -254,64 +254,6 @@ export default function LoginPage() {
                 )}
               </button>
 
-              {/* Quick Preset Selector for Easy Testing */}
-              <div className="pt-3 border-t border-slate-100">
-                <span className="block text-[10px] font-black uppercase tracking-wider text-slate-400 mb-2">
-                  Quick Access Demo Accounts:
-                </span>
-                <div className="flex flex-wrap gap-1.5">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setEmail('admin@bloodlink.org');
-                      setPassword('password123');
-                    }}
-                    className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors cursor-pointer"
-                  >
-                    👑 Super Admin
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setEmail('hospital@dmc.edu.bd');
-                      setPassword('password123');
-                    }}
-                    className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-[#FFEBEE] hover:bg-[#FFCDD2] text-[#C62828] transition-colors cursor-pointer"
-                  >
-                    🏥 Hospital CMO
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setEmail('kamal.icu@dmc.edu.bd');
-                      setPassword('password123');
-                    }}
-                    className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 transition-colors cursor-pointer"
-                  >
-                    🩺 ICU Doctor (Staff)
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setEmail('contact@redcrescent.org.bd');
-                      setPassword('password123');
-                    }}
-                    className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-800 transition-colors cursor-pointer"
-                  >
-                    🩸 Blood Bank Director
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setEmail('sumon.lab@redcrescent.org.bd');
-                      setPassword('password123');
-                    }}
-                    className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 transition-colors cursor-pointer"
-                  >
-                    🔬 Lab Tech (Staff)
-                  </button>
-                </div>
-              </div>
             </form>
           ) : (
             /* ================= FACILITY REGISTRATION FORM ================= */

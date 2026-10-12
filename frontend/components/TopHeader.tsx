@@ -74,28 +74,10 @@ export default function TopHeader({ onOpenMessages, onOpenNotifications }: TopHe
                 <span>Recent System Alerts</span>
                 <span className="text-[10px] text-[#C62828] bg-[#FFEBEE] px-1.5 py-0.5 rounded font-bold">Live</span>
               </div>
-              <div className="divide-y divide-slate-100 mt-2 max-h-64 overflow-y-auto space-y-2">
-                <div className="pt-2 flex items-start space-x-2">
-                  <span className="w-2 h-2 rounded-full bg-rose-500 mt-1.5 shrink-0" />
-                  <div>
-                    <span className="font-bold text-slate-900 block">Critical O- Request</span>
-                    <span className="text-slate-500 text-[11px]">Dhaka Medical College • 2 units needed for surgery</span>
-                  </div>
-                </div>
-                <div className="pt-2 flex items-start space-x-2">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500 mt-1.5 shrink-0" />
-                  <div>
-                    <span className="font-bold text-slate-900 block">Mobile Donor Responded</span>
-                    <span className="text-slate-500 text-[11px]">Zayed Khan (O+) confirmed on-site donation</span>
-                  </div>
-                </div>
-                <div className="pt-2 flex items-start space-x-2">
-                  <span className="w-2 h-2 rounded-full bg-blue-500 mt-1.5 shrink-0" />
-                  <div>
-                    <span className="font-bold text-slate-900 block">Stock Level Replenished</span>
-                    <span className="text-slate-500 text-[11px]">Red Crescent Hub added 4 units O+</span>
-                  </div>
-                </div>
+              <div className="py-6 text-center text-slate-500">
+                <Bell className="w-6 h-6 text-slate-300 mx-auto mb-2" />
+                <p className="font-semibold text-slate-700 text-xs">All Systems Operational</p>
+                <p className="text-[11px] text-slate-400 mt-0.5">Real-time alerts will appear here as requisitions and donor activities occur.</p>
               </div>
             </div>
           )}

@@ -91,75 +91,8 @@ export default function AdminPortal() {
   const [chatSearchQuery, setChatSearchQuery] = useState('');
   const [messageInput, setMessageInput] = useState('');
 
-  // In-Page Notifications State
-  const [notifications, setNotifications] = useState<AdminNotification[]>([
-    {
-      id: 'notif-1',
-      type: 'EMERGENCY',
-      title: 'Critical O- Blood Requisition Dispatched',
-      description: 'Dhaka Medical College Hospital broadcast an emergency 2-unit request for OT-3 general surgery.',
-      targetInfo: 'Firebase Cloud Messaging alert delivered to 142 mobile donors in Dhaka district.',
-      timestamp: '2 mins ago',
-      isRead: false,
-      actionLabel: 'View Blood Matrix',
-      actionTab: 'inventory',
-    },
-    {
-      id: 'notif-2',
-      type: 'APPROVAL',
-      title: 'Facility Accreditation Under Review',
-      description: 'Apollo Imperial Hospital (Chittagong) submitted institutional credentials and medical license LIC-2023-1189.',
-      targetInfo: 'Pending Administrator Verification clearance.',
-      timestamp: '18 mins ago',
-      isRead: false,
-      actionLabel: 'Review License',
-      actionTab: 'verifications',
-    },
-    {
-      id: 'notif-3',
-      type: 'APPROVAL',
-      title: 'Blood Center License Renewal',
-      description: 'Evercare Blood Bank submitted cold-chain verification records and storage license LIC-2024-8712.',
-      targetInfo: 'Requires DGHS clearance approval before public mobile drives can be scheduled.',
-      timestamp: '1 hour ago',
-      isRead: false,
-      actionLabel: 'Review License',
-      actionTab: 'verifications',
-    },
-    {
-      id: 'notif-4',
-      type: 'SUCCESS',
-      title: 'Emergency Requisition Fulfilled',
-      description: 'Patient Fatima Begum (O-) matched with 2 verified citizen donors. Cross-match completed at DMC OT desk.',
-      targetInfo: 'Donation logged in central registry; donor cooldown clocks activated.',
-      timestamp: '3 hours ago',
-      isRead: true,
-      actionLabel: 'View Direct Chat',
-      actionTab: 'messages',
-    },
-    {
-      id: 'notif-5',
-      type: 'SYSTEM',
-      title: 'National Registry Telemetry Synchronized',
-      description: '1,420 registered citizen profiles refreshed against Directorate General of Health Services (DGHS) database.',
-      targetInfo: 'All 8 ABO/Rh group availability quotas updated.',
-      timestamp: '5 hours ago',
-      isRead: true,
-      actionLabel: 'Inspect Users',
-      actionTab: 'donors',
-    },
-    {
-      id: 'notif-6',
-      type: 'SYSTEM',
-      title: 'Administrative Security Session Logged',
-      description: 'System Administrator logged in from authenticated terminal IP 192.168.1.100.',
-      targetInfo: 'Cryptographic SHA-256 token valid for 7 days.',
-      timestamp: 'Today, 08:30 AM',
-      isRead: true,
-      actionLabel: 'Inspect Audit Logs',
-      actionTab: 'audit',
-    },
-  ]);
+  // In-Page Notifications State (Populated dynamically from real database records)
+  const [notifications, setNotifications] = useState<AdminNotification[]>([]);
   const [notificationFilter, setNotificationFilter] = useState<'all' | 'unread' | 'EMERGENCY' | 'APPROVAL' | 'SYSTEM'>('all');
 
   // Modals & Inspect
@@ -209,6 +142,78 @@ export default function AdminPortal() {
           setSelectedConvId((prev) => prev || convRes.value.conversations[0].id);
         }
       }
+
+      // Generate dynamic real notifications from verified Firestore entities
+      const realNotifs: AdminNotification[] = [];
+
+      const orgList = orgRes.status === 'fulfilled' && orgRes.value?.organizations ? orgRes.value.organizations : [];
+      orgList.filter((o) => !o.verified).forEach((org) => {
+        realNotifs.push({
+          id: `org-review-${org.id}`,
+          type: 'APPROVAL',
+          title: `Accreditation Review: ${org.name}`,
+          description: `${org.name} (${org.district || 'Bangladesh'}) submitted facility registration${org.licenseNumber ? ` with license ${org.licenseNumber}` : ''}.`,
+          targetInfo: 'Pending Administrator Verification clearance.',
+          timestamp: 'Review Needed',
+          isRead: false,
+          actionLabel: 'Review License',
+          actionTab: 'verifications',
+        });
+      });
+
+      const reqList = reqRes.status === 'fulfilled' && reqRes.value?.requisitions ? reqRes.value.requisitions : [];
+      reqList
+        .filter((r) => r.status !== 'fulfilled' && r.status !== 'cancelled')
+        .slice(0, 5)
+        .forEach((req) => {
+          const isCritical = String(req.urgency || '').toLowerCase() === 'critical';
+          realNotifs.push({
+            id: `req-alert-${req.id}`,
+            type: isCritical ? 'EMERGENCY' : 'APPROVAL',
+            title: `${isCritical ? 'Critical' : 'Active'} ${req.bloodGroup} Blood Requisition`,
+            description: `${req.hospitalName || req.hospital || 'Facility'} requires ${req.units || 1} units for patient ${req.patientName || 'Emergency Patient'}.`,
+            targetInfo: `Priority: ${String(req.urgency || 'NORMAL').toUpperCase()} | District: ${req.district || 'Central'}`,
+            timestamp: 'Active Pipeline',
+            isRead: false,
+            actionLabel: 'Inspect Pipeline',
+            actionTab: 'inventory',
+          });
+        });
+
+      reqList
+        .filter((r) => r.status === 'fulfilled')
+        .slice(0, 3)
+        .forEach((req) => {
+          realNotifs.push({
+            id: `req-done-${req.id}`,
+            type: 'SUCCESS',
+            title: `Requisition Fulfilled: ${req.bloodGroup}`,
+            description: `Patient ${req.patientName || 'Medical Case'} fulfilled successfully.`,
+            targetInfo: `Facility: ${req.hospitalName || 'Hospital'} | Registry Updated`,
+            timestamp: 'Fulfilled',
+            isRead: true,
+            actionLabel: 'View Direct Chat',
+            actionTab: 'messages',
+          });
+        });
+
+      const auditList = aRes.status === 'fulfilled' && aRes.value?.logs ? aRes.value.logs : [];
+      if (auditList.length > 0) {
+        const latest = auditList[0];
+        realNotifs.push({
+          id: `audit-${latest.id}`,
+          type: 'SYSTEM',
+          title: `Security Log: ${latest.action}`,
+          description: latest.details || `Administrative event recorded by ${latest.user || 'System'}.`,
+          targetInfo: `IP: ${latest.ipAddress || 'Authorized Terminal'} | Status: ${latest.status || 'Verified'}`,
+          timestamp: latest.timestamp || 'Recent',
+          isRead: true,
+          actionLabel: 'Inspect Audit Logs',
+          actionTab: 'audit',
+        });
+      }
+
+      setNotifications(realNotifs);
     } catch (err) {
       console.warn('Admin fetch error', err);
     }
@@ -1120,15 +1125,26 @@ export default function AdminPortal() {
 
                 {/* Notification Feed List */}
                 <div className="space-y-3.5">
-                  {filteredNotifications.map((n) => (
-                    <div
-                      key={n.id}
-                      className={`p-5 rounded-2xl border transition-all flex flex-col sm:flex-row items-start justify-between gap-4 shadow-xs ${
-                        !n.isRead
-                          ? 'bg-white border-[#C62828]/40 ring-1 ring-[#C62828]/15'
-                          : 'bg-white border-slate-200/90'
-                      }`}
-                    >
+                  {filteredNotifications.length === 0 ? (
+                    <div className="p-12 text-center bg-white rounded-2xl border border-slate-200/90 shadow-xs">
+                      <div className="w-12 h-12 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center mx-auto mb-3">
+                        <Bell className="w-6 h-6" />
+                      </div>
+                      <h4 className="text-sm font-bold text-slate-800">No Notifications</h4>
+                      <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
+                        All systems are running smoothly. Any incoming facility verifications, emergency broadcasts, or alerts will appear here in real-time.
+                      </p>
+                    </div>
+                  ) : (
+                    filteredNotifications.map((n) => (
+                      <div
+                        key={n.id}
+                        className={`p-5 rounded-2xl border transition-all flex flex-col sm:flex-row items-start justify-between gap-4 shadow-xs ${
+                          !n.isRead
+                            ? 'bg-white border-[#C62828]/40 ring-1 ring-[#C62828]/15'
+                            : 'bg-white border-slate-200/90'
+                        }`}
+                      >
                       <div className="flex items-start space-x-3.5 flex-1">
                         <div
                           className={`w-10 h-10 rounded-2xl flex items-center justify-center font-bold shrink-0 shadow-2xs ${
@@ -1201,7 +1217,8 @@ export default function AdminPortal() {
                         </div>
                       )}
                     </div>
-                  ))}
+                  ))
+                )}
                 </div>
               </div>
             )}

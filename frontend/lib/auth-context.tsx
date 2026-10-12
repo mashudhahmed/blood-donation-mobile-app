@@ -121,22 +121,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setUser(parsed.user || ROLE_PROFILES[currentRole]);
             setIsAuthenticated(true);
           } else {
-            // Auto-fetch JWT for stored role from seeded credentials
-            try {
-              const defaultEmail = ROLE_PROFILES[currentRole].email;
-              const res = await api.authLogin({ email: defaultEmail, password: 'password123' });
-              if (res && res.token) {
-                setToken(res.token);
-                api.setToken(res.token);
-                localStorage.setItem('bloodlink_jwt_token', res.token);
-                setRole(currentRole);
-                setUser(parsed.user || ROLE_PROFILES[currentRole]);
-                setIsAuthenticated(true);
-                return;
-              }
-            } catch (err) {
-              console.warn('Could not auto-fetch JWT for stored session', err);
-            }
             setIsAuthenticated(false);
           }
         } else {
@@ -177,22 +161,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const login = async (selectedRole: UserRole, customEmail?: string) => {
     const baseUser = ROLE_PROFILES[selectedRole];
     const emailToUse = customEmail || baseUser.email;
-
-    try {
-      const res = await api.authLogin({ email: emailToUse, password: 'password123' });
-      if (res && res.token) {
-        const loggedUser: AuthUser = {
-          ...baseUser,
-          ...(res.user || {}),
-          email: emailToUse,
-        };
-        saveState(selectedRole, loggedUser, true, res.token);
-        return;
-      }
-    } catch (err) {
-      console.warn('JWT login fell back:', err);
-    }
-
     const loggedUser: AuthUser = {
       ...baseUser,
       email: emailToUse,
@@ -281,15 +249,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const switchRole = async (newRole: UserRole) => {
     const newUser = ROLE_PROFILES[newRole];
-    try {
-      const res = await api.authLogin({ email: newUser.email, password: 'password123' });
-      if (res && res.token) {
-        saveState(newRole, { ...newUser, ...(res.user || {}) }, true, res.token);
-        return;
-      }
-    } catch (e) {
-      console.warn('Switch role JWT login error:', e);
-    }
     saveState(newRole, newUser, true);
   };
 

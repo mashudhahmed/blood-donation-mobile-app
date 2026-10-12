@@ -73,64 +73,8 @@ export default function HospitalPortal() {
   const [chatSearchQuery, setChatSearchQuery] = useState('');
   const [messageInput, setMessageInput] = useState('');
 
-  // In-Page Notifications State
-  const [notifications, setNotifications] = useState<HospitalNotification[]>([
-    {
-      id: 'hosp-notif-1',
-      type: 'DONOR',
-      title: 'Donor Accepted Emergency OT Requisition',
-      description: 'Zayed Khan (O+) accepted emergency broadcast for Patient Fatima Begum in OT-3. En route to Emergency Gate 2.',
-      targetInfo: 'ETA: 18 minutes | Contact: +8801711223344',
-      timestamp: '10 mins ago',
-      isRead: false,
-      actionLabel: 'Open Direct Chat',
-      actionTab: 'messages',
-    },
-    {
-      id: 'hosp-notif-2',
-      type: 'DISPATCH',
-      title: 'Cryo-Bank Cold-Chain Dispatch In Transit',
-      description: 'Red Crescent Blood Center dispatched 2 units B+ whole blood via rapid medical courier with digital temperature logging.',
-      targetInfo: 'Waybill ID: WB-2026-9021 | Temperature 3.8°C verified.',
-      timestamp: '25 mins ago',
-      isRead: false,
-      actionLabel: 'Inspect Pipeline',
-      actionTab: 'requisitions',
-    },
-    {
-      id: 'hosp-notif-3',
-      type: 'EMERGENCY',
-      title: 'Critical Requisition Urgent Broadcast Pending',
-      description: 'ICU Bed 14 patient needs 1 more unit of AB- blood within 3 hours for scheduled transfusion protocol.',
-      targetInfo: 'FCM push sent to 8 verified citizen donors in Dhaka.',
-      timestamp: '1 hour ago',
-      isRead: false,
-      actionLabel: 'Find Compatible Donors',
-      actionTab: 'donors',
-    },
-    {
-      id: 'hosp-notif-4',
-      type: 'DONOR',
-      title: 'Nearby Donor Pre-Screening Passed',
-      description: 'Rakib Hasan (O-) updated availability status to Eligible. Currently within 3.2 km radius of hospital.',
-      targetInfo: 'Last donation: 94 days ago | Ready for emergency call.',
-      timestamp: '3 hours ago',
-      isRead: true,
-      actionLabel: 'Message Donor',
-      actionTab: 'messages',
-    },
-    {
-      id: 'hosp-notif-5',
-      type: 'SYSTEM',
-      title: 'Transfusion Medicine OT License Verified',
-      description: 'Directorate General of Health Services (DGHS) verified hospital emergency transfusion credentials (LIC-2021-9921).',
-      targetInfo: 'Accreditation clearance valid through Dec 31, 2026.',
-      timestamp: 'Today, 08:00 AM',
-      isRead: true,
-      actionLabel: 'View Credentials',
-      actionTab: 'info',
-    },
-  ]);
+  // In-Page Notifications State (Populated dynamically from real database records)
+  const [notifications, setNotifications] = useState<HospitalNotification[]>([]);
   const [notificationFilter, setNotificationFilter] = useState<'all' | 'unread' | 'EMERGENCY' | 'DISPATCH' | 'DONOR' | 'SYSTEM'>('all');
 
   // Staff & Positions State
@@ -215,6 +159,62 @@ export default function HospitalPortal() {
     loadConversations();
     handleSearchDonors();
   }, [loadRequisitions, loadStaff, loadConversations, handleSearchDonors]);
+
+  // Dynamically derive notifications from real database requisitions and messages
+  useEffect(() => {
+    const realNotifs: HospitalNotification[] = [];
+
+    // 1. Critical & active requisitions
+    requisitions
+      .filter((r) => r.status !== 'fulfilled' && r.status !== 'cancelled')
+      .slice(0, 6)
+      .forEach((r) => {
+        const isCritical = String(r.urgency || '').toLowerCase() === 'critical';
+        realNotifs.push({
+          id: `hosp-req-${r.id}`,
+          type: isCritical ? 'EMERGENCY' : 'DISPATCH',
+          title: `${isCritical ? 'Critical Emergency OT' : 'Active'} Requisition: ${r.bloodGroup}`,
+          description: `Urgent demand for ${r.patientName || 'Medical Case'}. Required: ${r.units || 1} units in ${r.district}.`,
+          targetInfo: `Status: ${String(r.status || 'ACTIVE').toUpperCase()} | Urgency: ${String(r.urgency || 'NORMAL').toUpperCase()}`,
+          timestamp: 'In Pipeline',
+          isRead: false,
+          actionLabel: 'Inspect Pipeline',
+          actionTab: 'requisitions',
+        });
+      });
+
+    // 2. Active donor conversations
+    conversations.slice(0, 4).forEach((conv) => {
+      realNotifs.push({
+        id: `hosp-conv-${conv.id}`,
+        type: 'DONOR',
+        title: `Donor Thread: ${conv.participantName || 'Citizen Donor'}`,
+        description: `Last message: "${conv.lastMessage || 'Active donor chat thread'}"`,
+        targetInfo: `Blood Group: ${conv.participantBloodGroup || 'Donor'} | Phone: ${conv.participantPhone || 'Available'}`,
+        timestamp: conv.lastMessageTime || 'Recent',
+        isRead: false,
+        actionLabel: 'Open Direct Chat',
+        actionTab: 'messages',
+      });
+    });
+
+    // 3. Facility Accreditation Notification
+    if (user.licenseNumber) {
+      realNotifs.push({
+        id: 'hosp-license-active',
+        type: 'SYSTEM',
+        title: 'Transfusion Medicine Accreditation Verified',
+        description: `${user.organization || 'Hospital'} registered under clinical license ${user.licenseNumber}.`,
+        targetInfo: 'Accreditation clearance valid through DGHS central directory.',
+        timestamp: 'Active',
+        isRead: true,
+        actionLabel: 'View Credentials',
+        actionTab: 'info',
+      });
+    }
+
+    setNotifications(realNotifs);
+  }, [requisitions, conversations, user.licenseNumber, user.organization]);
 
   const handleCreateStaff = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -1480,15 +1480,26 @@ export default function HospitalPortal() {
 
                 {/* Notification Feed List */}
                 <div className="space-y-3.5">
-                  {filteredNotifications.map((n) => (
-                    <div
-                      key={n.id}
-                      className={`p-5 rounded-2xl border transition-all flex flex-col sm:flex-row items-start justify-between gap-4 shadow-xs ${
-                        !n.isRead
-                          ? 'bg-white border-[#C62828]/40 ring-1 ring-[#C62828]/15'
-                          : 'bg-white border-slate-200/90'
-                      }`}
-                    >
+                  {filteredNotifications.length === 0 ? (
+                    <div className="p-12 text-center bg-white rounded-2xl border border-slate-200/90 shadow-xs">
+                      <div className="w-12 h-12 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center mx-auto mb-3">
+                        <Bell className="w-6 h-6" />
+                      </div>
+                      <h4 className="text-sm font-bold text-slate-800">No Hospital Notifications</h4>
+                      <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
+                        All requisition pipelines and blood dispatches are up to date. Incoming donor acceptances or emergency updates will appear here in real-time.
+                      </p>
+                    </div>
+                  ) : (
+                    filteredNotifications.map((n) => (
+                      <div
+                        key={n.id}
+                        className={`p-5 rounded-2xl border transition-all flex flex-col sm:flex-row items-start justify-between gap-4 shadow-xs ${
+                          !n.isRead
+                            ? 'bg-white border-[#C62828]/40 ring-1 ring-[#C62828]/15'
+                            : 'bg-white border-slate-200/90'
+                        }`}
+                      >
                       <div className="flex items-start space-x-3.5 flex-1">
                         <div
                           className={`w-10 h-10 rounded-2xl flex items-center justify-center font-bold shrink-0 shadow-2xs ${
@@ -1561,7 +1572,8 @@ export default function HospitalPortal() {
                         </div>
                       )}
                     </div>
-                  ))}
+                  ))
+                )}
                 </div>
               </div>
             )}

@@ -4,7 +4,6 @@ import React, { useState, useEffect } from 'react';
 import RoleGuard from '@/components/RoleGuard';
 import DashboardSidebar from '@/components/DashboardSidebar';
 import TopHeader from '@/components/TopHeader';
-import DirectChatModal from '@/components/DirectChatModal';
 import BloodGroupBadge from '@/components/BloodGroupBadge';
 import StatusPill from '@/components/StatusPill';
 import { useAuth } from '@/lib/auth-context';
@@ -27,6 +26,13 @@ import {
   FileCheck2,
   Eye,
   Users,
+  Send,
+  Phone,
+  CheckCheck,
+  Bell,
+  Zap,
+  ArrowRight,
+  Activity,
 } from 'lucide-react';
 import {
   api,
@@ -34,22 +40,121 @@ import {
   BloodDrive,
   InventoryTx,
   StaffMember,
+  Conversation,
+  ChatMessage,
   MOCK_INVENTORY,
   MOCK_DRIVES,
   MOCK_TRANSACTIONS,
   MOCK_BLOODBANK_STAFF,
+  MOCK_CONVERSATIONS,
 } from '@/lib/api';
+
+export type BloodBankTab =
+  | 'inventory'
+  | 'walkin'
+  | 'drives'
+  | 'messages'
+  | 'notifications'
+  | 'staff'
+  | 'audit'
+  | 'info';
+
+interface BloodBankNotification {
+  id: string;
+  type: 'CRITICAL' | 'REQUISITION' | 'DRIVE' | 'WALKIN' | 'SYSTEM';
+  title: string;
+  description: string;
+  targetInfo?: string;
+  timestamp: string;
+  isRead: boolean;
+  actionLabel?: string;
+  actionTab?: BloodBankTab;
+}
 
 export default function BloodBankPortal() {
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState<'inventory' | 'walkin' | 'drives' | 'staff' | 'audit' | 'info'>('inventory');
+  const [activeTab, setActiveTab] = useState<BloodBankTab>('inventory');
   const [inventory, setInventory] = useState<Record<string, StockInfo>>(MOCK_INVENTORY);
   const [drives, setDrives] = useState<BloodDrive[]>(MOCK_DRIVES);
   const [transactions, setTransactions] = useState<InventoryTx[]>(MOCK_TRANSACTIONS);
   const [feedbackMsg, setFeedbackMsg] = useState<string | null>(null);
 
-  // Direct Chat Modal State
-  const [showChatModal, setShowChatModal] = useState(false);
+  // In-Page Messages State
+  const [conversations, setConversations] = useState<Conversation[]>(MOCK_CONVERSATIONS);
+  const [selectedConvId, setSelectedConvId] = useState<string>(MOCK_CONVERSATIONS[0].id);
+  const [chatSearchQuery, setChatSearchQuery] = useState('');
+  const [messageInput, setMessageInput] = useState('');
+
+  // In-Page Notifications State
+  const [notifications, setNotifications] = useState<BloodBankNotification[]>([
+    {
+      id: 'bb-notif-1',
+      type: 'CRITICAL',
+      title: 'Cryo-Reserve Depletion Warning: O- Negative',
+      description: 'Central cold vault indicates O- negative stock is below minimum safe buffer threshold (2 units remaining).',
+      targetInfo: 'Threshold: 4 units buffer required for Level-1 Trauma readiness.',
+      timestamp: '12 mins ago',
+      isRead: false,
+      actionLabel: 'Adjust Stock / Cryo Matrix',
+      actionTab: 'inventory',
+    },
+    {
+      id: 'bb-notif-2',
+      type: 'REQUISITION',
+      title: 'Emergency Hospital Dispatch Requisition',
+      description: 'Dhaka Medical College requested 4 bags of B+ blood for OT Complex Bed 3 with urgent priority dispatch.',
+      targetInfo: 'Requisition ID: req-102 | Cross-match sample sent.',
+      timestamp: '25 mins ago',
+      isRead: false,
+      actionLabel: 'Open Direct Hospital Chat',
+      actionTab: 'messages',
+    },
+    {
+      id: 'bb-notif-3',
+      type: 'DRIVE',
+      title: 'Voluntary Blood Donation Drive Approved',
+      description: 'DGHS and University Authority cleared scheduled drive at Dhaka University Curzon Hall on Oct 30, 2026.',
+      targetInfo: 'Target: 150 units | Mobile cold-chain van assigned.',
+      timestamp: '1 hour ago',
+      isRead: false,
+      actionLabel: 'Inspect Scheduled Drive',
+      actionTab: 'drives',
+    },
+    {
+      id: 'bb-notif-4',
+      type: 'WALKIN',
+      title: 'Walk-In Donor Pre-Screening Cleared',
+      description: 'Volunteer donor Kazi Sumon completed preliminary vitals screening and hemoglobin test (14.2 g/dL). Ready for phlebotomy intake.',
+      targetInfo: 'Vitals: BP 120/80 mmHg | Temperature 98.4°F.',
+      timestamp: '2 hours ago',
+      isRead: true,
+      actionLabel: 'Record Intake Bag',
+      actionTab: 'walkin',
+    },
+    {
+      id: 'bb-notif-5',
+      type: 'SYSTEM',
+      title: 'Cold Storage Vault Temperature Calibrated',
+      description: 'Chamber Vault B4 automatic sensors reported steady 3.8°C (allowed range: 2.0°C - 6.0°C). Sensor telemetry logged.',
+      targetInfo: 'Complies with DGHS Central Blood Bank Standard ISO-15189.',
+      timestamp: '4 hours ago',
+      isRead: true,
+      actionLabel: 'View Audit Trail',
+      actionTab: 'audit',
+    },
+    {
+      id: 'bb-notif-6',
+      type: 'SYSTEM',
+      title: 'Daily Barcode Traceability Sync Completed',
+      description: '48 cryo-preserved whole blood and platelet component units verified against national barcode ledger.',
+      targetInfo: 'Zero discrepancy detected across 8 ABO blood group chambers.',
+      timestamp: 'Today, 09:15 AM',
+      isRead: true,
+      actionLabel: 'Inspect Inventory',
+      actionTab: 'inventory',
+    },
+  ]);
+  const [notificationFilter, setNotificationFilter] = useState<'all' | 'unread' | 'CRITICAL' | 'REQUISITION' | 'DRIVE' | 'SYSTEM'>('all');
 
   // Selected Transaction for Detail Modal (Screenshot 1)
   const [selectedTx, setSelectedTx] = useState<InventoryTx | null>(null);
@@ -276,6 +381,62 @@ export default function BloodBankPortal() {
     }
   };
 
+  // Messages and Notifications Logic
+  const unreadNotificationsCount = notifications.filter((n) => !n.isRead).length;
+
+  const currentConv = conversations.find((c) => c.id === selectedConvId) || conversations[0];
+  const filteredConversations = conversations.filter((c) => {
+    const q = chatSearchQuery.toLowerCase();
+    return (
+      c.participantName.toLowerCase().includes(q) ||
+      c.participantBloodGroup.toLowerCase().includes(q) ||
+      c.participantDistrict.toLowerCase().includes(q) ||
+      (c.lastMessage || '').toLowerCase().includes(q)
+    );
+  });
+
+  const handleSendMessage = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!messageInput.trim()) return;
+
+    const newMsg: ChatMessage = {
+      id: `m_${Date.now()}`,
+      senderId: user?.id || 'usr_bb_001',
+      senderName: user?.organization || user?.name || 'Red Crescent Blood Center',
+      senderRole: 'BLOOD_BANK',
+      text: messageInput.trim(),
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      isMe: true,
+    };
+
+    setConversations((prev) =>
+      prev.map((c) =>
+        c.id === selectedConvId
+          ? {
+              ...c,
+              lastMessage: newMsg.text,
+              lastMessageTime: 'Just now',
+              messages: [...c.messages, newMsg],
+            }
+          : c
+      )
+    );
+    setMessageInput('');
+  };
+
+  const filteredNotifications = notifications.filter((n) => {
+    if (notificationFilter === 'unread') return !n.isRead;
+    if (notificationFilter === 'CRITICAL') return n.type === 'CRITICAL';
+    if (notificationFilter === 'REQUISITION') return n.type === 'REQUISITION';
+    if (notificationFilter === 'DRIVE') return n.type === 'DRIVE' || n.type === 'WALKIN';
+    if (notificationFilter === 'SYSTEM') return n.type === 'SYSTEM';
+    return true;
+  });
+
+  const markAllNotificationsAsRead = () => {
+    setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
+  };
+
   // Filtered Audit Transactions matching Screenshot 1
   const filteredTransactions = transactions.filter((tx) => {
     const matchesAction = auditActionFilter === 'all' || tx.type === auditActionFilter;
@@ -294,13 +455,16 @@ export default function BloodBankPortal() {
           activeTab={activeTab}
           setActiveTab={setActiveTab}
           pendingCount={drives.filter((d) => d.status === 'PLANNED').length}
-          onOpenMessages={() => setShowChatModal(true)}
+          unreadNotificationsCount={unreadNotificationsCount}
         />
 
         {/* Right Main Column */}
         <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
           {/* Top Header App Bar matching Screenshots */}
-          <TopHeader onOpenMessages={() => setShowChatModal(true)} />
+          <TopHeader
+            onOpenMessages={() => setActiveTab('messages')}
+            onOpenNotifications={() => setActiveTab('notifications')}
+          />
 
           {/* Feedback Banner */}
           {feedbackMsg && (
@@ -318,49 +482,51 @@ export default function BloodBankPortal() {
           {/* Scrollable Main Workspace */}
           <main className="flex-1 overflow-y-auto p-6 sm:p-8 space-y-6">
             {/* Top Greeting Hero Card matching Screenshot 2 */}
-            <div className="bg-white rounded-2xl border border-slate-200/90 p-6 sm:p-7 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-5">
-              <div>
-                <div className="flex items-center space-x-2 mb-2">
-                  <span className="inline-flex items-center space-x-1.5 text-[11px] font-bold text-blue-700 bg-blue-50 px-2.5 py-0.5 rounded-full border border-blue-200">
-                    <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
-                    <span>Central Cryo-Storage Hub</span>
-                  </span>
-                  <span className="text-slate-300">&bull;</span>
-                  <span className="text-xs text-slate-500 font-medium">Monday, Oct 12, 2026</span>
-                </div>
-                <h1 className="text-2xl font-black text-slate-900 tracking-tight">
-                  Good afternoon, {user.organization || user.name}
-                </h1>
-                <p className="text-xs text-slate-500 mt-1 max-w-2xl leading-relaxed">
-                  Central Cryo-Storage, 8-Group ABO/Rh Inventory Control &bull; Walk-In Terminal, Public Donation Campaigns & Technician Staff Pool.
-                </p>
-              </div>
+            {activeTab !== 'messages' && activeTab !== 'notifications' && (
+              <>
+                <div className="bg-white rounded-2xl border border-slate-200/90 p-6 sm:p-7 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-5">
+                  <div>
+                    <div className="flex items-center space-x-2 mb-2">
+                      <span className="inline-flex items-center space-x-1.5 text-[11px] font-bold text-blue-700 bg-blue-50 px-2.5 py-0.5 rounded-full border border-blue-200">
+                        <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
+                        <span>Central Cryo-Storage Hub</span>
+                      </span>
+                      <span className="text-slate-300">&bull;</span>
+                      <span className="text-xs text-slate-500 font-medium">Monday, Oct 12, 2026</span>
+                    </div>
+                    <h1 className="text-2xl font-black text-slate-900 tracking-tight">
+                      Good afternoon, {user.organization || user.name}
+                    </h1>
+                    <p className="text-xs text-slate-500 mt-1 max-w-2xl leading-relaxed">
+                      Central Cryo-Storage, 8-Group ABO/Rh Inventory Control &bull; Walk-In Terminal, Public Donation Campaigns & Technician Staff Pool.
+                    </p>
+                  </div>
 
-              <div className="flex flex-wrap items-center gap-2.5 shrink-0">
-                <button
-                  onClick={() => setShowAdjustModal(true)}
-                  className="inline-flex items-center space-x-2 px-4 py-2.5 rounded-xl bg-[#C62828] hover:bg-[#B71C1C] text-white font-bold text-xs shadow-md shadow-[#C62828]/20 transition-all cursor-pointer"
-                >
-                  <Layers className="w-4 h-4 text-white" />
-                  <span>+ Stock Movement</span>
-                </button>
-                <button
-                  onClick={() => setShowDriveModal(true)}
-                  className="inline-flex items-center space-x-2 px-3.5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs shadow-sm transition-all cursor-pointer"
-                >
-                  <Calendar className="w-4 h-4 text-slate-300" />
-                  <span>Schedule Drive</span>
-                </button>
-                <button
-                  onClick={() => setShowChatModal(true)}
-                  className="inline-flex items-center space-x-1.5 px-3 py-2.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-bold text-xs shadow-2xs transition-all cursor-pointer"
-                  title="Direct Donor Messaging"
-                >
-                  <MessageSquare className="w-4 h-4 text-[#C62828]" />
-                  <span>Chat</span>
-                </button>
-              </div>
-            </div>
+                  <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+                    <button
+                      onClick={() => setShowAdjustModal(true)}
+                      className="inline-flex items-center space-x-2 px-4 py-2.5 rounded-xl bg-[#C62828] hover:bg-[#B71C1C] text-white font-bold text-xs shadow-md shadow-[#C62828]/20 transition-all cursor-pointer"
+                    >
+                      <Layers className="w-4 h-4 text-white" />
+                      <span>+ Stock Movement</span>
+                    </button>
+                    <button
+                      onClick={() => setShowDriveModal(true)}
+                      className="inline-flex items-center space-x-2 px-3.5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs shadow-sm transition-all cursor-pointer"
+                    >
+                      <Calendar className="w-4 h-4 text-slate-300" />
+                      <span>Schedule Drive</span>
+                    </button>
+                    <button
+                      onClick={() => setActiveTab('messages')}
+                      className="inline-flex items-center space-x-1.5 px-3 py-2.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-bold text-xs shadow-2xs transition-all cursor-pointer"
+                      title="Direct Donor Messaging"
+                    >
+                      <MessageSquare className="w-4 h-4 text-[#C62828]" />
+                      <span>Messages</span>
+                    </button>
+                  </div>
+                </div>
 
             {/* Pending Approval Alert if facility is unverified */}
             {!isVerifiedFacility && (
@@ -455,6 +621,8 @@ export default function BloodBankPortal() {
                 </div>
               </div>
             </div>
+          </>
+        )}
 
             {/* ============================================================== */}
             {/* VIEW 1: INVENTORY MATRIX (8 ABO/Rh Groups)                      */}
@@ -1028,6 +1196,341 @@ export default function BloodBankPortal() {
                 </div>
               </div>
             )}
+
+            {/* ============================================================== */}
+            {/* VIEW 7: MESSAGES (In-Page 2-Pane Chat Suite)                   */}
+            {/* ============================================================== */}
+            {activeTab === 'messages' && (
+              <div className="bg-white rounded-2xl border border-slate-200/90 shadow-xs overflow-hidden flex flex-col h-[calc(100vh-10.5rem)]">
+                {/* Messages Suite Header */}
+                <div className="p-4 px-6 border-b border-slate-200 flex items-center justify-between bg-slate-50/70 shrink-0">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-9 h-9 rounded-xl bg-[#C62828] text-white flex items-center justify-center font-bold">
+                      <MessageSquare className="w-4.5 h-4.5 text-white" />
+                    </div>
+                    <div>
+                      <h2 className="text-base font-extrabold text-slate-900 tracking-tight">Direct Donor & Hospital Messaging</h2>
+                      <p className="text-[11px] text-slate-500">Live communication channel with voluntary mobile donors, hospitals & referral centers</p>
+                    </div>
+                  </div>
+                  <span className="text-xs font-mono font-bold text-slate-600 bg-white border border-slate-200 px-3 py-1 rounded-xl shadow-2xs">
+                    {conversations.length} Active Threads
+                  </span>
+                </div>
+
+                <div className="flex-1 flex overflow-hidden">
+                  {/* Left Column: Conversation Directory */}
+                  <div className="w-80 border-r border-slate-200 flex flex-col bg-slate-50 shrink-0">
+                    <div className="p-3 border-b border-slate-200 bg-white">
+                      <div className="relative">
+                        <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                        <input
+                          type="text"
+                          placeholder="Search donor, district or group..."
+                          value={chatSearchQuery}
+                          onChange={(e) => setChatSearchQuery(e.target.value)}
+                          className="w-full pl-8 pr-3 py-2 rounded-xl border border-slate-200 text-xs bg-slate-50 focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#C62828]"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex-1 overflow-y-auto divide-y divide-slate-100">
+                      {filteredConversations.map((c) => {
+                        const isSelected = c.id === selectedConvId;
+                        return (
+                          <button
+                            key={c.id}
+                            onClick={() => setSelectedConvId(c.id)}
+                            className={`w-full p-3.5 text-left flex items-start space-x-3 transition-colors cursor-pointer ${
+                              isSelected ? 'bg-white border-l-4 border-[#C62828] shadow-xs' : 'hover:bg-slate-100/70'
+                            }`}
+                          >
+                            <div className="relative shrink-0">
+                              <div className="w-10 h-10 rounded-full bg-slate-800 text-white font-bold flex items-center justify-center text-xs">
+                                {c.participantName.charAt(0)}
+                              </div>
+                              <span className="absolute -bottom-1 -right-1">
+                                <BloodGroupBadge bloodGroup={c.participantBloodGroup} size="sm" />
+                              </span>
+                            </div>
+
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center justify-between mb-0.5">
+                                <span className="text-xs font-bold text-slate-900 truncate">
+                                  {c.participantName}
+                                </span>
+                                <span className="text-[10px] text-slate-400">{c.lastMessageTime}</span>
+                              </div>
+                              <p className="text-[11px] text-slate-500 truncate leading-snug">
+                                {c.lastMessage}
+                              </p>
+                              <div className="flex items-center space-x-2 mt-1 text-[10px] text-slate-400">
+                                <span className="flex items-center">
+                                  <MapPin className="w-2.5 h-2.5 mr-0.5" />
+                                  {c.participantDistrict}
+                                </span>
+                              </div>
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Right Column: Live Chat Thread */}
+                  <div className="flex-1 flex flex-col bg-white">
+                    {/* Chat Header */}
+                    <div className="p-3.5 px-6 border-b border-slate-200 flex items-center justify-between bg-slate-50/50 shrink-0">
+                      <div className="flex items-center space-x-3">
+                        <div className="w-10 h-10 rounded-full bg-slate-800 text-white font-bold flex items-center justify-center text-xs">
+                          {currentConv.participantName.charAt(0)}
+                        </div>
+                        <div>
+                          <div className="flex items-center space-x-2">
+                            <h4 className="text-sm font-bold text-slate-900">{currentConv.participantName}</h4>
+                            <BloodGroupBadge bloodGroup={currentConv.participantBloodGroup} size="sm" />
+                            <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                              Verified Donor
+                            </span>
+                          </div>
+                          <span className="text-[11px] text-slate-500 flex items-center space-x-2 mt-0.5">
+                            <span>{currentConv.participantDistrict}, Bangladesh</span>
+                            <span>&bull;</span>
+                            <span className="font-mono">{currentConv.participantPhone}</span>
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center space-x-2">
+                        <a
+                          href={`tel:${currentConv.participantPhone}`}
+                          className="px-3 py-1.5 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-100 text-xs font-bold flex items-center space-x-1.5 transition-colors"
+                        >
+                          <Phone className="w-3.5 h-3.5 text-[#C62828]" />
+                          <span>Call Donor</span>
+                        </a>
+                      </div>
+                    </div>
+
+                    {/* Messages Body */}
+                    <div className="flex-1 p-5 overflow-y-auto space-y-3.5 bg-[#F8FAFC]">
+                      <div className="flex justify-center my-2">
+                        <span className="text-[10px] font-bold text-slate-400 bg-white border border-slate-200 px-3 py-1 rounded-full uppercase tracking-wider">
+                          Encrypted Live Session &bull; Monday, Oct 12, 2026
+                        </span>
+                      </div>
+
+                      {currentConv.messages.map((m) => (
+                        <div
+                          key={m.id}
+                          className={`flex flex-col ${m.isMe ? 'items-end' : 'items-start'}`}
+                        >
+                          <div
+                            className={`max-w-md px-4 py-2.5 rounded-2xl text-xs shadow-2xs ${
+                              m.isMe
+                                ? 'bg-[#C62828] text-white rounded-br-xs'
+                                : 'bg-white text-slate-800 border border-slate-200 rounded-bl-xs'
+                            }`}
+                          >
+                            <p className="leading-relaxed whitespace-pre-wrap">{m.text}</p>
+                          </div>
+                          <div className="flex items-center space-x-1 mt-1 text-[10px] text-slate-400 px-1">
+                            <span>{m.timestamp}</span>
+                            {m.isMe && <CheckCheck className="w-3 h-3 text-emerald-600" />}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Quick Suggestion Chips */}
+                    <div className="px-5 py-2 bg-slate-50 border-t border-slate-100 flex items-center space-x-2 overflow-x-auto shrink-0">
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider shrink-0">Quick Prompts:</span>
+                      {[
+                        'Are you available to donate at Red Crescent Blood Center today?',
+                        'Walk-in screening is available until 8:00 PM.',
+                        'Cross-matching completed for emergency hospital request.',
+                      ].map((prompt) => (
+                        <button
+                          key={prompt}
+                          onClick={() => setMessageInput(prompt)}
+                          className="px-2.5 py-1 rounded-lg bg-white border border-slate-200 hover:border-[#C62828] hover:text-[#C62828] text-slate-600 text-[11px] font-medium transition-colors shrink-0 cursor-pointer"
+                        >
+                          {prompt}
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Input Bar */}
+                    <form onSubmit={handleSendMessage} className="p-3.5 px-5 border-t border-slate-200 bg-white flex items-center space-x-3 shrink-0">
+                      <input
+                        type="text"
+                        placeholder={`Type direct message to ${currentConv.participantName}...`}
+                        value={messageInput}
+                        onChange={(e) => setMessageInput(e.target.value)}
+                        className="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 text-xs focus:outline-none focus:ring-2 focus:ring-[#C62828]/20 focus:border-[#C62828]"
+                      />
+                      <button
+                        type="submit"
+                        disabled={!messageInput.trim()}
+                        className="px-5 py-2.5 rounded-xl bg-[#C62828] hover:bg-[#B71C1C] text-white font-bold text-xs flex items-center space-x-1.5 shadow-md shadow-[#C62828]/20 transition-all cursor-pointer disabled:opacity-50"
+                      >
+                        <Send className="w-3.5 h-3.5" />
+                        <span>Send</span>
+                      </button>
+                    </form>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* ============================================================== */}
+            {/* VIEW 8: NOTIFICATIONS (In-Page Feed)                           */}
+            {/* ============================================================== */}
+            {activeTab === 'notifications' && (
+              <div className="space-y-6">
+                {/* Header Card */}
+                <div className="bg-white rounded-2xl border border-slate-200/90 p-6 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div>
+                    <div className="flex items-center space-x-2.5">
+                      <div className="w-9 h-9 rounded-xl bg-slate-900 text-white flex items-center justify-center font-bold">
+                        <Bell className="w-4.5 h-4.5 text-white" />
+                      </div>
+                      <div>
+                        <h2 className="text-xl font-black text-slate-900 tracking-tight">Blood Bank Notification Center</h2>
+                        <span className="text-[11px] text-slate-500">
+                          Real-time cryo-vault alarms, emergency hospital requisitions, voluntary donation drives & cold-chain audit alerts
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center space-x-2 shrink-0">
+                    <button
+                      onClick={markAllNotificationsAsRead}
+                      className="px-3.5 py-2 rounded-xl border border-slate-200 hover:bg-slate-100 text-slate-700 font-bold text-xs transition-colors cursor-pointer"
+                    >
+                      Mark All as Read
+                    </button>
+                  </div>
+                </div>
+
+                {/* Filter Tabs */}
+                <div className="flex flex-wrap items-center gap-2">
+                  {([
+                    { id: 'all', label: `ALL (${notifications.length})` },
+                    { id: 'unread', label: `UNREAD (${unreadNotificationsCount})` },
+                    { id: 'CRITICAL', label: `CRITICAL (${notifications.filter((n) => n.type === 'CRITICAL').length})` },
+                    { id: 'REQUISITION', label: `REQUISITIONS (${notifications.filter((n) => n.type === 'REQUISITION').length})` },
+                    { id: 'DRIVE', label: `DRIVES & INTAKE (${notifications.filter((n) => n.type === 'DRIVE' || n.type === 'WALKIN').length})` },
+                    { id: 'SYSTEM', label: `SYSTEM (${notifications.filter((n) => n.type === 'SYSTEM').length})` },
+                  ] as const).map((tab) => (
+                    <button
+                      key={tab.id}
+                      onClick={() => setNotificationFilter(tab.id)}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                        notificationFilter === tab.id
+                          ? 'bg-[#C62828] text-white shadow-xs'
+                          : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
+                      }`}
+                    >
+                      {tab.label}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Notification Feed List */}
+                <div className="space-y-3.5">
+                  {filteredNotifications.map((n) => (
+                    <div
+                      key={n.id}
+                      className={`p-5 rounded-2xl border transition-all flex flex-col sm:flex-row items-start justify-between gap-4 shadow-xs ${
+                        !n.isRead
+                          ? 'bg-white border-[#C62828]/40 ring-1 ring-[#C62828]/15'
+                          : 'bg-white border-slate-200/90'
+                      }`}
+                    >
+                      <div className="flex items-start space-x-3.5 flex-1">
+                        <div
+                          className={`w-10 h-10 rounded-2xl flex items-center justify-center font-bold shrink-0 shadow-2xs ${
+                            n.type === 'CRITICAL'
+                              ? 'bg-rose-50 border border-rose-200 text-[#C62828]'
+                              : n.type === 'REQUISITION'
+                              ? 'bg-blue-50 border border-blue-200 text-blue-600'
+                              : n.type === 'DRIVE'
+                              ? 'bg-emerald-50 border border-emerald-200 text-emerald-600'
+                              : n.type === 'WALKIN'
+                              ? 'bg-amber-50 border border-amber-200 text-amber-600'
+                              : 'bg-purple-50 border border-purple-200 text-purple-600'
+                          }`}
+                        >
+                          {n.type === 'CRITICAL' ? (
+                            <Zap className="w-5 h-5 animate-pulse" />
+                          ) : n.type === 'REQUISITION' ? (
+                            <FileCheck2 className="w-5 h-5" />
+                          ) : n.type === 'DRIVE' ? (
+                            <Calendar className="w-5 h-5" />
+                          ) : n.type === 'WALKIN' ? (
+                            <UserCheck className="w-5 h-5" />
+                          ) : (
+                            <Activity className="w-5 h-5" />
+                          )}
+                        </div>
+
+                        <div className="space-y-1">
+                          <div className="flex items-center space-x-2">
+                            <span
+                              className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded ${
+                                n.type === 'CRITICAL'
+                                  ? 'bg-[#FFEBEE] text-[#C62828]'
+                                  : n.type === 'REQUISITION'
+                                  ? 'bg-blue-50 text-blue-700'
+                                  : n.type === 'DRIVE'
+                                  ? 'bg-emerald-50 text-emerald-700'
+                                  : n.type === 'WALKIN'
+                                  ? 'bg-amber-50 text-amber-800'
+                                  : 'bg-purple-50 text-purple-700'
+                              }`}
+                            >
+                              {n.type}
+                            </span>
+                            <span className="text-xs text-slate-400">&bull;</span>
+                            <span className="text-xs text-slate-400 font-medium">{n.timestamp}</span>
+                            {!n.isRead && (
+                              <span className="w-2 h-2 rounded-full bg-[#C62828] animate-pulse" />
+                            )}
+                          </div>
+
+                          <h4 className="text-sm font-extrabold text-slate-900">{n.title}</h4>
+                          <p className="text-xs text-slate-600 leading-relaxed">{n.description}</p>
+                          {n.targetInfo && (
+                            <div className="text-[11px] font-mono text-slate-500 bg-slate-50 p-2 rounded-lg border border-slate-200/80 mt-1">
+                              {n.targetInfo}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {n.actionLabel && n.actionTab && (
+                        <div className="shrink-0 self-end sm:self-center">
+                          <button
+                            onClick={() => {
+                              setNotifications((prev) =>
+                                prev.map((item) => (item.id === n.id ? { ...item, isRead: true } : item))
+                              );
+                              if (n.actionTab) setActiveTab(n.actionTab);
+                            }}
+                            className="inline-flex items-center space-x-1.5 px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs transition-all cursor-pointer shadow-xs"
+                          >
+                            <span>{n.actionLabel}</span>
+                            <ArrowRight className="w-3.5 h-3.5 text-slate-300" />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </main>
         </div>
 
@@ -1450,13 +1953,6 @@ export default function BloodBankPortal() {
           </div>
         )}
 
-        {/* ============================================================== */}
-        {/* MODAL 5: DIRECT LIVE MESSAGING WITH MOBILE DONORS              */}
-        {/* ============================================================== */}
-        <DirectChatModal
-          isOpen={showChatModal}
-          onClose={() => setShowChatModal(false)}
-        />
       </div>
     </RoleGuard>
   );

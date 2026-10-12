@@ -118,7 +118,8 @@ export default function DashboardSidebar<T extends string = string>({
         {
           group: 'COMMUNICATIONS',
           items: [
-            { id: 'messages', label: 'Messages', icon: MessageSquare, onClick: onOpenMessages },
+            { id: 'messages', label: 'Messages', icon: MessageSquare },
+            { id: 'notifications', label: 'Notifications', icon: Bell, badge: unreadNotificationsCount },
             { id: 'staff', label: 'Staff', icon: Users },
           ],
         },

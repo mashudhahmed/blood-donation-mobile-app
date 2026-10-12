@@ -13,6 +13,8 @@ export interface Donor {
   lastDonationDate?: number;
   location?: string;
   imageUrl?: string;
+  email?: string;
+  userType?: string;
 }
 
 export interface Requisition {

@@ -633,19 +633,19 @@ export default function AdminPortal() {
                   <div className="flex items-center space-x-2 shrink-0">
                     <div className="px-3.5 py-1.5 rounded-xl bg-white border border-slate-200 text-center shadow-xs">
                       <span className="block text-[10px] font-extrabold uppercase text-slate-400">TOTAL</span>
-                      <span className="font-black text-sm text-slate-900">1,420</span>
+                      <span className="font-black text-sm text-slate-900">{metrics.totalDonors || donors.length}</span>
                     </div>
                     <div className="px-3.5 py-1.5 rounded-xl bg-blue-50/70 border border-blue-200/80 text-center shadow-xs">
                       <span className="block text-[10px] font-extrabold uppercase text-blue-600">DONORS</span>
-                      <span className="font-black text-sm text-blue-900">890</span>
+                      <span className="font-black text-sm text-blue-900">{donors.filter((d) => d.isAvailable !== false).length || metrics.availableDonors}</span>
                     </div>
                     <div className="px-3.5 py-1.5 rounded-xl bg-emerald-50/70 border border-emerald-200/80 text-center shadow-xs">
                       <span className="block text-[10px] font-extrabold uppercase text-emerald-600">HOSPITALS</span>
-                      <span className="font-black text-sm text-emerald-900">28</span>
+                      <span className="font-black text-sm text-emerald-900">{hospitals.filter((o) => o.type === 'hospital').length || metrics.totalHospitals || 0}</span>
                     </div>
                     <div className="px-3.5 py-1.5 rounded-xl bg-purple-50/70 border border-purple-200/80 text-center shadow-xs">
-                      <span className="block text-[10px] font-extrabold uppercase text-purple-600">ADMINS</span>
-                      <span className="font-black text-sm text-purple-900">4</span>
+                      <span className="block text-[10px] font-extrabold uppercase text-purple-600">BLOOD BANKS</span>
+                      <span className="font-black text-sm text-purple-900">{hospitals.filter((o) => o.type === 'bloodbank').length || metrics.totalBloodBanks || 0}</span>
                     </div>
                   </div>
                 </div>
@@ -701,7 +701,16 @@ export default function AdminPortal() {
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-100">
-                        {filteredDonors.map((donor) => (
+                        {filteredDonors.length === 0 ? (
+                          <tr>
+                            <td colSpan={6} className="px-6 py-12 text-center text-slate-400">
+                              <Users className="w-8 h-8 mx-auto text-slate-300 mb-2" />
+                              <p className="font-semibold text-slate-600">No registered donors found</p>
+                              <p className="text-[11px]">All citizen donor registrations from the BloodLink Mobile App will synchronize here in real time.</p>
+                            </td>
+                          </tr>
+                        ) : (
+                          filteredDonors.map((donor) => (
                           <tr key={donor.id} className="hover:bg-slate-50/80 transition-colors">
                             <td className="px-6 py-4">
                               <div className="flex items-center space-x-3">
@@ -711,7 +720,7 @@ export default function AdminPortal() {
                                 <div>
                                   <div className="font-extrabold text-slate-900">{donor?.name || 'Anonymous Donor'}</div>
                                   <span className="text-[11px] text-slate-400 font-mono">
-                                    donor.{donor.id}@bloodlink.network
+                                    {donor?.email || `donor.${donor.id.slice(0, 8)}@bloodlink.org`}
                                   </span>
                                 </div>
                               </div>
@@ -760,7 +769,7 @@ export default function AdminPortal() {
                               </div>
                             </td>
                           </tr>
-                        ))}
+                        )))}
                       </tbody>
                     </table>
                   </div>

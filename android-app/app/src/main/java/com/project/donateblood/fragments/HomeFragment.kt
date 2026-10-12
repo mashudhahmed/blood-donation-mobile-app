@@ -43,6 +43,7 @@ import com.project.donateblood.models.HomeBanner
 import com.project.donateblood.utils.BloodRequestDetailsSheet
 import com.project.donateblood.utils.FirebaseUtils
 import com.project.donateblood.utils.ProfileImageManager
+import com.project.donateblood.viewmodels.HomeViewModel
 import com.project.donateblood.viewmodels.UserViewModel
 import timber.log.Timber
 
@@ -58,47 +59,12 @@ class HomeFragment : Fragment() {
     private lateinit var firestore: FirebaseFirestore
     private lateinit var auth: FirebaseAuth
     private lateinit var userViewModel: UserViewModel
+    private lateinit var homeViewModel: HomeViewModel
 
     private var networkAvailable = true
 
-    // 2026 Slideable SVG Banners
-    private val homeBanners = listOf(
-        HomeBanner(
-            id = 1,
-            title = "Donate Blood Today",
-            subtitle = "Your blood type could be someone’s hope",
-            backgroundResId = R.drawable.bg_banner_svg_1,
-            action = BannerAction.FIND_DONORS
-        ),
-        HomeBanner(
-            id = 2,
-            title = "Together We Save",
-            subtitle = "Join thousands of donors\nmaking a difference every day",
-            backgroundResId = R.drawable.bg_banner_svg_2,
-            action = BannerAction.COMMUNITY
-        ),
-        HomeBanner(
-            id = 3,
-            title = "Urgent Requests",
-            subtitle = "Help patients who need blood now",
-            backgroundResId = R.drawable.bg_banner_svg_3,
-            action = BannerAction.URGENT_REQUESTS
-        ),
-        HomeBanner(
-            id = 4,
-            title = "Be Someone’s Hero",
-            subtitle = "Donate blood. Change a life today.",
-            backgroundResId = R.drawable.bg_banner_svg_4,
-            action = BannerAction.REQUEST_BLOOD
-        ),
-        HomeBanner(
-            id = 5,
-            title = "Every Drop Counts",
-            subtitle = "1 donation can save up to 3 lives",
-            backgroundResId = R.drawable.bg_banner_svg_5,
-            action = BannerAction.REQUEST_BLOOD
-        )
-    )
+    // Slideable SVG Banners managed via HomeViewModel
+    private var homeBanners: List<HomeBanner> = emptyList()
 
     private val bannerAutoSlideInterval = 4000L
     private val bannerHandler = Handler(Looper.getMainLooper())
@@ -131,9 +97,10 @@ class HomeFragment : Fragment() {
 
         // Initialize ViewModels
         userViewModel = ViewModelProvider(requireActivity())[UserViewModel::class.java]
+        homeViewModel = ViewModelProvider(this)[HomeViewModel::class.java]
 
         setupViews()
-        setupHomeBannerCarousel()
+        observeHomeViewModel()
         setupUrgentRequestsRecyclerView()
         setupHubCards()
         setupNavigationDrawer()
@@ -146,6 +113,13 @@ class HomeFragment : Fragment() {
         loadUrgentRequestsFromFirestore()
 
         checkPrivacyPolicyAcceptance()
+    }
+
+    private fun observeHomeViewModel() {
+        homeViewModel.banners.observe(viewLifecycleOwner) { banners ->
+            homeBanners = banners
+            setupHomeBannerCarousel()
+        }
     }
 
     override fun onResume() {
@@ -178,6 +152,7 @@ class HomeFragment : Fragment() {
 
     // ---------------- 2026 BANNER CAROUSEL (BKASH / NAGAD STYLE) ----------------
     private fun setupHomeBannerCarousel() {
+        if (_binding == null || homeBanners.isEmpty()) return
         val bannerAdapter = HomeBannerAdapter(homeBanners) { banner ->
             handleBannerClick(banner)
         }

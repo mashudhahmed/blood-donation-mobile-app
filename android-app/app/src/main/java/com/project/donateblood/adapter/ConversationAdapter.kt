@@ -27,6 +27,16 @@ class ConversationAdapter(
     private val onConversationClick: (ChatConversation) -> Unit
 ) : ListAdapter<ChatConversation, ConversationAdapter.ConversationViewHolder>(DiffCallback) {
 
+    data class CachedUserProfile(
+        val name: String = "",
+        val bloodGroup: String = "",
+        val profileImage: String = ""
+    )
+
+    private val userProfileCache = HashMap<String, CachedUserProfile>()
+
+    fun getCachedProfile(userId: String): CachedUserProfile? = userProfileCache[userId]
+
     inner class ConversationViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         private val ivAvatar: ImageView = itemView.findViewById(R.id.ivAvatar)
         private val tvBloodBadge: TextView = itemView.findViewById(R.id.tvBloodBadge)
@@ -37,34 +47,49 @@ class ConversationAdapter(
         private val tvUnreadBadge: TextView = itemView.findViewById(R.id.tvUnreadBadge)
 
         fun bind(conversation: ChatConversation) {
-            val otherName = conversation.getOtherParticipantName(currentUserId)
-            val otherBlood = conversation.getOtherParticipantBloodGroup(currentUserId)
-            val otherImage = conversation.getOtherParticipantImage(currentUserId)
+            val otherId = conversation.getOtherParticipantId(currentUserId)
+            var otherName = conversation.getOtherParticipantName(currentUserId)
+            var otherBlood = conversation.getOtherParticipantBloodGroup(currentUserId)
+            var otherImage = conversation.getOtherParticipantImage(currentUserId)
             val unreadCount = conversation.getUnreadCountFor(currentUserId)
+
+            val cached = userProfileCache[otherId]
+            if (cached != null) {
+                if (cached.profileImage.isNotBlank()) otherImage = cached.profileImage
+                if (cached.name.isNotBlank() && (otherName == "User" || otherName.isBlank())) otherName = cached.name
+                if (cached.bloodGroup.isNotBlank() && otherBlood.isBlank()) otherBlood = cached.bloodGroup
+            }
 
             tvParticipantName.text = otherName
             tvLastMessage.text = conversation.lastMessage.ifBlank { "No messages yet" }
 
-            // Last message status indicator (if sent by current user)
+            // Last message status indicator (strictly when sent by current user)
             if (conversation.lastSenderId == currentUserId && conversation.lastMessage.isNotBlank()) {
                 ivLastMsgStatus?.visibility = View.VISIBLE
-                when {
-                    conversation.isRead || conversation.lastMessageStatus == ChatMessage.STATUS_READ -> {
+                when (conversation.lastMessageStatus) {
+                    ChatMessage.STATUS_READ -> {
                         ivLastMsgStatus?.setImageResource(R.drawable.ic_msg_double_check)
                         ivLastMsgStatus?.imageTintList = ColorStateList.valueOf(
                             ContextCompat.getColor(itemView.context, R.color.chat_status_blue)
                         )
                     }
-                    conversation.lastMessageStatus == ChatMessage.STATUS_DELIVERED -> {
+                    ChatMessage.STATUS_DELIVERED -> {
                         ivLastMsgStatus?.setImageResource(R.drawable.ic_msg_double_check)
                         ivLastMsgStatus?.imageTintList = ColorStateList.valueOf(
-                            ContextCompat.getColor(itemView.context, R.color.chat_status_grey)
+                            ContextCompat.getColor(itemView.context, R.color.text_secondary)
+                        )
+                    }
+                    ChatMessage.STATUS_PENDING -> {
+                        ivLastMsgStatus?.setImageResource(R.drawable.ic_msg_pending)
+                        ivLastMsgStatus?.imageTintList = ColorStateList.valueOf(
+                            ContextCompat.getColor(itemView.context, R.color.chat_status_pending)
                         )
                     }
                     else -> {
+                        // STATUS_SENT or default
                         ivLastMsgStatus?.setImageResource(R.drawable.ic_msg_sent)
                         ivLastMsgStatus?.imageTintList = ColorStateList.valueOf(
-                            ContextCompat.getColor(itemView.context, R.color.chat_status_grey)
+                            ContextCompat.getColor(itemView.context, R.color.text_secondary)
                         )
                     }
                 }
@@ -82,6 +107,48 @@ class ConversationAdapter(
 
             // Avatar loading
             ProfileImageManager.loadAvatar(ivAvatar, otherImage)
+
+            // Async background sync with live users collection to ensure DP sync
+            if (otherId.isNotBlank() && (cached == null || otherImage.isBlank())) {
+                val firestore = com.google.firebase.firestore.FirebaseFirestore.getInstance()
+                firestore.collection(com.project.donateblood.utils.FirebaseUtils.Collections.USERS)
+                    .document(otherId)
+                    .get()
+                    .addOnSuccessListener { userDoc ->
+                        if (userDoc != null && userDoc.exists()) {
+                            val liveImage = userDoc.getString("profileImage") ?: ""
+                            val liveName = userDoc.getString("name") ?: ""
+                            val liveBlood = userDoc.getString("bloodGroup") ?: ""
+
+                            userProfileCache[otherId] = CachedUserProfile(liveName, liveBlood, liveImage)
+
+                            val imageChanged = liveImage.isNotBlank() && liveImage != conversation.getOtherParticipantImage(currentUserId)
+                            val nameChanged = liveName.isNotBlank() && otherName != liveName
+                            val bloodChanged = liveBlood.isNotBlank() && otherBlood != liveBlood
+
+                            if (imageChanged || nameChanged || bloodChanged) {
+                                if (adapterPosition != RecyclerView.NO_POSITION) {
+                                    if (liveImage.isNotBlank()) ProfileImageManager.loadAvatar(ivAvatar, liveImage)
+                                    if (liveName.isNotBlank()) tvParticipantName.text = liveName
+                                    if (liveBlood.isNotBlank()) {
+                                        tvBloodBadge.visibility = View.VISIBLE
+                                        tvBloodBadge.text = liveBlood
+                                    }
+                                }
+
+                                val updates = mutableMapOf<String, Any>()
+                                if (liveImage.isNotBlank()) updates["participantImages.$otherId"] = liveImage
+                                if (liveName.isNotBlank()) updates["participantNames.$otherId"] = liveName
+                                if (liveBlood.isNotBlank()) updates["participantBloodGroups.$otherId"] = liveBlood
+                                if (updates.isNotEmpty()) {
+                                    firestore.collection(com.project.donateblood.utils.FirebaseUtils.Collections.CHATS)
+                                        .document(conversation.id)
+                                        .update(updates)
+                                }
+                            }
+                        }
+                    }
+            }
 
             // Timestamp
             tvTimestamp.text = formatTimestamp(conversation.lastMessageTimestamp)

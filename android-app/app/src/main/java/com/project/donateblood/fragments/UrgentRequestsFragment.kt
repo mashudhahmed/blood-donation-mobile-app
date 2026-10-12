@@ -44,6 +44,14 @@ class UrgentRequestsFragment : Fragment() {
     private var currentSortMode = SortMode.URGENT_FIRST
     private var currentUserBloodGroup: String = ""
 
+    private var lastVisibleDocument: com.google.firebase.firestore.DocumentSnapshot? = null
+    private var isLoadingMore = false
+    private var isLastPage = false
+
+    companion object {
+        private const val PAGE_SIZE = 20L
+    }
+
     private enum class SortMode(val label: String) {
         URGENT_FIRST("Sort: Urgent First"),
         DATE_SOONEST("Sort: Soonest Date"),
@@ -116,9 +124,22 @@ class UrgentRequestsFragment : Fragment() {
         )
 
         binding.rvUrgentRequests.apply {
-            layoutManager = LinearLayoutManager(requireContext())
+            val lm = LinearLayoutManager(requireContext())
+            layoutManager = lm
             adapter = feedAdapter
             setHasFixedSize(false)
+
+            addOnScrollListener(object : androidx.recyclerview.widget.RecyclerView.OnScrollListener() {
+                override fun onScrolled(recyclerView: androidx.recyclerview.widget.RecyclerView, dx: Int, dy: Int) {
+                    super.onScrolled(recyclerView, dx, dy)
+                    val totalItemCount = lm.itemCount
+                    val lastVisibleItem = lm.findLastVisibleItemPosition()
+
+                    if (!isLoadingMore && !isLastPage && totalItemCount > 0 && lastVisibleItem >= totalItemCount - 4) {
+                        loadMoreRequests()
+                    }
+                }
+            })
         }
     }
 
@@ -208,10 +229,14 @@ class UrgentRequestsFragment : Fragment() {
         }
 
         requestsListener?.remove()
+        lastVisibleDocument = null
+        isLastPage = false
+        isLoadingMore = false
 
-        // Query only pending (active) blood requests
+        // Query pending (active) blood requests limited to PAGE_SIZE
         requestsListener = firestore.collection(FirebaseUtils.Collections.REQUESTS)
             .whereEqualTo("status", "pending")
+            .limit(PAGE_SIZE)
             .addSnapshotListener { snapshot, error ->
                 if (_binding == null) return@addSnapshotListener
 
@@ -228,7 +253,8 @@ class UrgentRequestsFragment : Fragment() {
                 }
 
                 allRequestsList.clear()
-                snapshot?.documents?.forEach { doc ->
+                val docs = snapshot?.documents ?: emptyList()
+                docs.forEach { doc ->
                     try {
                         val req = parseBloodRequestFromDocument(doc)
                         if (req != null) {
@@ -239,10 +265,62 @@ class UrgentRequestsFragment : Fragment() {
                     }
                 }
 
+                lastVisibleDocument = docs.lastOrNull()
+                isLastPage = docs.size < PAGE_SIZE
+
                 val totalActive = allRequestsList.size
                 binding.tvActiveCountBadge.text = "$totalActive Active"
 
                 applyFiltersAndSort()
+            }
+    }
+
+    private fun loadMoreRequests() {
+        val lastDoc = lastVisibleDocument ?: return
+        if (isLoadingMore || isLastPage) return
+
+        isLoadingMore = true
+        firestore.collection(FirebaseUtils.Collections.REQUESTS)
+            .whereEqualTo("status", "pending")
+            .startAfter(lastDoc)
+            .limit(PAGE_SIZE)
+            .get()
+            .addOnSuccessListener { snapshot ->
+                if (_binding == null) return@addOnSuccessListener
+                isLoadingMore = false
+
+                val docs = snapshot.documents
+                if (docs.isEmpty() || docs.size < PAGE_SIZE) {
+                    isLastPage = true
+                }
+
+                if (docs.isNotEmpty()) {
+                    lastVisibleDocument = docs.lastOrNull()
+                    val newRequests = mutableListOf<BloodRequest>()
+                    docs.forEach { doc ->
+                        try {
+                            val req = parseBloodRequestFromDocument(doc)
+                            if (req != null) {
+                                newRequests.add(req)
+                            }
+                        } catch (e: Exception) {
+                            Timber.tag("UrgentRequests").e("Error parsing page request ${doc.id}: ${e.message}")
+                        }
+                    }
+
+                    val existingIds = allRequestsList.map { it.id }.toSet()
+                    val deduped = newRequests.filter { it.id !in existingIds }
+                    allRequestsList.addAll(deduped)
+
+                    val totalActive = allRequestsList.size
+                    binding.tvActiveCountBadge.text = "$totalActive Active"
+
+                    applyFiltersAndSort()
+                }
+            }
+            .addOnFailureListener { e ->
+                isLoadingMore = false
+                Timber.tag("UrgentRequests").e("Error loading more requests: ${e.message}")
             }
     }
 

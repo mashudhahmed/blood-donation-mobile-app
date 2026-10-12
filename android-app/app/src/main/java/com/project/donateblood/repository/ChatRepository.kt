@@ -99,10 +99,12 @@ class ChatRepository(
         senderId: String,
         senderName: String,
         senderBloodGroup: String,
+        senderImage: String = "",
         receiverId: String,
         receiverName: String,
         receiverBloodGroup: String,
         receiverPhone: String,
+        receiverImage: String = "",
         messageText: String,
         messageId: String? = null,
         onComplete: (Boolean, Exception?) -> Unit
@@ -140,8 +142,17 @@ class ChatRepository(
             "lastMessageTimestamp" to timestamp,
             "lastSenderId" to senderId,
             "isRead" to false,
-            "lastMessageStatus" to ChatMessage.STATUS_SENT
+            "lastMessageStatus" to ChatMessage.STATUS_SENT,
+            "unreadCounts.$receiverId" to FieldValue.increment(1),
+            "unreadCounts.$senderId" to 0L
         )
+
+        val imagesMap = hashMapOf<String, String>()
+        if (senderImage.isNotBlank()) imagesMap[senderId] = senderImage
+        if (receiverImage.isNotBlank()) imagesMap[receiverId] = receiverImage
+        if (imagesMap.isNotEmpty()) {
+            conversationData["participantImages"] = imagesMap
+        }
 
         firestore.runBatch { batch ->
             batch.set(newMessageRef, messageData)
@@ -156,46 +167,60 @@ class ChatRepository(
     }
 
     /**
-     * Marks the conversation and all received unread messages as READ.
+     * Marks received unread messages as READ for currentUserId.
+     * Note: Only updates conversation document's lastMessageStatus to READ if the other user sent the last message!
      */
     fun markConversationAsRead(chatId: String, currentUserId: String) {
         val chatDocRef = firestore.collection(FirebaseUtils.Collections.CHATS).document(chatId)
         val messagesColRef = chatDocRef.collection(FirebaseUtils.Collections.MESSAGES)
 
-        // 1. Update conversation status
-        chatDocRef.update(
-            mapOf(
-                "isRead" to true,
-                "lastMessageStatus" to ChatMessage.STATUS_READ
-            )
-        ).addOnFailureListener { e ->
-            Timber.w(e, "Failed to mark chat as read for $chatId: ${e.message}")
-        }
-
-        // 2. Batch update received unread messages
+        // 1. Batch update received unread messages
         messagesColRef
             .whereEqualTo("receiverId", currentUserId)
             .whereEqualTo("isRead", false)
             .get()
             .addOnSuccessListener { snapshot ->
-                if (snapshot.isEmpty) return@addOnSuccessListener
-                val batch = firestore.batch()
-                for (doc in snapshot.documents) {
-                    batch.update(
-                        doc.reference,
-                        mapOf(
-                            "isRead" to true,
-                            "status" to ChatMessage.STATUS_READ
+                if (!snapshot.isEmpty) {
+                    val batch = firestore.batch()
+                    for (doc in snapshot.documents) {
+                        batch.update(
+                            doc.reference,
+                            mapOf(
+                                "isRead" to true,
+                                "status" to ChatMessage.STATUS_READ
+                            )
                         )
-                    )
-                }
-                batch.commit().addOnFailureListener { e ->
-                    Timber.w(e, "Failed to batch mark messages as read: ${e.message}")
+                    }
+                    batch.commit().addOnFailureListener { e ->
+                        Timber.w(e, "Failed to batch mark messages as read: ${e.message}")
+                    }
                 }
             }
             .addOnFailureListener { e ->
                 Timber.w(e, "Failed to query unread messages: ${e.message}")
             }
+
+        // 2. Update conversation read status and lastMessageStatus ONLY if currentUserId is NOT the sender of the last message
+        chatDocRef.get().addOnSuccessListener { doc ->
+            if (doc != null && doc.exists()) {
+                val lastSenderId = doc.getString("lastSenderId") ?: ""
+                val updates = mutableMapOf<String, Any>(
+                    "unreadCounts.$currentUserId" to 0L
+                )
+
+                // If the other participant was the last sender, currentUserId has now read the last message!
+                if (lastSenderId.isNotBlank() && lastSenderId != currentUserId) {
+                    updates["isRead"] = true
+                    updates["lastMessageStatus"] = ChatMessage.STATUS_READ
+                }
+
+                chatDocRef.update(updates).addOnFailureListener { e ->
+                    Timber.w(e, "Failed to mark chat as read for $chatId: ${e.message}")
+                }
+            }
+        }.addOnFailureListener { e ->
+            Timber.w(e, "Failed to get chatDoc before marking as read: ${e.message}")
+        }
     }
 
     /**
@@ -210,13 +235,63 @@ class ChatRepository(
             .whereEqualTo("status", ChatMessage.STATUS_SENT)
             .get()
             .addOnSuccessListener { snapshot ->
-                if (snapshot.isEmpty) return@addOnSuccessListener
-                val batch = firestore.batch()
-                for (doc in snapshot.documents) {
-                    batch.update(doc.reference, "status", ChatMessage.STATUS_DELIVERED)
+                if (!snapshot.isEmpty) {
+                    val batch = firestore.batch()
+                    for (doc in snapshot.documents) {
+                        batch.update(doc.reference, "status", ChatMessage.STATUS_DELIVERED)
+                    }
+                    batch.commit().addOnFailureListener { e ->
+                        Timber.w(e, "Failed to mark messages as delivered: ${e.message}")
+                    }
                 }
-                batch.commit().addOnFailureListener { e ->
-                    Timber.w(e, "Failed to mark messages as delivered: ${e.message}")
+            }
+
+        // Also update lastMessageStatus to DELIVERED on conversation doc if the other participant was sender
+        chatDocRef.get().addOnSuccessListener { doc ->
+            if (doc != null && doc.exists()) {
+                val lastSenderId = doc.getString("lastSenderId") ?: ""
+                val currentStatus = doc.getString("lastMessageStatus") ?: ""
+                if (lastSenderId.isNotBlank() && lastSenderId != currentUserId && currentStatus == ChatMessage.STATUS_SENT) {
+                    chatDocRef.update("lastMessageStatus", ChatMessage.STATUS_DELIVERED).addOnFailureListener { e ->
+                        Timber.w(e, "Failed to update lastMessageStatus to delivered: ${e.message}")
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * Reconciles lastMessageStatus on the parent conversation document with the real status of the latest message.
+     * Heals any legacy/corrupted conversations where sender marked own message as read.
+     */
+    fun reconcileLastMessageStatus(chatId: String, currentUserId: String) {
+        val chatDocRef = firestore.collection(FirebaseUtils.Collections.CHATS).document(chatId)
+        chatDocRef.collection(FirebaseUtils.Collections.MESSAGES)
+            .orderBy("timestamp", Query.Direction.DESCENDING)
+            .limit(1)
+            .get()
+            .addOnSuccessListener { snapshot ->
+                val lastDoc = snapshot.documents.firstOrNull() ?: return@addOnSuccessListener
+                val senderId = lastDoc.getString("senderId") ?: ""
+                if (senderId == currentUserId) {
+                    val actualStatus = lastDoc.getString("status") ?: ""
+                    val isRead = lastDoc.getBoolean("isRead") ?: false
+                    val resolvedStatus = when {
+                        isRead || actualStatus == ChatMessage.STATUS_READ -> ChatMessage.STATUS_READ
+                        actualStatus.isNotBlank() -> actualStatus
+                        else -> ChatMessage.STATUS_SENT
+                    }
+
+                    if (resolvedStatus != ChatMessage.STATUS_READ) {
+                        chatDocRef.update(
+                            mapOf(
+                                "lastMessageStatus" to resolvedStatus,
+                                "isRead" to false
+                            )
+                        ).addOnFailureListener { e ->
+                            Timber.w(e, "Failed to reconcile status on chat $chatId: ${e.message}")
+                        }
+                    }
                 }
             }
     }
@@ -249,7 +324,9 @@ class ChatRepository(
         val participantImages = (doc.get("participantImages") as? Map<*, *>)?.entries
             ?.associate { it.key.toString() to it.value.toString() } ?: emptyMap()
         val isRead = doc.getBoolean("isRead") ?: false
-        val lastMessageStatus = doc.getString("lastMessageStatus") ?: if (isRead) ChatMessage.STATUS_READ else ChatMessage.STATUS_SENT
+        val lastMessageStatus = doc.getString("lastMessageStatus") ?: ChatMessage.STATUS_SENT
+        val unreadCounts = (doc.get("unreadCounts") as? Map<*, *>)?.entries
+            ?.associate { it.key.toString() to ((it.value as? Number)?.toLong() ?: 0L) } ?: emptyMap()
 
         return ChatConversation(
             id = doc.getString("id") ?: doc.id,
@@ -262,6 +339,7 @@ class ChatRepository(
             lastMessageTimestamp = doc.getLong("lastMessageTimestamp") ?: 0L,
             lastSenderId = doc.getString("lastSenderId") ?: "",
             isRead = isRead,
+            unreadCounts = unreadCounts,
             lastMessageStatus = lastMessageStatus
         )
     }

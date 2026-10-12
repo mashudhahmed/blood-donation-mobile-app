@@ -423,4 +423,16 @@
     <color name="status_logged_out_border">#FFB74D</color>
     <color name="status_logged_out_text">#E65100</color>
 
+    <!-- Classy Urgent Request Card Palette (Restrained, high-end, production grade) -->
+    <color name="crimson_card_blood_bg">#FFF1F2</color>
+    <color name="crimson_card_blood_stroke">#FECDD3</color>
+    <color name="crimson_card_blood_text">#B91C1C</color>
+    <color name="crimson_card_urgent_bg">#FEF2F2</color>
+    <color name="crimson_card_urgent_stroke">#FECACA</color>
+    <color name="crimson_card_urgent_text">#B91C1C</color>
+    <color name="card_action_btn_bg">#F8FAFC</color>
+    <color name="card_action_btn_stroke">#E2E8F0</color>
+    <color name="card_action_btn_icon">#334155</color>
+    <color name="crimson_cta_primary">#DC2626</color>
+
 </resources>

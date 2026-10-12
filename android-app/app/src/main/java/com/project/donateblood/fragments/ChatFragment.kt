@@ -98,8 +98,14 @@ class ChatFragment : Fragment() {
                 filterConversations(currentSearchQuery)
 
                 conversations.forEach { conv ->
+                    // 1. Deliver pending sent messages to this user
                     if (conv.lastSenderId != currentUserId && conv.lastMessageStatus == com.project.donateblood.models.ChatMessage.STATUS_SENT) {
                         chatRepository.markMessagesAsDelivered(conv.id, currentUserId)
+                    }
+
+                    // 2. Reconcile existing conversations where lastMessageStatus was marked as read by the sender
+                    if (conv.lastSenderId == currentUserId && conv.lastMessageStatus == com.project.donateblood.models.ChatMessage.STATUS_READ) {
+                        chatRepository.reconcileLastMessageStatus(conv.id, currentUserId)
                     }
                 }
             },
@@ -136,10 +142,17 @@ class ChatFragment : Fragment() {
 
     private fun openConversation(conversation: ChatConversation, currentUserId: String) {
         val otherId = conversation.getOtherParticipantId(currentUserId)
-        val otherName = conversation.getOtherParticipantName(currentUserId)
-        val otherBlood = conversation.getOtherParticipantBloodGroup(currentUserId)
+        var otherName = conversation.getOtherParticipantName(currentUserId)
+        var otherBlood = conversation.getOtherParticipantBloodGroup(currentUserId)
         val otherPhone = conversation.getOtherParticipantPhone(currentUserId)
-        val otherImage = conversation.getOtherParticipantImage(currentUserId)
+        var otherImage = conversation.getOtherParticipantImage(currentUserId)
+
+        val cached = conversationAdapter.getCachedProfile(otherId)
+        if (cached != null) {
+            if (cached.profileImage.isNotBlank()) otherImage = cached.profileImage
+            if (cached.name.isNotBlank() && (otherName == "User" || otherName.isBlank())) otherName = cached.name
+            if (cached.bloodGroup.isNotBlank() && otherBlood.isBlank()) otherBlood = cached.bloodGroup
+        }
 
         val bundle = ConversationFragment.newBundle(
             recipientId = otherId,

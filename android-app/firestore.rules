@@ -11,89 +11,90 @@ service cloud.firestore {
       return isAuthenticated() && request.auth.uid == userId;
     }
 
-    // ==========================================
+    // ----------------------------------------------------
     // USERS COLLECTION
-    // ==========================================
+    // ----------------------------------------------------
     match /users/{userId} {
-      // Any authenticated user can read public profile details of donors
+      // Any authenticated user can read public user details (name, blood group, etc.)
       allow read: if isAuthenticated();
-      // Only the authenticated user can create or modify their own profile
-      allow create: if isOwner(userId);
-      allow update: if isOwner(userId);
-      allow delete: if isOwner(userId);
+      // Only the user themselves can create, update, or delete their profile
+      allow create, update, delete: if isOwner(userId);
     }
 
-    // ==========================================
-    // DONORS COLLECTION
-    // ==========================================
+    // ----------------------------------------------------
+    // DONORS DIRECTORY
+    // ----------------------------------------------------
     match /donors/{donorId} {
-      // Authenticated users can query and find compatible donors
+      // Authenticated users can browse available donors
       allow read: if isAuthenticated();
-      // Only the donor can register or update their donor availability/details
-      allow create: if isAuthenticated() && (request.resource.data.userId == request.auth.uid || donorId == request.auth.uid);
-      allow update: if isAuthenticated() && (resource.data.userId == request.auth.uid || donorId == request.auth.uid);
-      allow delete: if isAuthenticated() && (resource.data.userId == request.auth.uid || donorId == request.auth.uid);
+      // Only the donor themselves can create, edit, or delete their donor record
+      allow create: if isAuthenticated() && (request.auth.uid == donorId || request.resource.data.userId == request.auth.uid);
+      allow update, delete: if isAuthenticated() && (request.auth.uid == donorId || resource.data.userId == request.auth.uid);
     }
 
-    // ==========================================
-    // BLOOD REQUESTS (Handles both naming conventions)
-    // ==========================================
+    // ----------------------------------------------------
+    // BLOOD REQUESTS
+    // ----------------------------------------------------
     match /bloodRequests/{requestId} {
+      // Authenticated users can view pending blood requests
       allow read: if isAuthenticated();
+      // Only authenticated users can create requests with their own uid as requesterId
       allow create: if isAuthenticated() && request.resource.data.requesterId == request.auth.uid;
-      allow update: if isAuthenticated() && resource.data.requesterId == request.auth.uid;
+      // The requester can update their request, or other donors can update response/status when helping
+      allow update: if isAuthenticated();
+      // Only the requester can delete their request
       allow delete: if isAuthenticated() && resource.data.requesterId == request.auth.uid;
     }
 
-    match /blood_requests/{requestId} {
-      allow read: if isAuthenticated();
-      allow create: if isAuthenticated() && request.resource.data.requesterId == request.auth.uid;
-      allow update: if isAuthenticated() && resource.data.requesterId == request.auth.uid;
-      allow delete: if isAuthenticated() && resource.data.requesterId == request.auth.uid;
-    }
-
-    // ==========================================
-    // NOTIFICATIONS COLLECTION
-    // ==========================================
-    match /notifications/{notificationId} {
-      // Users can only read and manage their own notifications
-      allow read: if isAuthenticated() && (resource.data.userId == request.auth.uid || resource.data.recipientUserId == request.auth.uid);
-      allow create: if isAuthenticated();
-      allow update: if isAuthenticated() && (resource.data.userId == request.auth.uid || resource.data.recipientUserId == request.auth.uid);
-      allow delete: if isAuthenticated() && (resource.data.userId == request.auth.uid || resource.data.recipientUserId == request.auth.uid);
-    }
-
-    // ==========================================
-    // DONATION HISTORY
-    // ==========================================
-    match /donation_history/{historyId} {
-      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
-      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
-      allow update: if isAuthenticated() && resource.data.userId == request.auth.uid;
-      allow delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
-    }
-
-    match /history/{historyId} {
-      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
-      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
-      allow update: if isAuthenticated() && resource.data.userId == request.auth.uid;
-      allow delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
-    }
-
-    // ==========================================
-    // CHATS & REAL-TIME MESSAGING
-    // ==========================================
+    // ----------------------------------------------------
+    // CHATS & DIRECT MESSAGES
+    // ----------------------------------------------------
     match /chats/{chatId} {
-      allow read, write: if isAuthenticated() && (
-        (resource != null && request.auth.uid in resource.data.participantIds) ||
-        (request.resource != null && request.auth.uid in request.resource.data.participantIds)
-      );
+      // Only participants of the conversation can read or create/update conversation metadata
+      allow read: if isAuthenticated() && request.auth.uid in resource.data.participantIds;
+      allow create: if isAuthenticated() && request.auth.uid in request.resource.data.participantIds;
+      allow update: if isAuthenticated() && request.auth.uid in resource.data.participantIds;
+      allow delete: if false; // Chats cannot be deleted unilaterally
 
+      // Chat Messages subcollection
       match /messages/{messageId} {
-        allow read: if isAuthenticated();
-        allow create: if isAuthenticated() && request.resource.data.senderId == request.auth.uid;
-        allow update, delete: if isAuthenticated() && resource.data.senderId == request.auth.uid;
+        // Only sender or receiver can read the message
+        allow read: if isAuthenticated() && (request.auth.uid == resource.data.senderId || request.auth.uid == resource.data.receiverId);
+        // Only the sender can create a new message
+        allow create: if isAuthenticated() && request.auth.uid == request.resource.data.senderId;
+        // Status updates (sent -> delivered -> read) can be written by sender or receiver
+        allow update: if isAuthenticated() && (request.auth.uid == resource.data.senderId || request.auth.uid == resource.data.receiverId);
+        allow delete: if false;
       }
+    }
+
+    // ----------------------------------------------------
+    // USER NOTIFICATIONS
+    // ----------------------------------------------------
+    match /notifications/{userId} {
+      allow read, write: if isOwner(userId);
+
+      match /items/{notificationId} {
+        allow read, write, delete: if isOwner(userId);
+      }
+    }
+
+    // ----------------------------------------------------
+    // PUBLIC DIRECTORIES (Hospitals, Blood Banks)
+    // ----------------------------------------------------
+    match /hospitals/{hospitalId} {
+      allow read: if isAuthenticated();
+      allow write: if false; // Read-only for clients, managed via Firebase Console / Admin SDK
+    }
+
+    match /bloodBanks/{bankId} {
+      allow read: if isAuthenticated();
+      allow write: if false; // Read-only for clients, managed via Firebase Console / Admin SDK
+    }
+
+    // Default deny all other paths
+    match /{document=**} {
+      allow read, write: if false;
     }
   }
 }

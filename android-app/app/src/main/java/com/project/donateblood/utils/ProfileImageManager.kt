@@ -284,6 +284,7 @@ object ProfileImageManager {
             return
         }
 
+        // 1. Data URI with base64
         if (cleanUrl.startsWith("data:image") || cleanUrl.contains("base64,")) {
             try {
                 val base64Data = cleanUrl.substringAfter("base64,")
@@ -298,13 +299,30 @@ object ProfileImageManager {
             }
             imageView.setImageResource(R.drawable.ic_user_placeholder)
             return
-        } else {
-            imageView.load(cleanUrl) {
-                crossfade(true)
-                placeholder(R.drawable.ic_user_placeholder)
-                error(R.drawable.ic_user_placeholder)
-                transformations(CircleCropTransformation())
+        }
+
+        // 2. Raw base64 string without data: URI scheme
+        if (cleanUrl.length > 200 && !cleanUrl.startsWith("http://") && !cleanUrl.startsWith("https://") && !cleanUrl.startsWith("/")) {
+            try {
+                val imageBytes = Base64.decode(cleanUrl, Base64.DEFAULT)
+                val bitmap = BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size)
+                if (bitmap != null) {
+                    imageView.setImageBitmap(bitmap)
+                    return
+                }
+            } catch (e: Exception) {
+                Timber.e(e, "Failed to decode raw base64 avatar")
             }
+            imageView.setImageResource(R.drawable.ic_user_placeholder)
+            return
+        }
+
+        // 3. HTTP URL or local file URI via Coil
+        imageView.load(cleanUrl) {
+            crossfade(true)
+            placeholder(R.drawable.ic_user_placeholder)
+            error(R.drawable.ic_user_placeholder)
+            transformations(CircleCropTransformation())
         }
     }
 }

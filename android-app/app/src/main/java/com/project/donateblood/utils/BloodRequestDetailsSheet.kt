@@ -44,22 +44,14 @@ object BloodRequestDetailsSheet {
 
         if (isUrgent) {
             binding.tvSheetUrgencyTag.text = "URGENT"
-            binding.tvSheetUrgencyTag.setTextColor(ContextCompat.getColor(context, R.color.primary_red))
+            binding.tvSheetUrgencyTag.setTextColor(ContextCompat.getColor(context, R.color.crimson_card_urgent_text))
             binding.tvSheetUrgencyTag.setBackgroundResource(R.drawable.bg_tag_urgent_2026)
-            binding.tvSheetUrgencyTag.setCompoundDrawablesWithIntrinsicBounds(R.drawable.ic_clock, 0, 0, 0)
-            TextViewCompat.setCompoundDrawableTintList(
-                binding.tvSheetUrgencyTag,
-                ColorStateList.valueOf(ContextCompat.getColor(context, R.color.primary_red))
-            )
+            binding.tvSheetUrgencyTag.setCompoundDrawablesWithIntrinsicBounds(0, 0, 0, 0)
         } else {
             binding.tvSheetUrgencyTag.text = "NEEDED"
             binding.tvSheetUrgencyTag.setTextColor(ContextCompat.getColor(context, R.color.text_secondary))
             binding.tvSheetUrgencyTag.setBackgroundResource(R.drawable.bg_tag_needed_2026)
-            binding.tvSheetUrgencyTag.setCompoundDrawablesWithIntrinsicBounds(R.drawable.ic_blood_drop, 0, 0, 0)
-            TextViewCompat.setCompoundDrawableTintList(
-                binding.tvSheetUrgencyTag,
-                ColorStateList.valueOf(ContextCompat.getColor(context, R.color.primary_red))
-            )
+            binding.tvSheetUrgencyTag.setCompoundDrawablesWithIntrinsicBounds(0, 0, 0, 0)
         }
 
         // Units Badge

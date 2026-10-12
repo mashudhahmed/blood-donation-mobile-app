@@ -4,6 +4,10 @@ import { FirebaseModule } from './firebase/firebase.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { MatchingModule } from './matching/matching.module';
 import { BloodModule } from './blood/blood.module';
+import { AdminModule } from './admin/admin.module';
+import { HospitalModule } from './hospital/hospital.module';
+import { BloodBankModule } from './bloodbank/bloodbank.module';
+import { AuthModule } from './auth/auth.module';
 
 @Module({
   imports: [
@@ -11,9 +15,13 @@ import { BloodModule } from './blood/blood.module';
       isGlobal: true,
     }),
     FirebaseModule,
+    AuthModule,
     BloodModule,
     MatchingModule,
     NotificationsModule,
+    AdminModule,
+    HospitalModule,
+    BloodBankModule,
   ],
 })
 export class AppModule {}

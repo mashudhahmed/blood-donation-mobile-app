@@ -1,6 +1,8 @@
 package com.project.donateblood.fragments
 
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -12,27 +14,37 @@ import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.messaging.FirebaseMessaging
 import com.project.donateblood.R
 import com.project.donateblood.databinding.FragmentLoginBinding
+import timber.log.Timber
 
 class LoginFragment : Fragment() {
 
-    private lateinit var binding: FragmentLoginBinding
-    private lateinit var auth: FirebaseAuth
-    private lateinit var firestore: FirebaseFirestore
+    private var _binding: FragmentLoginBinding? = null
+    private val binding get() = _binding!!
+
+    private val auth by lazy { FirebaseAuth.getInstance() }
+    private val firestore by lazy { FirebaseFirestore.getInstance() }
+
+    private val mainHandler = Handler(Looper.getMainLooper())
+    private var loginTimeoutRunnable: Runnable? = null
 
     override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?,
+        inflater: LayoutInflater,
+        container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
-        binding = FragmentLoginBinding.inflate(inflater, container, false)
-        auth = FirebaseAuth.getInstance()
-        firestore = FirebaseFirestore.getInstance()
+        _binding = FragmentLoginBinding.inflate(inflater, container, false)
+        return binding.root
+    }
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
 
         val currentUser = auth.currentUser
         if (currentUser != null && currentUser.isEmailVerified) {
             findNavController().navigate(
                 R.id.action_loginFragment_to_homeFragment
             )
-            return binding.root
+            return
         }
 
         binding.btnSignIn.setOnClickListener { loginUser() }
@@ -48,11 +60,16 @@ class LoginFragment : Fragment() {
                 R.id.action_loginFragment_to_forgotPasswordFragment
             )
         }
+    }
 
-        return binding.root
+    override fun onDestroyView() {
+        loginTimeoutRunnable?.let { mainHandler.removeCallbacks(it) }
+        super.onDestroyView()
+        _binding = null
     }
 
     private fun loginUser() {
+        if (_binding == null) return
         val email = binding.etEmail.text.toString().trim()
         val password = binding.etPassword.text.toString().trim()
 
@@ -63,8 +80,27 @@ class LoginFragment : Fragment() {
 
         showLoading(true)
 
+        // Safety timeout to avoid hanging indefinitely if network/DNS drops
+        loginTimeoutRunnable?.let { mainHandler.removeCallbacks(it) }
+        val timeout = Runnable {
+            if (_binding != null && isAdded) {
+                showLoading(false)
+                Toast.makeText(
+                    requireContext(),
+                    "Connection timed out. Please check your internet connection and try again.",
+                    Toast.LENGTH_LONG
+                ).show()
+            }
+        }
+        loginTimeoutRunnable = timeout
+        mainHandler.postDelayed(timeout, 20000L) // 20-second timeout
+
+        Timber.d("Attempting sign in for: $email")
+
         auth.signInWithEmailAndPassword(email, password)
             .addOnSuccessListener { result ->
+                loginTimeoutRunnable?.let { mainHandler.removeCallbacks(it) }
+                if (_binding == null || !isAdded) return@addOnSuccessListener
                 val user = result.user ?: return@addOnSuccessListener
 
                 if (!user.isEmailVerified) {
@@ -78,9 +114,7 @@ class LoginFragment : Fragment() {
                     return@addOnSuccessListener
                 }
 
-                // 🔥 FIXED: Token now saved in BOTH collections
                 saveFcmToken(user.uid)
-
                 subscribeToBloodTopic(user.uid)
 
                 showLoading(false)
@@ -90,11 +124,14 @@ class LoginFragment : Fragment() {
                     R.id.action_loginFragment_to_homeFragment
                 )
             }
-            .addOnFailureListener {
+            .addOnFailureListener { error ->
+                loginTimeoutRunnable?.let { mainHandler.removeCallbacks(it) }
+                if (_binding == null || !isAdded) return@addOnFailureListener
                 showLoading(false)
+                Timber.e(error, "Sign in failed: ${error.message}")
                 Toast.makeText(
                     requireContext(),
-                    it.localizedMessage ?: "Login failed",
+                    error.localizedMessage ?: "Login failed",
                     Toast.LENGTH_LONG
                 ).show()
             }
@@ -102,18 +139,23 @@ class LoginFragment : Fragment() {
 
     private fun saveFcmToken(uid: String) {
         FirebaseMessaging.getInstance().token.addOnSuccessListener { token ->
-
             val updates = mapOf("fcmToken" to token)
 
             // Update users collection
             firestore.collection("users")
                 .document(uid)
                 .update(updates)
+                .addOnFailureListener { e ->
+                    Timber.w(e, "Failed to update users fcmToken")
+                }
 
-            // 🔥 CRITICAL: Update donors collection
+            // Update donors collection
             firestore.collection("donors")
                 .document(uid)
                 .update(updates)
+                .addOnFailureListener { e ->
+                    Timber.w(e, "Failed to update donors fcmToken")
+                }
         }
     }
 
@@ -137,7 +179,9 @@ class LoginFragment : Fragment() {
     }
 
     private fun showLoading(show: Boolean) {
-        binding.progressBar.visibility = if (show) View.VISIBLE else View.GONE
-        binding.btnSignIn.isEnabled = !show
+        _binding?.let { b ->
+            b.progressBar.visibility = if (show) View.VISIBLE else View.GONE
+            b.btnSignIn.isEnabled = !show
+        }
     }
 }

@@ -37,6 +37,19 @@ android {
 
     // REMOVED: composeOptions block since you're not using Compose
 
+    signingConfigs {
+        create("release") {
+            val keystorePath = project.findProperty("KEYSTORE_FILE") as? String ?: "release-keystore.jks"
+            val keystoreFile = file(keystorePath)
+            if (keystoreFile.exists()) {
+                storeFile = keystoreFile
+                storePassword = project.findProperty("KEYSTORE_PASSWORD") as? String ?: ""
+                keyAlias = project.findProperty("KEY_ALIAS") as? String ?: ""
+                keyPassword = project.findProperty("KEY_PASSWORD") as? String ?: ""
+            }
+        }
+    }
+
     buildTypes {
         debug {
             isDebuggable = true
@@ -50,6 +63,10 @@ android {
         }
 
         release {
+            val releaseSigning = signingConfigs.getByName("release")
+            if (releaseSigning.storeFile != null && releaseSigning.storeFile!!.exists()) {
+                signingConfig = releaseSigning
+            }
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(

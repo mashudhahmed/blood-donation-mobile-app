@@ -57,22 +57,14 @@ class HomeUrgentRequestAdapter(
 
             if (isUrgent) {
                 tvUrgencyTag.text = "URGENT"
-                tvUrgencyTag.setTextColor(ContextCompat.getColor(context, R.color.primary_red))
+                tvUrgencyTag.setTextColor(ContextCompat.getColor(context, R.color.crimson_card_urgent_text))
                 tvUrgencyTag.setBackgroundResource(R.drawable.bg_tag_urgent_2026)
-                tvUrgencyTag.setCompoundDrawablesWithIntrinsicBounds(R.drawable.ic_clock, 0, 0, 0)
-                androidx.core.widget.TextViewCompat.setCompoundDrawableTintList(
-                    tvUrgencyTag,
-                    android.content.res.ColorStateList.valueOf(ContextCompat.getColor(context, R.color.primary_red))
-                )
+                tvUrgencyTag.setCompoundDrawablesWithIntrinsicBounds(0, 0, 0, 0)
             } else {
                 tvUrgencyTag.text = "NEEDED"
                 tvUrgencyTag.setTextColor(ContextCompat.getColor(context, R.color.text_secondary))
                 tvUrgencyTag.setBackgroundResource(R.drawable.bg_tag_needed_2026)
-                tvUrgencyTag.setCompoundDrawablesWithIntrinsicBounds(R.drawable.ic_blood_drop, 0, 0, 0)
-                androidx.core.widget.TextViewCompat.setCompoundDrawableTintList(
-                    tvUrgencyTag,
-                    android.content.res.ColorStateList.valueOf(ContextCompat.getColor(context, R.color.primary_red))
-                )
+                tvUrgencyTag.setCompoundDrawablesWithIntrinsicBounds(0, 0, 0, 0)
             }
 
             // Units
@@ -117,7 +109,7 @@ class HomeUrgentRequestAdapter(
                 btnCall.visibility = if (request.phone.isNotBlank()) View.VISIBLE else View.GONE
                 btnChat.visibility = View.VISIBLE
                 btnHelp.text = "I Can Help"
-                btnHelp.backgroundTintList = ContextCompat.getColorStateList(context, R.color.primary_red)
+                btnHelp.backgroundTintList = ContextCompat.getColorStateList(context, R.color.crimson_cta_primary)
 
                 btnCall.setOnClickListener { onCallClick(request) }
                 btnChat.setOnClickListener { onChatClick(request) }

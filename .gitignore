@@ -12,9 +12,16 @@ android-app/.cxx/
 # ===== BACKEND =====
 backend/.env
 backend/node_modules/
+backend/dist/
 backend/venv/
 backend/__pycache__/
 backend/*backup*.json
+
+# ===== FRONTEND =====
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+frontend/.env*.local
 
 # ===== COMMON =====
 .idea/

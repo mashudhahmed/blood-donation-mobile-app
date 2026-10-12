@@ -529,11 +529,7 @@
                 android:textSize="13sp"
                 android:textStyle="bold"
                 app:cornerRadius="22dp"
-                app:backgroundTint="@color/primary_red"
-                app:icon="@drawable/ic_blood_drop"
-                app:iconSize="16dp"
-                app:iconTint="@color/white"
-                app:iconGravity="textStart"
+                app:backgroundTint="@color/crimson_cta_primary"
                 android:textAllCaps="false"
                 tools:ignore="HardcodedText" />
         </LinearLayout>

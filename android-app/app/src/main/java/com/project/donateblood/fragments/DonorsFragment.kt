@@ -39,6 +39,14 @@ class DonorsFragment : Fragment() {
     private var currentSearchQuery: String = ""
     private var isRefreshing = false
 
+    private var lastVisibleDonorDoc: com.google.firebase.firestore.DocumentSnapshot? = null
+    private var isLoadingMoreDonors = false
+    private var isLastDonorPage = false
+
+    companion object {
+        private const val PAGE_SIZE = 25L
+    }
+
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
@@ -101,8 +109,21 @@ class DonorsFragment : Fragment() {
             }
         )
 
-        binding.rvDonors.layoutManager = LinearLayoutManager(requireContext())
+        val lm = LinearLayoutManager(requireContext())
+        binding.rvDonors.layoutManager = lm
         binding.rvDonors.adapter = donorAdapter
+
+        binding.rvDonors.addOnScrollListener(object : androidx.recyclerview.widget.RecyclerView.OnScrollListener() {
+            override fun onScrolled(recyclerView: androidx.recyclerview.widget.RecyclerView, dx: Int, dy: Int) {
+                super.onScrolled(recyclerView, dx, dy)
+                val totalItemCount = lm.itemCount
+                val lastVisibleItem = lm.findLastVisibleItemPosition()
+
+                if (!isLoadingMoreDonors && !isLastDonorPage && totalItemCount > 0 && lastVisibleItem >= totalItemCount - 4) {
+                    loadMoreDonors()
+                }
+            }
+        })
     }
 
     // ================= SEARCH SETUP =================
@@ -224,12 +245,15 @@ class DonorsFragment : Fragment() {
         }
 
         donorListener?.remove()
+        lastVisibleDonorDoc = null
+        isLastDonorPage = false
+        isLoadingMoreDonors = false
 
         // 3-level fallback query: ordered -> unordered -> manual
         donorListener = firestore.collection(FirebaseUtils.Collections.DONORS)
             .whereEqualTo("isAvailable", true)
             .orderBy("name", Query.Direction.ASCENDING)
-            .limit(25)
+            .limit(PAGE_SIZE)
             .addSnapshotListener { snapshot, error ->
                 if (error != null) {
                     tryUnorderedQuery()
@@ -243,7 +267,7 @@ class DonorsFragment : Fragment() {
         donorListener?.remove()
         donorListener = firestore.collection(FirebaseUtils.Collections.DONORS)
             .whereEqualTo("isAvailable", true)
-            .limit(25)
+            .limit(PAGE_SIZE)
             .addSnapshotListener { snapshot, error ->
                 if (error != null) {
                     tryManualFiltering()
@@ -256,21 +280,22 @@ class DonorsFragment : Fragment() {
     private fun tryManualFiltering() {
         donorListener?.remove()
         donorListener = firestore.collection(FirebaseUtils.Collections.DONORS)
-            .limit(25)
+            .limit(PAGE_SIZE)
             .addSnapshotListener { snapshot, error ->
                 isRefreshing = false
                 binding.swipeRefreshLayout.isRefreshing = false
                 showLoading(false)
 
                 donorList.clear()
-                if (error == null && snapshot != null) {
-                    snapshot.documents.forEach { doc ->
-                        val isAvailable = doc.getBoolean("isAvailable") ?: true
-                        if (isAvailable) {
-                            parseDonor(doc)?.let { donorList.add(it) }
-                        }
+                val docs = snapshot?.documents ?: emptyList()
+                docs.forEach { doc ->
+                    val isAvailable = doc.getBoolean("isAvailable") ?: true
+                    if (isAvailable) {
+                        parseDonor(doc)?.let { donorList.add(it) }
                     }
                 }
+                lastVisibleDonorDoc = docs.lastOrNull()
+                isLastDonorPage = docs.size < PAGE_SIZE
 
                 // Fallback to default verified donors
                 val existingIds = donorList.map { it.id }.toSet()
@@ -288,9 +313,12 @@ class DonorsFragment : Fragment() {
         showLoading(false)
 
         donorList.clear()
-        snapshot?.documents?.forEach { doc ->
+        val docs = snapshot?.documents ?: emptyList()
+        docs.forEach { doc ->
             parseDonor(doc)?.let { donorList.add(it) }
         }
+        lastVisibleDonorDoc = docs.lastOrNull()
+        isLastDonorPage = docs.size < PAGE_SIZE
 
         // Merge verified default donors for full coverage
         val existingIds = donorList.map { it.id }.toSet()
@@ -299,6 +327,73 @@ class DonorsFragment : Fragment() {
         donorList.sortBy { it.name.lowercase() }
 
         applyFilters()
+    }
+
+    private fun loadMoreDonors() {
+        val lastDoc = lastVisibleDonorDoc ?: return
+        if (isLoadingMoreDonors || isLastDonorPage) return
+        isLoadingMoreDonors = true
+
+        firestore.collection(FirebaseUtils.Collections.DONORS)
+            .whereEqualTo("isAvailable", true)
+            .orderBy("name", Query.Direction.ASCENDING)
+            .startAfter(lastDoc)
+            .limit(PAGE_SIZE)
+            .get()
+            .addOnSuccessListener { snapshot ->
+                if (_binding == null) return@addOnSuccessListener
+                isLoadingMoreDonors = false
+
+                val docs = snapshot.documents
+                if (docs.isEmpty() || docs.size < PAGE_SIZE) {
+                    isLastDonorPage = true
+                }
+                if (docs.isNotEmpty()) {
+                    lastVisibleDonorDoc = docs.lastOrNull()
+                    val newDonors = mutableListOf<Donor>()
+                    docs.forEach { doc ->
+                        parseDonor(doc)?.let { newDonors.add(it) }
+                    }
+                    val existingIds = donorList.map { it.id }.toSet()
+                    val deduped = newDonors.filter { it.id !in existingIds }
+                    donorList.addAll(deduped)
+                    applyFilters()
+                }
+            }
+            .addOnFailureListener {
+                loadMoreDonorsUnordered(lastDoc)
+            }
+    }
+
+    private fun loadMoreDonorsUnordered(lastDoc: com.google.firebase.firestore.DocumentSnapshot) {
+        firestore.collection(FirebaseUtils.Collections.DONORS)
+            .whereEqualTo("isAvailable", true)
+            .startAfter(lastDoc)
+            .limit(PAGE_SIZE)
+            .get()
+            .addOnSuccessListener { snapshot ->
+                if (_binding == null) return@addOnSuccessListener
+                isLoadingMoreDonors = false
+
+                val docs = snapshot.documents
+                if (docs.isEmpty() || docs.size < PAGE_SIZE) {
+                    isLastDonorPage = true
+                }
+                if (docs.isNotEmpty()) {
+                    lastVisibleDonorDoc = docs.lastOrNull()
+                    val newDonors = mutableListOf<Donor>()
+                    docs.forEach { doc ->
+                        parseDonor(doc)?.let { newDonors.add(it) }
+                    }
+                    val existingIds = donorList.map { it.id }.toSet()
+                    val deduped = newDonors.filter { it.id !in existingIds }
+                    donorList.addAll(deduped)
+                    applyFilters()
+                }
+            }
+            .addOnFailureListener {
+                isLoadingMoreDonors = false
+            }
     }
 
     private fun parseDonor(doc: com.google.firebase.firestore.DocumentSnapshot): Donor? {

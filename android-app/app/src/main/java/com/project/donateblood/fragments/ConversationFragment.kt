@@ -39,6 +39,10 @@ class ConversationFragment : Fragment() {
     private var recipientImage: String = ""
     private var chatId: String = ""
 
+    private var currentSenderImage: String = ""
+    private var currentSenderBloodGroup: String = ""
+    private var currentSenderName: String = ""
+
     companion object {
         const val ARG_RECIPIENT_ID = "recipientId"
         const val ARG_RECIPIENT_NAME = "recipientName"
@@ -88,6 +92,8 @@ class ConversationFragment : Fragment() {
         recipientPhone = arguments?.getString(ARG_RECIPIENT_PHONE) ?: ""
         recipientImage = arguments?.getString(ARG_RECIPIENT_IMAGE) ?: ""
 
+        currentSenderName = currentUser.displayName ?: currentUser.email?.substringBefore("@") ?: "User"
+
         if (recipientId.isBlank()) {
             Toast.makeText(requireContext(), "Invalid conversation recipient", Toast.LENGTH_SHORT).show()
             findNavController().navigateUp()
@@ -98,8 +104,54 @@ class ConversationFragment : Fragment() {
 
         setupHeader()
         setupRecyclerView(currentUser.uid)
-        setupInput(currentUser.uid, currentUser.displayName ?: currentUser.email?.substringBefore("@") ?: "User")
+        setupInput(currentUser.uid)
         listenForMessages(currentUser.uid)
+
+        // Sync live profile of recipient from users collection
+        com.google.firebase.firestore.FirebaseFirestore.getInstance()
+            .collection(com.project.donateblood.utils.FirebaseUtils.Collections.USERS)
+            .document(recipientId)
+            .get()
+            .addOnSuccessListener { doc ->
+                if (doc != null && doc.exists() && _binding != null) {
+                    val liveImage = doc.getString("profileImage") ?: ""
+                    val liveName = doc.getString("name") ?: ""
+                    val liveBlood = doc.getString("bloodGroup") ?: ""
+                    val livePhone = doc.getString("phone") ?: ""
+
+                    if (liveImage.isNotBlank() && liveImage != recipientImage) {
+                        recipientImage = liveImage
+                        ProfileImageManager.loadAvatar(binding.ivHeaderAvatar, liveImage)
+                    }
+                    if (liveName.isNotBlank() && (recipientName.startsWith("BloodLink User") || recipientName.isBlank())) {
+                        recipientName = liveName
+                        binding.tvHeaderName.text = liveName
+                    }
+                    if (liveBlood.isNotBlank() && recipientBloodGroup.isBlank()) {
+                        recipientBloodGroup = liveBlood
+                        binding.tvHeaderBloodBadge.visibility = View.VISIBLE
+                        binding.tvHeaderBloodBadge.text = liveBlood
+                    }
+                    if (livePhone.isNotBlank() && recipientPhone.isBlank()) {
+                        recipientPhone = livePhone
+                        binding.btnHeaderCall.visibility = View.VISIBLE
+                    }
+                }
+            }
+
+        // Fetch current user details to pass into sendMessage and ensure participantImages has both DPs
+        com.google.firebase.firestore.FirebaseFirestore.getInstance()
+            .collection(com.project.donateblood.utils.FirebaseUtils.Collections.USERS)
+            .document(currentUser.uid)
+            .get()
+            .addOnSuccessListener { doc ->
+                if (doc != null && doc.exists()) {
+                    currentSenderImage = doc.getString("profileImage") ?: ""
+                    currentSenderBloodGroup = doc.getString("bloodGroup") ?: ""
+                    val name = doc.getString("name") ?: ""
+                    if (name.isNotBlank()) currentSenderName = name
+                }
+            }
     }
 
     private fun setupHeader() {
@@ -138,7 +190,7 @@ class ConversationFragment : Fragment() {
         binding.rvMessages.adapter = messageAdapter
     }
 
-    private fun setupInput(currentUserId: String, currentUserName: String) {
+    private fun setupInput(currentUserId: String) {
         binding.btnSendMessage.isEnabled = false
         binding.btnSendMessage.alpha = 0.5f
 
@@ -161,7 +213,7 @@ class ConversationFragment : Fragment() {
             val optimisticMsg = com.project.donateblood.models.ChatMessage(
                 id = messageId,
                 senderId = currentUserId,
-                senderName = currentUserName,
+                senderName = currentSenderName,
                 receiverId = recipientId,
                 receiverName = recipientName,
                 message = text,
@@ -182,12 +234,14 @@ class ConversationFragment : Fragment() {
             // 2. Transmit to Firestore
             chatRepository.sendMessage(
                 senderId = currentUserId,
-                senderName = currentUserName,
-                senderBloodGroup = "",
+                senderName = currentSenderName,
+                senderBloodGroup = currentSenderBloodGroup,
+                senderImage = currentSenderImage,
                 receiverId = recipientId,
                 receiverName = recipientName,
                 receiverBloodGroup = recipientBloodGroup,
                 receiverPhone = recipientPhone,
+                receiverImage = recipientImage,
                 messageText = text,
                 messageId = messageId
             ) { success, error ->

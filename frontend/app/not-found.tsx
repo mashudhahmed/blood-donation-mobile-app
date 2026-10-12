@@ -12,6 +12,7 @@ export default function NotFound() {
             src="/ic_app_logo_round.png"
             alt="BloodLink Logo"
             fill
+            sizes="80px"
             priority
             className="object-cover"
           />

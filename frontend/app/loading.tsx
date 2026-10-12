@@ -9,6 +9,7 @@ export default function Loading() {
           src="/ic_app_logo_round.png"
           alt="BloodLink Loading"
           fill
+          sizes="64px"
           priority
           className="object-cover"
         />

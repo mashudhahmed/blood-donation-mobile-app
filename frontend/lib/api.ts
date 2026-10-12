@@ -200,13 +200,35 @@ class ApiClient {
 
   // Authentication APIs
   async authLogin(data: { email: string; password: string }) {
-    const res = await fetch(`${API_BASE_URL}/auth/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
-    });
+    let res: Response;
+    try {
+      res = await fetch(`${API_BASE_URL}/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+    } catch {
+      // Fallback directly to backend port 3001
+      res = await fetch('http://localhost:3001/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+    }
 
     if (!res.ok) {
+      if (res.status === 404 && !API_BASE_URL.includes('3001')) {
+        const directRes = await fetch('http://localhost:3001/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data),
+        }).catch(() => null);
+        if (directRes && directRes.ok) {
+          const json = await directRes.json();
+          if (json.token) this.setToken(json.token);
+          return json;
+        }
+      }
       const errorText = await res.text().catch(() => '');
       throw new Error(`Authentication failed (${res.status}): ${errorText}`);
     }

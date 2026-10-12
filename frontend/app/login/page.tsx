@@ -114,6 +114,7 @@ export default function LoginPage() {
                 src="/ic_app_logo_card.png"
                 alt="BloodLink Logo"
                 fill
+                sizes="96px"
                 priority
                 className="object-contain"
               />

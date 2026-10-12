@@ -29,6 +29,7 @@ export default function RootPage() {
               src="/ic_app_logo_card.png"
               alt="BloodLink Logo"
               fill
+              sizes="80px"
               priority
               className="object-contain"
             />

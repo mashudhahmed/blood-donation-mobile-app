@@ -300,7 +300,6 @@ export default function AdminPortal() {
           setActiveTab={setActiveTab}
           pendingCount={pendingCount}
           unreadNotificationsCount={unreadNotificationsCount}
-          onOpenMessages={() => setActiveTab('messages')}
         />
 
         {/* Right Main Column */}

@@ -4,7 +4,6 @@ import React, { useState, useEffect, useCallback } from 'react';
 import RoleGuard from '@/components/RoleGuard';
 import DashboardSidebar from '@/components/DashboardSidebar';
 import TopHeader from '@/components/TopHeader';
-import DirectChatModal from '@/components/DirectChatModal';
 import BloodGroupBadge from '@/components/BloodGroupBadge';
 import StatusPill from '@/components/StatusPill';
 import { useAuth } from '@/lib/auth-context';
@@ -27,29 +26,116 @@ import {
   UserPlus,
   MessageSquare,
   X,
+  CheckCheck,
+  Bell,
 } from 'lucide-react';
 import {
   api,
   Requisition,
   Donor,
   StaffMember,
+  Conversation,
+  ChatMessage,
   MOCK_REQUISITIONS,
   MOCK_DONORS,
   MOCK_HOSPITAL_STAFF,
+  MOCK_CONVERSATIONS,
 } from '@/lib/api';
+
+export type HospitalTab =
+  | 'requisitions'
+  | 'donors'
+  | 'messages'
+  | 'notifications'
+  | 'staff'
+  | 'info';
+
+interface HospitalNotification {
+  id: string;
+  type: 'EMERGENCY' | 'DISPATCH' | 'DONOR' | 'SYSTEM';
+  title: string;
+  description: string;
+  targetInfo?: string;
+  timestamp: string;
+  isRead: boolean;
+  actionLabel?: string;
+  actionTab?: HospitalTab;
+}
 
 export default function HospitalPortal() {
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState<'requisitions' | 'donors' | 'staff' | 'info'>('requisitions');
+  const [activeTab, setActiveTab] = useState<HospitalTab>('requisitions');
   const [requisitions, setRequisitions] = useState<Requisition[]>(MOCK_REQUISITIONS);
   const [filteredStatus, setFilteredStatus] = useState('all');
   const [viewMode, setViewMode] = useState<'cards' | 'table'>('cards');
   const [showModal, setShowModal] = useState(false);
   const [feedbackMsg, setFeedbackMsg] = useState<string | null>(null);
 
-  // Direct Chat Modal State
-  const [showChatModal, setShowChatModal] = useState(false);
-  const [selectedDonorForChat, setSelectedDonorForChat] = useState<string | undefined>(undefined);
+  // In-Page Messages State
+  const [conversations, setConversations] = useState<Conversation[]>(MOCK_CONVERSATIONS);
+  const [selectedConvId, setSelectedConvId] = useState<string>(MOCK_CONVERSATIONS[0].id);
+  const [chatSearchQuery, setChatSearchQuery] = useState('');
+  const [messageInput, setMessageInput] = useState('');
+
+  // In-Page Notifications State
+  const [notifications, setNotifications] = useState<HospitalNotification[]>([
+    {
+      id: 'hosp-notif-1',
+      type: 'DONOR',
+      title: 'Donor Accepted Emergency OT Requisition',
+      description: 'Zayed Khan (O+) accepted emergency broadcast for Patient Fatima Begum in OT-3. En route to Emergency Gate 2.',
+      targetInfo: 'ETA: 18 minutes | Contact: +8801711223344',
+      timestamp: '10 mins ago',
+      isRead: false,
+      actionLabel: 'Open Direct Chat',
+      actionTab: 'messages',
+    },
+    {
+      id: 'hosp-notif-2',
+      type: 'DISPATCH',
+      title: 'Cryo-Bank Cold-Chain Dispatch In Transit',
+      description: 'Red Crescent Blood Center dispatched 2 units B+ whole blood via rapid medical courier with digital temperature logging.',
+      targetInfo: 'Waybill ID: WB-2026-9021 | Temperature 3.8°C verified.',
+      timestamp: '25 mins ago',
+      isRead: false,
+      actionLabel: 'Inspect Pipeline',
+      actionTab: 'requisitions',
+    },
+    {
+      id: 'hosp-notif-3',
+      type: 'EMERGENCY',
+      title: 'Critical Requisition Urgent Broadcast Pending',
+      description: 'ICU Bed 14 patient needs 1 more unit of AB- blood within 3 hours for scheduled transfusion protocol.',
+      targetInfo: 'FCM push sent to 8 verified citizen donors in Dhaka.',
+      timestamp: '1 hour ago',
+      isRead: false,
+      actionLabel: 'Find Compatible Donors',
+      actionTab: 'donors',
+    },
+    {
+      id: 'hosp-notif-4',
+      type: 'DONOR',
+      title: 'Nearby Donor Pre-Screening Passed',
+      description: 'Rakib Hasan (O-) updated availability status to Eligible. Currently within 3.2 km radius of hospital.',
+      targetInfo: 'Last donation: 94 days ago | Ready for emergency call.',
+      timestamp: '3 hours ago',
+      isRead: true,
+      actionLabel: 'Message Donor',
+      actionTab: 'messages',
+    },
+    {
+      id: 'hosp-notif-5',
+      type: 'SYSTEM',
+      title: 'Transfusion Medicine OT License Verified',
+      description: 'Directorate General of Health Services (DGHS) verified hospital emergency transfusion credentials (LIC-2021-9921).',
+      targetInfo: 'Accreditation clearance valid through Dec 31, 2026.',
+      timestamp: 'Today, 08:00 AM',
+      isRead: true,
+      actionLabel: 'View Credentials',
+      actionTab: 'info',
+    },
+  ]);
+  const [notificationFilter, setNotificationFilter] = useState<'all' | 'unread' | 'EMERGENCY' | 'DISPATCH' | 'DONOR' | 'SYSTEM'>('all');
 
   // Staff & Positions State
   const [staffList, setStaffList] = useState<StaffMember[]>(MOCK_HOSPITAL_STAFF);
@@ -257,6 +343,62 @@ export default function HospitalPortal() {
   const matchedCount = requisitions.filter((r) => r.status === 'matched').length;
   const fulfilledCount = requisitions.filter((r) => r.status === 'fulfilled').length;
 
+  // Messages and Notifications Logic
+  const unreadNotificationsCount = notifications.filter((n) => !n.isRead).length;
+
+  const currentConv = conversations.find((c) => c.id === selectedConvId) || conversations[0];
+  const filteredConversations = conversations.filter((c) => {
+    const q = chatSearchQuery.toLowerCase();
+    return (
+      c.participantName.toLowerCase().includes(q) ||
+      c.participantBloodGroup.toLowerCase().includes(q) ||
+      c.participantDistrict.toLowerCase().includes(q) ||
+      (c.lastMessage || '').toLowerCase().includes(q)
+    );
+  });
+
+  const handleSendMessage = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!messageInput.trim()) return;
+
+    const newMsg: ChatMessage = {
+      id: `m_${Date.now()}`,
+      senderId: user?.id || 'usr_hosp_001',
+      senderName: user?.organization || user?.name || 'Dhaka Medical College Hospital',
+      senderRole: 'HOSPITAL',
+      text: messageInput.trim(),
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      isMe: true,
+    };
+
+    setConversations((prev) =>
+      prev.map((c) =>
+        c.id === selectedConvId
+          ? {
+              ...c,
+              lastMessage: newMsg.text,
+              lastMessageTime: 'Just now',
+              messages: [...c.messages, newMsg],
+            }
+          : c
+      )
+    );
+    setMessageInput('');
+  };
+
+  const filteredNotifications = notifications.filter((n) => {
+    if (notificationFilter === 'unread') return !n.isRead;
+    if (notificationFilter === 'EMERGENCY') return n.type === 'EMERGENCY';
+    if (notificationFilter === 'DISPATCH') return n.type === 'DISPATCH';
+    if (notificationFilter === 'DONOR') return n.type === 'DONOR';
+    if (notificationFilter === 'SYSTEM') return n.type === 'SYSTEM';
+    return true;
+  });
+
+  const markAllNotificationsAsRead = () => {
+    setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
+  };
+
   return (
     <RoleGuard allowedRole="HOSPITAL">
       <div className="flex h-screen overflow-hidden bg-[#F8FAFC]">
@@ -265,20 +407,15 @@ export default function HospitalPortal() {
           activeTab={activeTab}
           setActiveTab={setActiveTab}
           pendingCount={requisitions.filter((r) => r.status === 'pending').length}
-          onOpenMessages={() => {
-            setSelectedDonorForChat(undefined);
-            setShowChatModal(true);
-          }}
+          unreadNotificationsCount={unreadNotificationsCount}
         />
 
         {/* Right Main Column */}
         <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
           {/* Top Header App Bar matching Screenshots */}
           <TopHeader
-            onOpenMessages={() => {
-              setSelectedDonorForChat(undefined);
-              setShowChatModal(true);
-            }}
+            onOpenMessages={() => setActiveTab('messages')}
+            onOpenNotifications={() => setActiveTab('notifications')}
           />
 
           {/* Feedback Banner */}
@@ -297,52 +434,51 @@ export default function HospitalPortal() {
           {/* Scrollable Main Workspace */}
           <main className="flex-1 overflow-y-auto p-6 sm:p-8 space-y-6">
             {/* Top Greeting Hero Card matching Screenshot 2 */}
-            <div className="bg-white rounded-2xl border border-slate-200/90 p-6 sm:p-7 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-5">
-              <div>
-                <div className="flex items-center space-x-2 mb-2">
-                  <span className="inline-flex items-center space-x-1.5 text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                    <span>Hospital Emergency Desk</span>
-                  </span>
-                  <span className="text-slate-300">&bull;</span>
-                  <span className="text-xs text-slate-500 font-medium">Monday, Oct 12, 2026</span>
-                </div>
-                <h1 className="text-2xl font-black text-slate-900 tracking-tight">
-                  Good afternoon, {user.organization || user.name}
-                </h1>
-                <p className="text-xs text-slate-500 mt-1 max-w-2xl leading-relaxed">
-                  OT & Emergency Blood Requisition Desk &bull; Direct Bedside Donor Coordination, Real-Time Mobile Push Alerts & Hospital Staff Management.
-                </p>
-              </div>
+            {activeTab !== 'messages' && activeTab !== 'notifications' && (
+              <>
+                <div className="bg-white rounded-2xl border border-slate-200/90 p-6 sm:p-7 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-5">
+                  <div>
+                    <div className="flex items-center space-x-2 mb-2">
+                      <span className="inline-flex items-center space-x-1.5 text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                        <span>Hospital Emergency Desk</span>
+                      </span>
+                      <span className="text-slate-300">&bull;</span>
+                      <span className="text-xs text-slate-500 font-medium">Monday, Oct 12, 2026</span>
+                    </div>
+                    <h1 className="text-2xl font-black text-slate-900 tracking-tight">
+                      Good afternoon, {user.organization || user.name}
+                    </h1>
+                    <p className="text-xs text-slate-500 mt-1 max-w-2xl leading-relaxed">
+                      OT & Emergency Blood Requisition Desk &bull; Direct Bedside Donor Coordination, Real-Time Mobile Push Alerts & Hospital Staff Management.
+                    </p>
+                  </div>
 
-              <div className="flex flex-wrap items-center gap-2.5 shrink-0">
-                <button
-                  onClick={() => setShowModal(true)}
-                  className="inline-flex items-center space-x-2 px-4 py-2.5 rounded-xl bg-[#C62828] hover:bg-[#B71C1C] text-white font-bold text-xs shadow-md shadow-[#C62828]/20 transition-all cursor-pointer"
-                >
-                  <PlusCircle className="w-4 h-4 text-white" />
-                  <span>+ Emergency Requisition</span>
-                </button>
-                <button
-                  onClick={() => setShowStaffModal(true)}
-                  className="inline-flex items-center space-x-2 px-3.5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs shadow-sm transition-all cursor-pointer"
-                >
-                  <UserPlus className="w-4 h-4 text-slate-300" />
-                  <span>Add Staff</span>
-                </button>
-                <button
-                  onClick={() => {
-                    setSelectedDonorForChat(undefined);
-                    setShowChatModal(true);
-                  }}
-                  className="inline-flex items-center space-x-1.5 px-3 py-2.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-bold text-xs shadow-2xs transition-all cursor-pointer"
-                  title="Direct Donor Messaging"
-                >
-                  <MessageSquare className="w-4 h-4 text-[#C62828]" />
-                  <span>Chat</span>
-                </button>
-              </div>
-            </div>
+                  <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+                    <button
+                      onClick={() => setShowModal(true)}
+                      className="inline-flex items-center space-x-2 px-4 py-2.5 rounded-xl bg-[#C62828] hover:bg-[#B71C1C] text-white font-bold text-xs shadow-md shadow-[#C62828]/20 transition-all cursor-pointer"
+                    >
+                      <PlusCircle className="w-4 h-4 text-white" />
+                      <span>+ Emergency Requisition</span>
+                    </button>
+                    <button
+                      onClick={() => setShowStaffModal(true)}
+                      className="inline-flex items-center space-x-2 px-3.5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs shadow-sm transition-all cursor-pointer"
+                    >
+                      <UserPlus className="w-4 h-4 text-slate-300" />
+                      <span>Add Staff</span>
+                    </button>
+                    <button
+                      onClick={() => setActiveTab('messages')}
+                      className="inline-flex items-center space-x-1.5 px-3 py-2.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-bold text-xs shadow-2xs transition-all cursor-pointer"
+                      title="Direct Donor Messaging"
+                    >
+                      <MessageSquare className="w-4 h-4 text-[#C62828]" />
+                      <span>Messages</span>
+                    </button>
+                  </div>
+                </div>
 
             {/* Pending Approval Warning Alert Banner if facility unverified */}
             {!isVerifiedFacility && (
@@ -434,6 +570,8 @@ export default function HospitalPortal() {
                 </div>
               </div>
             </div>
+              </>
+            )}
 
             {/* ============================================================== */}
             {/* VIEW 1: REQUISITIONS PIPELINE (Cards & Table)                   */}
@@ -602,8 +740,7 @@ export default function HospitalPortal() {
                           </a>
                           <button
                             onClick={() => {
-                              setSelectedDonorForChat(undefined);
-                              setShowChatModal(true);
+                              setActiveTab('messages');
                             }}
                             className="w-9 h-9 rounded-xl bg-slate-50 border border-slate-200 text-[#C62828] hover:bg-red-50 flex items-center justify-center shrink-0 transition-colors cursor-pointer"
                             title="Open Direct Donor Chat Thread"
@@ -676,8 +813,7 @@ export default function HospitalPortal() {
                               <td className="px-6 py-3.5">
                                 <button
                                   onClick={() => {
-                                    setSelectedDonorForChat(undefined);
-                                    setShowChatModal(true);
+                                    setActiveTab('messages');
                                   }}
                                   className="inline-flex items-center space-x-1 font-semibold text-slate-800 hover:text-[#C62828] cursor-pointer"
                                 >
@@ -815,8 +951,9 @@ export default function HospitalPortal() {
                         </div>
                         <button
                           onClick={() => {
-                            setSelectedDonorForChat(donor.id);
-                            setShowChatModal(true);
+                            const conv = conversations.find((c) => c.participantId === donor.id);
+                            if (conv) setSelectedConvId(conv.id);
+                            setActiveTab('messages');
                           }}
                           className="inline-flex items-center space-x-1 px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-[#FFEBEE] hover:text-[#C62828] text-slate-700 text-[11px] font-bold transition-colors cursor-pointer"
                         >
@@ -1063,6 +1200,335 @@ export default function HospitalPortal() {
                       Save Changes
                     </button>
                   </div>
+                </div>
+              </div>
+            )}
+
+            {/* ============================================================== */}
+            {/* VIEW 5: MESSAGES (In-Page 2-Pane Chat Suite)                   */}
+            {/* ============================================================== */}
+            {activeTab === 'messages' && (
+              <div className="bg-white rounded-2xl border border-slate-200/90 shadow-xs overflow-hidden flex flex-col h-[calc(100vh-10.5rem)]">
+                {/* Messages Suite Header */}
+                <div className="p-4 px-6 border-b border-slate-200 flex items-center justify-between bg-slate-50/70 shrink-0">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-9 h-9 rounded-xl bg-[#C62828] text-white flex items-center justify-center font-bold">
+                      <MessageSquare className="w-4.5 h-4.5 text-white" />
+                    </div>
+                    <div>
+                      <h2 className="text-base font-extrabold text-slate-900 tracking-tight">Direct Patient & Donor Communication</h2>
+                      <p className="text-[11px] text-slate-500">Live bedside coordination with mobile donors, attendants & referral transfusion facilities</p>
+                    </div>
+                  </div>
+                  <span className="text-xs font-mono font-bold text-slate-600 bg-white border border-slate-200 px-3 py-1 rounded-xl shadow-2xs">
+                    {conversations.length} Active Threads
+                  </span>
+                </div>
+
+                <div className="flex-1 flex overflow-hidden">
+                  {/* Left Column: Conversation Directory */}
+                  <div className="w-80 border-r border-slate-200 flex flex-col bg-slate-50 shrink-0">
+                    <div className="p-3 border-b border-slate-200 bg-white">
+                      <div className="relative">
+                        <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                        <input
+                          type="text"
+                          placeholder="Search donor, district or group..."
+                          value={chatSearchQuery}
+                          onChange={(e) => setChatSearchQuery(e.target.value)}
+                          className="w-full pl-8 pr-3 py-2 rounded-xl border border-slate-200 text-xs bg-slate-50 focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#C62828]"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex-1 overflow-y-auto divide-y divide-slate-100">
+                      {filteredConversations.map((c) => {
+                        const isSelected = c.id === selectedConvId;
+                        return (
+                          <button
+                            key={c.id}
+                            onClick={() => setSelectedConvId(c.id)}
+                            className={`w-full p-3.5 text-left flex items-start space-x-3 transition-colors cursor-pointer ${
+                              isSelected ? 'bg-white border-l-4 border-[#C62828] shadow-xs' : 'hover:bg-slate-100/70'
+                            }`}
+                          >
+                            <div className="relative shrink-0">
+                              <div className="w-10 h-10 rounded-full bg-slate-800 text-white font-bold flex items-center justify-center text-xs">
+                                {c.participantName.charAt(0)}
+                              </div>
+                              <span className="absolute -bottom-1 -right-1">
+                                <BloodGroupBadge bloodGroup={c.participantBloodGroup} size="sm" />
+                              </span>
+                            </div>
+
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center justify-between mb-0.5">
+                                <span className="text-xs font-bold text-slate-900 truncate">
+                                  {c.participantName}
+                                </span>
+                                <span className="text-[10px] text-slate-400">{c.lastMessageTime}</span>
+                              </div>
+                              <p className="text-[11px] text-slate-500 truncate leading-snug">
+                                {c.lastMessage}
+                              </p>
+                              <div className="flex items-center space-x-2 mt-1 text-[10px] text-slate-400">
+                                <span className="flex items-center">
+                                  <MapPin className="w-2.5 h-2.5 mr-0.5" />
+                                  {c.participantDistrict}
+                                </span>
+                              </div>
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Right Column: Live Chat Thread */}
+                  <div className="flex-1 flex flex-col bg-white">
+                    {/* Chat Header */}
+                    <div className="p-3.5 px-6 border-b border-slate-200 flex items-center justify-between bg-slate-50/50 shrink-0">
+                      <div className="flex items-center space-x-3">
+                        <div className="w-10 h-10 rounded-full bg-slate-800 text-white font-bold flex items-center justify-center text-xs">
+                          {currentConv.participantName.charAt(0)}
+                        </div>
+                        <div>
+                          <div className="flex items-center space-x-2">
+                            <h4 className="text-sm font-bold text-slate-900">{currentConv.participantName}</h4>
+                            <BloodGroupBadge bloodGroup={currentConv.participantBloodGroup} size="sm" />
+                            <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                              Verified Donor
+                            </span>
+                          </div>
+                          <span className="text-[11px] text-slate-500 flex items-center space-x-2 mt-0.5">
+                            <span>{currentConv.participantDistrict}, Bangladesh</span>
+                            <span>&bull;</span>
+                            <span className="font-mono">{currentConv.participantPhone}</span>
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center space-x-2">
+                        <a
+                          href={`tel:${currentConv.participantPhone}`}
+                          className="px-3 py-1.5 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-100 text-xs font-bold flex items-center space-x-1.5 transition-colors"
+                        >
+                          <Phone className="w-3.5 h-3.5 text-[#C62828]" />
+                          <span>Call Donor</span>
+                        </a>
+                      </div>
+                    </div>
+
+                    {/* Messages Body */}
+                    <div className="flex-1 p-5 overflow-y-auto space-y-3.5 bg-[#F8FAFC]">
+                      <div className="flex justify-center my-2">
+                        <span className="text-[10px] font-bold text-slate-400 bg-white border border-slate-200 px-3 py-1 rounded-full uppercase tracking-wider">
+                          Encrypted Live Session &bull; Monday, Oct 12, 2026
+                        </span>
+                      </div>
+
+                      {currentConv.messages.map((m) => (
+                        <div
+                          key={m.id}
+                          className={`flex flex-col ${m.isMe ? 'items-end' : 'items-start'}`}
+                        >
+                          <div
+                            className={`max-w-md px-4 py-2.5 rounded-2xl text-xs shadow-2xs ${
+                              m.isMe
+                                ? 'bg-[#C62828] text-white rounded-br-xs'
+                                : 'bg-white text-slate-800 border border-slate-200 rounded-bl-xs'
+                            }`}
+                          >
+                            <p className="leading-relaxed whitespace-pre-wrap">{m.text}</p>
+                          </div>
+                          <div className="flex items-center space-x-1 mt-1 text-[10px] text-slate-400 px-1">
+                            <span>{m.timestamp}</span>
+                            {m.isMe && <CheckCheck className="w-3 h-3 text-emerald-600" />}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Quick Suggestion Chips */}
+                    <div className="px-5 py-2 bg-slate-50 border-t border-slate-100 flex items-center space-x-2 overflow-x-auto shrink-0">
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider shrink-0">Hospital Prompts:</span>
+                      {[
+                        'Can you report to DMC Hospital OT Complex immediately?',
+                        'Emergency cross-matching underway for ICU patient.',
+                        'Please enter via Emergency Gate 2, 2nd floor Transfusion unit.',
+                      ].map((prompt) => (
+                        <button
+                          key={prompt}
+                          onClick={() => setMessageInput(prompt)}
+                          className="px-2.5 py-1 rounded-lg bg-white border border-slate-200 hover:border-[#C62828] hover:text-[#C62828] text-slate-600 text-[11px] font-medium transition-colors shrink-0 cursor-pointer"
+                        >
+                          {prompt}
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Input Bar */}
+                    <form onSubmit={handleSendMessage} className="p-3.5 px-5 border-t border-slate-200 bg-white flex items-center space-x-3 shrink-0">
+                      <input
+                        type="text"
+                        placeholder={`Type direct message to ${currentConv.participantName}...`}
+                        value={messageInput}
+                        onChange={(e) => setMessageInput(e.target.value)}
+                        className="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 text-xs focus:outline-none focus:ring-2 focus:ring-[#C62828]/20 focus:border-[#C62828]"
+                      />
+                      <button
+                        type="submit"
+                        disabled={!messageInput.trim()}
+                        className="px-5 py-2.5 rounded-xl bg-[#C62828] hover:bg-[#B71C1C] text-white font-bold text-xs flex items-center space-x-1.5 shadow-md shadow-[#C62828]/20 transition-all cursor-pointer disabled:opacity-50"
+                      >
+                        <Send className="w-3.5 h-3.5" />
+                        <span>Send</span>
+                      </button>
+                    </form>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* ============================================================== */}
+            {/* VIEW 6: NOTIFICATIONS (In-Page Feed)                           */}
+            {/* ============================================================== */}
+            {activeTab === 'notifications' && (
+              <div className="space-y-6">
+                {/* Header Card */}
+                <div className="bg-white rounded-2xl border border-slate-200/90 p-6 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div>
+                    <div className="flex items-center space-x-2.5">
+                      <div className="w-9 h-9 rounded-xl bg-slate-900 text-white flex items-center justify-center font-bold">
+                        <Bell className="w-4.5 h-4.5 text-white" />
+                      </div>
+                      <div>
+                        <h2 className="text-xl font-black text-slate-900 tracking-tight">Hospital Notification Center</h2>
+                        <span className="text-[11px] text-slate-500">
+                          Emergency OT broadcasts, blood center cold-chain dispatches, nearby donor responses & accreditation alerts
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center space-x-2 shrink-0">
+                    <button
+                      onClick={markAllNotificationsAsRead}
+                      className="px-3.5 py-2 rounded-xl border border-slate-200 hover:bg-slate-100 text-slate-700 font-bold text-xs transition-colors cursor-pointer"
+                    >
+                      Mark All as Read
+                    </button>
+                  </div>
+                </div>
+
+                {/* Filter Tabs */}
+                <div className="flex flex-wrap items-center gap-2">
+                  {([
+                    { id: 'all', label: `ALL (${notifications.length})` },
+                    { id: 'unread', label: `UNREAD (${unreadNotificationsCount})` },
+                    { id: 'EMERGENCY', label: `EMERGENCY (${notifications.filter((n) => n.type === 'EMERGENCY').length})` },
+                    { id: 'DISPATCH', label: `DISPATCHES (${notifications.filter((n) => n.type === 'DISPATCH').length})` },
+                    { id: 'DONOR', label: `DONOR RESPONSES (${notifications.filter((n) => n.type === 'DONOR').length})` },
+                    { id: 'SYSTEM', label: `SYSTEM (${notifications.filter((n) => n.type === 'SYSTEM').length})` },
+                  ] as const).map((tab) => (
+                    <button
+                      key={tab.id}
+                      onClick={() => setNotificationFilter(tab.id)}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                        notificationFilter === tab.id
+                          ? 'bg-[#C62828] text-white shadow-xs'
+                          : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
+                      }`}
+                    >
+                      {tab.label}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Notification Feed List */}
+                <div className="space-y-3.5">
+                  {filteredNotifications.map((n) => (
+                    <div
+                      key={n.id}
+                      className={`p-5 rounded-2xl border transition-all flex flex-col sm:flex-row items-start justify-between gap-4 shadow-xs ${
+                        !n.isRead
+                          ? 'bg-white border-[#C62828]/40 ring-1 ring-[#C62828]/15'
+                          : 'bg-white border-slate-200/90'
+                      }`}
+                    >
+                      <div className="flex items-start space-x-3.5 flex-1">
+                        <div
+                          className={`w-10 h-10 rounded-2xl flex items-center justify-center font-bold shrink-0 shadow-2xs ${
+                            n.type === 'EMERGENCY'
+                              ? 'bg-rose-50 border border-rose-200 text-[#C62828]'
+                              : n.type === 'DISPATCH'
+                              ? 'bg-blue-50 border border-blue-200 text-blue-600'
+                              : n.type === 'DONOR'
+                              ? 'bg-emerald-50 border border-emerald-200 text-emerald-600'
+                              : 'bg-purple-50 border border-purple-200 text-purple-600'
+                          }`}
+                        >
+                          {n.type === 'EMERGENCY' ? (
+                            <Zap className="w-5 h-5 animate-pulse" />
+                          ) : n.type === 'DISPATCH' ? (
+                            <Building2 className="w-5 h-5" />
+                          ) : n.type === 'DONOR' ? (
+                            <Users className="w-5 h-5" />
+                          ) : (
+                            <ShieldCheck className="w-5 h-5" />
+                          )}
+                        </div>
+
+                        <div className="space-y-1">
+                          <div className="flex items-center space-x-2">
+                            <span
+                              className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded ${
+                                n.type === 'EMERGENCY'
+                                  ? 'bg-[#FFEBEE] text-[#C62828]'
+                                  : n.type === 'DISPATCH'
+                                  ? 'bg-blue-50 text-blue-700'
+                                  : n.type === 'DONOR'
+                                  ? 'bg-emerald-50 text-emerald-700'
+                                  : 'bg-purple-50 text-purple-700'
+                              }`}
+                            >
+                              {n.type}
+                            </span>
+                            <span className="text-xs text-slate-400">&bull;</span>
+                            <span className="text-xs text-slate-400 font-medium">{n.timestamp}</span>
+                            {!n.isRead && (
+                              <span className="w-2 h-2 rounded-full bg-[#C62828] animate-pulse" />
+                            )}
+                          </div>
+
+                          <h4 className="text-sm font-extrabold text-slate-900">{n.title}</h4>
+                          <p className="text-xs text-slate-600 leading-relaxed">{n.description}</p>
+                          {n.targetInfo && (
+                            <div className="text-[11px] font-mono text-slate-500 bg-slate-50 p-2 rounded-lg border border-slate-200/80 mt-1">
+                              {n.targetInfo}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {n.actionLabel && n.actionTab && (
+                        <div className="shrink-0 self-end sm:self-center">
+                          <button
+                            onClick={() => {
+                              setNotifications((prev) =>
+                                prev.map((item) => (item.id === n.id ? { ...item, isRead: true } : item))
+                              );
+                              if (n.actionTab) setActiveTab(n.actionTab);
+                            }}
+                            className="inline-flex items-center space-x-1.5 px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs transition-all cursor-pointer shadow-xs"
+                          >
+                            <span>{n.actionLabel}</span>
+                            <ArrowRight className="w-3.5 h-3.5 text-slate-300" />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  ))}
                 </div>
               </div>
             )}
@@ -1323,14 +1789,6 @@ export default function HospitalPortal() {
           </div>
         )}
 
-        {/* ============================================================== */}
-        {/* MODAL 3: DIRECT LIVE MESSAGING WITH MOBILE DONORS              */}
-        {/* ============================================================== */}
-        <DirectChatModal
-          isOpen={showChatModal}
-          onClose={() => setShowChatModal(false)}
-          initialDonorId={selectedDonorForChat}
-        />
       </div>
     </RoleGuard>
   );

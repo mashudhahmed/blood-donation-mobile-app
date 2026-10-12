@@ -41,7 +41,6 @@ interface SidebarProps<T extends string = string> {
   setActiveTab: (tab: T) => void;
   pendingCount?: number;
   unreadNotificationsCount?: number;
-  onOpenMessages?: () => void;
 }
 
 export default function DashboardSidebar<T extends string = string>({
@@ -49,7 +48,6 @@ export default function DashboardSidebar<T extends string = string>({
   setActiveTab,
   pendingCount = 0,
   unreadNotificationsCount = 0,
-  onOpenMessages,
 }: SidebarProps<T>) {
   const { role, user, logout } = useAuth();
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -94,7 +92,8 @@ export default function DashboardSidebar<T extends string = string>({
         {
           group: 'COMMUNICATIONS',
           items: [
-            { id: 'messages', label: 'Messages', icon: MessageSquare, onClick: onOpenMessages },
+            { id: 'messages', label: 'Messages', icon: MessageSquare },
+            { id: 'notifications', label: 'Notifications', icon: Bell, badge: unreadNotificationsCount },
             { id: 'staff', label: 'Staff', icon: UserCheck },
           ],
         },

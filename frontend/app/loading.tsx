@@ -3,11 +3,15 @@ import Image from 'next/image';
 
 export default function Loading() {
   return (
-    <div className="min-h-[70vh] flex flex-col items-center justify-center p-4 space-y-4">
-      <div className="relative w-16 h-16 rounded-2xl overflow-hidden shadow-lg shadow-app-primary/20 border-2 border-app-badgeBg bg-white animate-pulse">
+    <div
+      role="status"
+      aria-live="polite"
+      className="flex min-h-[70vh] flex-col items-center justify-center gap-5 p-4"
+    >
+      <div className="relative h-16 w-16 overflow-hidden rounded-2xl border border-[#FECDD3] bg-white shadow-[0_8px_24px_-8px_rgba(198,40,40,0.35)]">
         <Image
           src="/ic_app_logo_round.png"
-          alt="BloodLink Loading"
+          alt=""
           fill
           sizes="64px"
           priority
@@ -15,17 +19,13 @@ export default function Loading() {
         />
       </div>
 
-      <div className="text-center">
-        <div className="inline-flex items-center space-x-2 text-xs font-bold text-slate-700">
-          <span className="w-2 h-2 rounded-full bg-app-primary animate-ping" />
-          <span>Loading...</span>
+      <div className="flex flex-col items-center gap-3">
+        <p className="text-sm font-semibold text-slate-700">Loading…</p>
+        <div className="h-1 w-44 overflow-hidden rounded-full bg-slate-200">
+          <div className="bl-indeterminate h-full w-2/5 rounded-full bg-[#C62828]" />
         </div>
       </div>
-
-      {/* Sleek Skeleton pulse line */}
-      <div className="w-48 h-1.5 bg-slate-200 rounded-full overflow-hidden mt-2">
-        <div className="h-full bg-app-primary w-1/2 rounded-full animate-[shimmer_1.5s_infinite]" />
-      </div>
+      <span className="sr-only">Loading content</span>
     </div>
   );
 }

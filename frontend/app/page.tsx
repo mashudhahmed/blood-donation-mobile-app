@@ -12,22 +12,27 @@ export default function RootPage() {
   useEffect(() => {
     if (!isAuthenticated) {
       router.replace('/login');
+    } else if (role === 'ADMIN') {
+      router.replace('/admin');
+    } else if (role === 'HOSPITAL') {
+      router.replace('/hospital');
     } else {
-      if (role === 'ADMIN') router.replace('/admin');
-      else if (role === 'HOSPITAL') router.replace('/hospital');
-      else router.replace('/bloodbank');
+      router.replace('/bloodbank');
     }
   }, [isAuthenticated, role, router]);
 
   return (
-    <div className="min-h-screen bg-[#F5F5F5] flex flex-col items-center justify-center p-4">
-      <div className="w-full max-w-sm bg-white rounded-3xl border border-[#E2E8F0] p-8 shadow-xl flex flex-col items-center text-center space-y-4">
-        {/* App Logo Card */}
-        <div className="w-20 h-20 rounded-2xl bg-[#FFF1F2] border border-[#FECDD3] p-2 flex items-center justify-center shadow-md">
-          <div className="relative w-full h-full">
+    <main className="flex min-h-screen flex-col items-center justify-center bg-[#F8FAFC] p-4">
+      <div
+        role="status"
+        aria-live="polite"
+        className="flex w-full max-w-sm flex-col items-center gap-5 rounded-3xl border border-[#E2E8F0] bg-white p-8 text-center shadow-[0_24px_48px_-16px_rgba(15,23,42,0.15)]"
+      >
+        <div className="flex h-20 w-20 items-center justify-center rounded-2xl border border-[#FECDD3] bg-[linear-gradient(180deg,#FFFFFF_0%,#FFF1F2_100%)] p-2 shadow-[0_8px_24px_-8px_rgba(198,40,40,0.35)]">
+          <div className="relative h-full w-full">
             <Image
               src="/ic_app_logo_card.png"
-              alt="BloodLink Logo"
+              alt="BloodLink logo"
               fill
               sizes="80px"
               priority
@@ -36,40 +41,20 @@ export default function RootPage() {
           </div>
         </div>
 
-        <div>
-          <h1 className="text-xl font-black text-[#212121] tracking-tight">
+        <div className="space-y-1">
+          <h1 className="text-2xl font-black tracking-tight text-[#212121]">
             Blood<span className="text-[#E53935]">Link</span>
           </h1>
-          <p className="text-xs text-[#757575] font-medium mt-0.5">
-            National Blood Transfusion & Requisition Network
-          </p>
+          <p className="text-sm text-slate-500">National blood transfusion and requisition network</p>
         </div>
 
-        {/* Loading Spinner */}
-        <div className="flex items-center space-x-2 text-xs font-bold text-[#E53935] pt-2">
-          <svg
-            className="animate-spin h-5 w-5 text-[#E53935]"
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
-          >
-            <circle
-              className="opacity-25"
-              cx="12"
-              cy="12"
-              r="10"
-              stroke="currentColor"
-              strokeWidth="4"
-            />
-            <path
-              className="opacity-75"
-              fill="currentColor"
-              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-            />
-          </svg>
-          <span>Connecting to Authorized Portal...</span>
+        <div className="w-full space-y-2.5 pt-1">
+          <div className="h-1 w-full overflow-hidden rounded-full bg-slate-200">
+            <div className="bl-indeterminate h-full w-2/5 rounded-full bg-[#C62828]" />
+          </div>
+          <p className="text-xs font-medium text-slate-500">Taking you to your portal…</p>
         </div>
       </div>
-    </div>
+    </main>
   );
 }

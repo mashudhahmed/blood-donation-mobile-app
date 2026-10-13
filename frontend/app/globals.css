@@ -3,30 +3,90 @@
 @tailwind utilities;
 
 :root {
-  --background: #f5f5f5;
-  --foreground: #212121;
+  --background: #f8fafc;
+  --foreground: #1e293b;
+  --brand: #c62828;
+  --brand-dark: #b71c1c;
+  --brand-soft: #ffebee;
+  --navy: #0b1528;
+
+  color-scheme: light;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  scroll-behavior: smooth;
 }
 
 body {
   color: var(--foreground);
   background: var(--background);
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  font-family:
+    ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial,
+    sans-serif;
+  font-feature-settings: 'cv11', 'ss01';
+  text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Custom scrollbars */
+::selection {
+  background: #fecdd3;
+  color: #7f1d1d;
+}
+
+/* Scrollbars */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 transparent;
+}
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 8px;
+  height: 8px;
 }
 ::-webkit-scrollbar-track {
-  background: #f1f5f9;
+  background: transparent;
 }
 ::-webkit-scrollbar-thumb {
   background: #cbd5e1;
   border-radius: 9999px;
+  border: 2px solid transparent;
+  background-clip: content-box;
 }
 ::-webkit-scrollbar-thumb:hover {
   background: #94a3b8;
+  background-clip: content-box;
+}
+
+/* Indeterminate progress bar used by loading screens */
+@keyframes bl-indeterminate {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(260%);
+  }
+}
+.bl-indeterminate {
+  animation: bl-indeterminate 1.4s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+/* Keeps the old `animate-[shimmer_...]` usages working */
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(200%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  .bl-indeterminate {
+    animation: none;
+    transform: none;
+  }
 }

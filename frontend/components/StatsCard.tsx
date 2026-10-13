@@ -1,5 +1,5 @@
 import React from 'react';
-import { LucideIcon } from 'lucide-react';
+import { LucideIcon, TrendingUp, TrendingDown } from 'lucide-react';
 
 interface StatsCardProps {
   label: string;
@@ -10,6 +10,14 @@ interface StatsCardProps {
   trend?: string;
 }
 
+const ICON_VARIANTS = {
+  blood: 'bg-[#FFEBEE] text-[#E53935] ring-[#FECDD3]',
+  slate: 'bg-slate-100 text-slate-700 ring-slate-200',
+  emerald: 'bg-[#E8F5E9] text-[#2E7D32] ring-[#C8E6C9]',
+  amber: 'bg-[#FFF3E0] text-[#E65100] ring-[#FFE0B2]',
+  blue: 'bg-[#E3F2FD] text-[#1565C0] ring-[#BBDEFB]',
+} as const;
+
 export default function StatsCard({
   label,
   value,
@@ -18,31 +26,41 @@ export default function StatsCard({
   variant = 'slate',
   trend,
 }: StatsCardProps) {
-  const iconVariants = {
-    blood: 'bg-[#FFEBEE] text-[#E53935]',
-    slate: 'bg-slate-100 text-slate-800',
-    emerald: 'bg-[#E8F5E9] text-[#2E7D32]',
-    amber: 'bg-[#FFF3E0] text-[#E65100]',
-    blue: 'bg-[#E3F2FD] text-[#1565C0]',
-  };
+  // A trend starting with "-" is treated as negative
+  const isNegative = trend?.trim().startsWith('-');
+  const TrendIcon = isNegative ? TrendingDown : TrendingUp;
 
   return (
-    <div className="bg-white rounded-2xl border border-[#E2E8F0] p-5 shadow-xs hover:shadow-md transition-all">
-      <div className="flex items-center justify-between">
-        <span className="text-[11px] font-bold text-[#757575] uppercase tracking-wider">{label}</span>
-        <div className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 ${iconVariants[variant]}`}>
-          <Icon className="w-5 h-5" />
+    <div className="group relative overflow-hidden rounded-2xl border border-[#E2E8F0] bg-white p-5 shadow-[0_1px_2px_rgba(15,23,42,0.04)] transition-shadow duration-200 hover:shadow-[0_8px_24px_-8px_rgba(15,23,42,0.12)]">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="truncate text-[13px] font-medium text-slate-500">{label}</p>
+          <p className="mt-2 text-3xl font-black leading-none tracking-tight tabular-nums text-slate-900">
+            {value}
+          </p>
+        </div>
+        <div
+          className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ring-1 ring-inset ${ICON_VARIANTS[variant]}`}
+        >
+          <Icon className="h-5 w-5" aria-hidden />
         </div>
       </div>
-      <div className="mt-3 flex items-baseline space-x-2">
-        <span className="text-2xl sm:text-3xl font-black text-[#212121] tracking-tight">{value}</span>
-        {trend && (
-          <span className="text-[11px] font-bold text-[#2E7D32] bg-[#E8F5E9] px-2 py-0.5 rounded-full border border-[#81C784]">
-            {trend}
-          </span>
-        )}
-      </div>
-      {subtitle && <p className="mt-1 text-xs text-[#757575] font-medium">{subtitle}</p>}
+
+      {(trend || subtitle) && (
+        <div className="mt-4 flex items-center gap-2 border-t border-slate-100 pt-3 text-xs">
+          {trend && (
+            <span
+              className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-bold ${
+                isNegative ? 'bg-[#FFEBEE] text-[#C62828]' : 'bg-[#E8F5E9] text-[#2E7D32]'
+              }`}
+            >
+              <TrendIcon className="h-3 w-3" aria-hidden />
+              {trend}
+            </span>
+          )}
+          {subtitle && <span className="truncate font-medium text-slate-500">{subtitle}</span>}
+        </div>
+      )}
     </div>
   );
 }

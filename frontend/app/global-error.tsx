@@ -17,31 +17,33 @@ export default function GlobalError({
 
   return (
     <html lang="en">
-      <body className="min-h-screen bg-slate-50 text-slate-900 flex items-center justify-center p-4 font-sans">
-        <div className="bg-white rounded-3xl border border-slate-200 p-8 max-w-md w-full text-center shadow-2xl space-y-5">
-          <div className="mx-auto w-16 h-16 rounded-2xl bg-red-100 border border-red-200 flex items-center justify-center text-red-600">
-            <AlertTriangle className="w-8 h-8" />
-          </div>
+      <body className="flex min-h-screen items-center justify-center bg-[#F8FAFC] p-4 font-sans text-slate-900 antialiased">
+        <div className="w-full max-w-md overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-[0_24px_48px_-16px_rgba(15,23,42,0.2)]">
+          <div className="h-1 bg-[#C62828]" />
+          <div className="space-y-6 p-8 text-center">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl border border-red-100 bg-red-50">
+              <AlertTriangle className="h-6 w-6 text-[#C62828]" aria-hidden />
+            </div>
 
-          <div>
-            <h1 className="text-xl font-black text-slate-900">Critical System Error</h1>
-            <p className="text-xs text-slate-500 mt-2">
-              A fatal error occurred while rendering the root application layout.
-            </p>
-            {error?.message && (
-              <p className="mt-2 text-xs font-mono text-red-600 bg-red-50 p-2 rounded-lg break-words">
-                {error.message}
+            <div className="space-y-2">
+              <h1 className="text-xl font-extrabold tracking-tight text-slate-900">BloodLink hit a critical error</h1>
+              <p className="text-sm leading-relaxed text-slate-500">
+                The app couldn&apos;t start. Reloading usually fixes it.
               </p>
-            )}
-          </div>
+              {error?.digest && (
+                <p className="pt-1 font-mono text-[11px] text-slate-400">Reference: {error.digest}</p>
+              )}
+            </div>
 
-          <button
-            onClick={() => reset()}
-            className="w-full inline-flex items-center justify-center space-x-2 py-3 px-4 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs shadow-md transition-colors"
-          >
-            <RefreshCw className="w-4 h-4" />
-            <span>Reload Application</span>
-          </button>
+            <button
+              type="button"
+              onClick={() => reset()}
+              className="inline-flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-[#C62828] px-4 py-3 text-sm font-bold text-white shadow-md shadow-[#C62828]/25 outline-none transition-colors hover:bg-[#B71C1C] focus-visible:ring-2 focus-visible:ring-[#C62828] focus-visible:ring-offset-2"
+            >
+              <RefreshCw className="h-4 w-4" aria-hidden />
+              Reload app
+            </button>
+          </div>
         </div>
       </body>
     </html>

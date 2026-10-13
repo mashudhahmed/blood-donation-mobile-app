@@ -7,6 +7,7 @@ import TopHeader from '@/components/TopHeader';
 import BloodGroupBadge from '@/components/BloodGroupBadge';
 import StatusPill from '@/components/StatusPill';
 import ConfirmModal from '@/components/ConfirmModal';
+import BloodMatrixCard from '@/components/BloodMatrixCard';
 import { useAuth } from '@/lib/auth-context';
 import {
   ShieldCheck,
@@ -40,7 +41,11 @@ import {
   Organization,
   Requisition,
   AdminMetrics,
+  StockInfo,
+  DEFAULT_INVENTORY,
 } from '@/lib/api';
+
+const BLOOD_GROUPS_ORDER = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
 
 export type AdminTab =
   | 'overview'
@@ -81,7 +86,7 @@ export default function AdminPortal() {
   });
   const [hospitals, setHospitals] = useState<Organization[]>([]);
   const [donors, setDonors] = useState<Donor[]>([]);
-  const [inventory, setInventory] = useState<Record<string, { units: number; status: 'CRITICAL' | 'LOW' | 'NORMAL' | 'ABUNDANT' }>>({});
+  const [inventory, setInventory] = useState<Record<string, StockInfo>>(DEFAULT_INVENTORY);
   const [auditLogs, setAuditLogs] = useState<SystemAuditLog[]>([]);
   const [requisitions, setRequisitions] = useState<Requisition[]>([]);
   const [feedbackMsg, setFeedbackMsg] = useState<string | null>(null);
@@ -811,55 +816,18 @@ export default function AdminPortal() {
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-5">
-                    {Object.entries(inventory).map(([bg, data]) => {
-                      const isCritical = data.status === 'CRITICAL';
-                      const isLow = data.status === 'LOW';
-                      const maxCapacity = 50;
-                      const percentage = Math.min(100, Math.round((data.units / maxCapacity) * 100));
-
+                    {BLOOD_GROUPS_ORDER.map((bg) => {
+                      const data = inventory[bg] || DEFAULT_INVENTORY[bg] || { units: 0, status: 'CRITICAL' };
                       return (
-                        <div
+                        <BloodMatrixCard
                           key={bg}
-                          className={`p-4.5 rounded-2xl border flex flex-col justify-between space-y-3.5 transition-all shadow-xs ${
-                            isCritical
-                              ? 'border-red-300 bg-red-50/40 ring-1 ring-red-400'
-                              : isLow
-                              ? 'border-amber-300 bg-amber-50/40'
-                              : 'border-slate-200 bg-white hover:border-slate-300'
-                          }`}
-                        >
-                          <div className="flex items-center justify-between">
-                            <BloodGroupBadge bloodGroup={bg} size="lg" />
-                            <StatusPill status={data.status} />
-                          </div>
-
-                          <div>
-                            <div className="flex items-baseline space-x-1.5">
-                              <span className="text-3xl font-black text-slate-900 tracking-tight">
-                                {data.units}
-                              </span>
-                              <span className="text-xs text-slate-500 font-semibold">Units</span>
-                            </div>
-
-                            <div className="mt-2.5 w-full bg-slate-100 rounded-full h-2 overflow-hidden border border-slate-200">
-                              <div
-                                className={`h-2 rounded-full transition-all duration-500 ${
-                                  isCritical
-                                    ? 'bg-red-600'
-                                    : isLow
-                                    ? 'bg-amber-500'
-                                    : 'bg-emerald-600'
-                                }`}
-                                style={{ width: `${percentage}%` }}
-                              />
-                            </div>
-                          </div>
-
-                          <div className="flex items-center justify-between text-[11px] text-slate-500 font-medium pt-1 border-t border-slate-100">
-                            <span>Network Quota: {percentage}%</span>
-                            <span className="font-semibold text-slate-700">Storage 2°C-6°C</span>
-                          </div>
-                        </div>
+                          bloodGroup={bg}
+                          data={data}
+                          mode="admin"
+                          onFilterRequisitions={() => {
+                            setActiveTab('overview');
+                          }}
+                        />
                       );
                     })}
                   </div>

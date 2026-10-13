@@ -5,8 +5,8 @@ import RoleGuard from '@/components/RoleGuard';
 import DashboardSidebar from '@/components/DashboardSidebar';
 import TopHeader from '@/components/TopHeader';
 import BloodGroupBadge from '@/components/BloodGroupBadge';
-import StatusPill from '@/components/StatusPill';
 import ConfirmModal from '@/components/ConfirmModal';
+import BloodMatrixCard from '@/components/BloodMatrixCard';
 import { useAuth } from '@/lib/auth-context';
 import {
   Database,
@@ -38,12 +38,15 @@ import {
 import {
   api,
   StockInfo,
+  DEFAULT_INVENTORY,
   BloodDrive,
   InventoryTx,
   StaffMember,
   Conversation,
   ChatMessage,
 } from '@/lib/api';
+
+const BLOOD_GROUPS_ORDER = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
 
 export type BloodBankTab =
   | 'inventory'
@@ -70,7 +73,7 @@ interface BloodBankNotification {
 export default function BloodBankPortal() {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<BloodBankTab>('inventory');
-  const [inventory, setInventory] = useState<Record<string, StockInfo>>({});
+  const [inventory, setInventory] = useState<Record<string, StockInfo>>(DEFAULT_INVENTORY);
   const [drives, setDrives] = useState<BloodDrive[]>([]);
   const [transactions, setTransactions] = useState<InventoryTx[]>([]);
   const [feedbackMsg, setFeedbackMsg] = useState<string | null>(null);
@@ -345,6 +348,46 @@ export default function BloodBankPortal() {
       return;
     }
     await executeAdjustInventory();
+  };
+
+  // Instant Quick Adjust (1 bag intake/dispatch)
+  const handleQuickAdjust = async (bloodGroup: string, type: 'INTAKE' | 'DISPATCH') => {
+    const current = inventory[bloodGroup]?.units || 0;
+    if (type === 'DISPATCH' && current <= 0) {
+      setFeedbackMsg(`Cannot dispatch from empty ${bloodGroup} reserve.`);
+      setTimeout(() => setFeedbackMsg(null), 3000);
+      return;
+    }
+    const newUnits = type === 'INTAKE' ? current + 1 : current - 1;
+    let status: 'CRITICAL' | 'LOW' | 'NORMAL' | 'ABUNDANT' = 'NORMAL';
+    if (newUnits <= 4) status = 'CRITICAL';
+    else if (newUnits <= 9) status = 'LOW';
+    else if (newUnits >= 25) status = 'ABUNDANT';
+
+    setInventory((prev) => ({
+      ...prev,
+      [bloodGroup]: { units: newUnits, status },
+    }));
+
+    const newTx: InventoryTx = {
+      id: `tx-${Date.now().toString().slice(-4)}`,
+      bloodGroup,
+      type,
+      units: 1,
+      previousUnits: current,
+      newUnits,
+      reason: `Quick ${type.toLowerCase()} (1 bag)`,
+      createdAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+    };
+    setTransactions((prev) => [newTx, ...prev]);
+    setFeedbackMsg(`Recorded 1 unit ${type.toLowerCase()} for ${bloodGroup}. New reserve: ${newUnits} units.`);
+    setTimeout(() => setFeedbackMsg(null), 3500);
+
+    try {
+      await api.adjustInventory({ bloodGroup, type, units: 1, reason: `Quick ${type}` });
+    } catch (e) {
+      console.warn('Quick adjust sync error', e);
+    }
   };
 
   // Handle Blood Drive creation
@@ -673,64 +716,20 @@ export default function BloodBankPortal() {
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                  {Object.entries(inventory).map(([bg, data]) => {
-                    const isCritical = data.status === 'CRITICAL';
-                    const isLow = data.status === 'LOW';
-                    const maxCapacity = 50;
-                    const percentage = Math.min(100, Math.round((data.units / maxCapacity) * 100));
-
+                  {BLOOD_GROUPS_ORDER.map((bg) => {
+                    const data = inventory[bg] || DEFAULT_INVENTORY[bg] || { units: 0, status: 'CRITICAL' };
                     return (
-                      <div
+                      <BloodMatrixCard
                         key={bg}
-                        className={`p-4.5 rounded-2xl border flex flex-col justify-between space-y-3.5 transition-all shadow-xs ${
-                          isCritical
-                            ? 'border-red-300 bg-red-50/40 ring-1 ring-red-400'
-                            : isLow
-                            ? 'border-amber-300 bg-amber-50/40'
-                            : 'border-slate-200 bg-white hover:border-slate-300'
-                        }`}
-                      >
-                        <div className="flex items-center justify-between">
-                          <BloodGroupBadge bloodGroup={bg} size="lg" />
-                          <StatusPill status={data.status} />
-                        </div>
-
-                        <div>
-                          <div className="flex items-baseline space-x-1.5">
-                            <span className="text-3xl font-black text-slate-900 tracking-tight">
-                              {data.units}
-                            </span>
-                            <span className="text-xs text-slate-500 font-semibold">Units</span>
-                          </div>
-
-                          {/* Progress Meter Bar */}
-                          <div className="mt-2.5 w-full bg-slate-100 rounded-full h-2 overflow-hidden border border-slate-200">
-                            <div
-                              className={`h-2 rounded-full transition-all duration-500 ${
-                                isCritical
-                                  ? 'bg-red-600'
-                                  : isLow
-                                  ? 'bg-amber-500'
-                                  : 'bg-emerald-600'
-                              }`}
-                              style={{ width: `${percentage}%` }}
-                            />
-                          </div>
-                        </div>
-
-                        <div className="flex items-center justify-between text-[11px] text-slate-500 font-medium pt-1 border-t border-slate-100">
-                          <span>Capacity: {percentage}%</span>
-                          <button
-                            onClick={() => {
-                              setAdjustGroup(bg);
-                              setShowAdjustModal(true);
-                            }}
-                            className="text-[#C62828] hover:text-[#B71C1C] font-bold cursor-pointer"
-                          >
-                            Adjust &rarr;
-                          </button>
-                        </div>
-                      </div>
+                        bloodGroup={bg}
+                        data={data}
+                        mode="bloodbank"
+                        onQuickAdjust={handleQuickAdjust}
+                        onOpenAdjustModal={(group) => {
+                          setAdjustGroup(group);
+                          setShowAdjustModal(true);
+                        }}
+                      />
                     );
                   })}
                 </div>

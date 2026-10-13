@@ -1,15 +1,17 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
 import { ShieldCheck, Building2, Database, LogOut, Bell } from 'lucide-react';
+import ConfirmModal from './ConfirmModal';
 
 export default function Navbar() {
   const pathname = usePathname();
   const { role, user, isAuthenticated, logout } = useAuth();
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
   // The login page has its own full-bleed banner
   if (pathname === '/login') return null;
@@ -101,7 +103,7 @@ export default function Navbar() {
 
                 <button
                   type="button"
-                  onClick={logout}
+                  onClick={() => setShowLogoutConfirm(true)}
                   aria-label="Sign out"
                   title="Sign out"
                   className="cursor-pointer rounded-xl p-2 text-white/80 outline-none transition-colors hover:bg-black/25 hover:text-white focus-visible:ring-2 focus-visible:ring-white/70"
@@ -113,6 +115,20 @@ export default function Navbar() {
           </div>
         </div>
       </div>
+
+      <ConfirmModal
+        isOpen={showLogoutConfirm}
+        onClose={() => setShowLogoutConfirm(false)}
+        onConfirm={() => {
+          setShowLogoutConfirm(false);
+          logout();
+        }}
+        title="Sign out of BloodLink?"
+        description="You will need to sign in again with your authorized credentials to access this portal."
+        confirmText="Sign Out"
+        variant="danger"
+        icon={LogOut}
+      />
     </header>
   );
 }

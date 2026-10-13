@@ -22,6 +22,7 @@ import {
   LucideIcon,
   Bell,
 } from 'lucide-react';
+import ConfirmModal from './ConfirmModal';
 
 interface NavItem {
   id: string;
@@ -51,6 +52,7 @@ export default function DashboardSidebar<T extends string = string>({
 }: SidebarProps<T>) {
   const { role, user, logout } = useAuth();
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
   const getNavSections = (): NavSection[] => {
     if (role === 'ADMIN') {
@@ -249,7 +251,7 @@ export default function DashboardSidebar<T extends string = string>({
             </div>
             <button
               type="button"
-              onClick={logout}
+              onClick={() => setShowLogoutConfirm(true)}
               aria-label="Sign out"
               title="Sign out"
               className="cursor-pointer rounded-lg p-2 text-slate-400 outline-none transition-colors hover:bg-rose-500/10 hover:text-rose-400 focus-visible:ring-2 focus-visible:ring-rose-400"
@@ -267,7 +269,7 @@ export default function DashboardSidebar<T extends string = string>({
             </div>
             <button
               type="button"
-              onClick={logout}
+              onClick={() => setShowLogoutConfirm(true)}
               aria-label="Sign out"
               title="Sign out"
               className="cursor-pointer rounded-lg p-2 text-slate-400 outline-none transition-colors hover:bg-rose-500/10 hover:text-rose-400 focus-visible:ring-2 focus-visible:ring-rose-400"
@@ -277,6 +279,20 @@ export default function DashboardSidebar<T extends string = string>({
           </div>
         )}
       </div>
+
+      <ConfirmModal
+        isOpen={showLogoutConfirm}
+        onClose={() => setShowLogoutConfirm(false)}
+        onConfirm={() => {
+          setShowLogoutConfirm(false);
+          logout();
+        }}
+        title="Sign out of BloodLink?"
+        description="You will need to sign in again with your authorized credentials to access this portal."
+        confirmText="Sign Out"
+        variant="danger"
+        icon={LogOut}
+      />
     </aside>
   );
 }

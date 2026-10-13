@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
@@ -23,7 +23,16 @@ import {
 
 export default function LoginPage() {
   const router = useRouter();
-  const { loginWithJwt, registerWithJwt } = useAuth();
+  const { loginWithJwt, registerWithJwt, isAuthenticated, isLoading: authLoading, role } = useAuth();
+
+  // If already authenticated, redirect to authorized dashboard
+  useEffect(() => {
+    if (!authLoading && isAuthenticated) {
+      if (role === 'ADMIN') router.replace('/admin');
+      else if (role === 'HOSPITAL') router.replace('/hospital');
+      else router.replace('/bloodbank');
+    }
+  }, [authLoading, isAuthenticated, role, router]);
 
   const [mode, setMode] = useState<'LOGIN' | 'REGISTER'>('LOGIN');
 

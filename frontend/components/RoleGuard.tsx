@@ -1,9 +1,11 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useAuth, UserRole } from '@/lib/auth-context';
 import { ShieldAlert, ArrowRight, Lock, LogIn, LogOut } from 'lucide-react';
+import ConfirmModal from './ConfirmModal';
 
 interface RoleGuardProps {
   allowedRole: UserRole;
@@ -33,7 +35,44 @@ function Shell({ children }: { children: React.ReactNode }) {
 }
 
 export default function RoleGuard({ allowedRole, children }: RoleGuardProps) {
-  const { role, user, isAuthenticated, logout } = useAuth();
+  const { role, user, isAuthenticated, isLoading, logout } = useAuth();
+  const [showSignoutConfirm, setShowSignoutConfirm] = useState(false);
+
+  // While restoring session from localStorage/cookies, render smooth branded loading state
+  // to avoid flashing "Sign in to continue" on page refresh
+  if (isLoading) {
+    return (
+      <div className="flex min-h-[75vh] items-center justify-center p-4">
+        <div
+          role="status"
+          aria-live="polite"
+          className="flex w-full max-w-sm flex-col items-center gap-5 rounded-3xl border border-slate-200 bg-white p-8 text-center shadow-[0_24px_48px_-16px_rgba(15,23,42,0.12)]"
+        >
+          <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-red-100 bg-[linear-gradient(180deg,#FFFFFF_0%,#FFF1F2_100%)] p-2 shadow-[0_8px_20px_-8px_rgba(198,40,40,0.3)]">
+            <div className="relative h-full w-full">
+              <Image
+                src="/ic_app_logo_card.png"
+                alt="BloodLink logo"
+                fill
+                sizes="64px"
+                priority
+                className="object-contain"
+              />
+            </div>
+          </div>
+          <div className="space-y-1">
+            <div className="text-base font-extrabold tracking-tight text-slate-900">
+              Blood<span className="text-[#E53935]">Link</span>
+            </div>
+            <p className="text-xs text-slate-500">Restoring authorized portal workspace…</p>
+          </div>
+          <div className="h-1 w-44 overflow-hidden rounded-full bg-slate-100">
+            <div className="bl-indeterminate h-full w-2/5 rounded-full bg-[#C62828]" />
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (!isAuthenticated) {
     return (
@@ -89,7 +128,7 @@ export default function RoleGuard({ allowedRole, children }: RoleGuardProps) {
             </Link>
             <button
               type="button"
-              onClick={logout}
+              onClick={() => setShowSignoutConfirm(true)}
               className="inline-flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-600 outline-none transition-colors hover:border-red-200 hover:bg-red-50 hover:text-[#C62828] focus-visible:ring-2 focus-visible:ring-[#C62828] focus-visible:ring-offset-2"
             >
               <LogOut className="h-4 w-4" aria-hidden />
@@ -97,6 +136,20 @@ export default function RoleGuard({ allowedRole, children }: RoleGuardProps) {
             </button>
           </div>
         </div>
+
+        <ConfirmModal
+          isOpen={showSignoutConfirm}
+          onClose={() => setShowSignoutConfirm(false)}
+          onConfirm={() => {
+            setShowSignoutConfirm(false);
+            logout();
+          }}
+          title="Sign out of BloodLink?"
+          description="You will need to sign in again with authorized credentials to access this portal."
+          confirmText="Sign Out"
+          variant="danger"
+          icon={LogOut}
+        />
       </Shell>
     );
   }

@@ -6,6 +6,7 @@ import DashboardSidebar from '@/components/DashboardSidebar';
 import TopHeader from '@/components/TopHeader';
 import BloodGroupBadge from '@/components/BloodGroupBadge';
 import StatusPill from '@/components/StatusPill';
+import ConfirmModal from '@/components/ConfirmModal';
 import { useAuth } from '@/lib/auth-context';
 import {
   Database,
@@ -106,6 +107,10 @@ export default function BloodBankPortal() {
   const [adjustReason, setAdjustReason] = useState('');
   const [batchNumber, setBatchNumber] = useState('');
   const [isAdjusting, setIsAdjusting] = useState(false);
+
+  // Confirm Modal States
+  const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
+  const [staffDeactivateConfirm, setStaffDeactivateConfirm] = useState<{ id: string; name: string } | null>(null);
 
   // New Blood Drive Modal
   const [showDriveModal, setShowDriveModal] = useState(false);
@@ -280,9 +285,8 @@ export default function BloodBankPortal() {
   const criticalGroupsCount = Object.values(inventory).filter((i) => i.status === 'CRITICAL').length;
   const lowGroupsCount = Object.values(inventory).filter((i) => i.status === 'LOW').length;
 
-  // Handle inventory adjustment
-  const handleAdjustInventory = async (e: React.FormEvent) => {
-    e.preventDefault();
+  // Execute inventory adjustment
+  const executeAdjustInventory = async () => {
     setIsAdjusting(true);
 
     try {
@@ -332,6 +336,15 @@ export default function BloodBankPortal() {
     } finally {
       setIsAdjusting(false);
     }
+  };
+
+  const handleAdjustInventory = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (adjustType === 'EXPIRED') {
+      setShowDiscardConfirm(true);
+      return;
+    }
+    await executeAdjustInventory();
   };
 
   // Handle Blood Drive creation
@@ -934,7 +947,13 @@ export default function BloodBankPortal() {
                           {member.isActive ? 'Active & Authorized' : 'Account Suspended'}
                         </span>
                         <button
-                          onClick={() => handleToggleStaffStatus(member.id, member.isActive)}
+                          onClick={() => {
+                            if (member.isActive) {
+                              setStaffDeactivateConfirm({ id: member.id, name: member.name });
+                            } else {
+                              handleToggleStaffStatus(member.id, member.isActive);
+                            }
+                          }}
                           className={`text-xs font-bold px-3 py-1.5 rounded-lg border transition-all cursor-pointer ${
                             member.isActive
                               ? 'text-rose-600 border-rose-200 hover:bg-rose-50'
@@ -1989,6 +2008,42 @@ export default function BloodBankPortal() {
           </div>
         )}
 
+        {/* Expired Discard Confirm Modal */}
+        <ConfirmModal
+          isOpen={showDiscardConfirm}
+          onClose={() => setShowDiscardConfirm(false)}
+          onConfirm={async () => {
+            setShowDiscardConfirm(false);
+            await executeAdjustInventory();
+          }}
+          title="Confirm Blood Discard?"
+          description={`Are you sure you want to mark ${adjustUnits} unit(s) of ${adjustGroup} as EXPIRED and record disposal? This reduction cannot be undone and will be permanently logged in the audit trail.`}
+          confirmText="Confirm Discard"
+          variant="danger"
+          icon={AlertTriangle}
+        />
+
+        {/* Staff Deactivation Confirm Modal */}
+        <ConfirmModal
+          isOpen={staffDeactivateConfirm !== null}
+          onClose={() => setStaffDeactivateConfirm(null)}
+          onConfirm={async () => {
+            if (staffDeactivateConfirm) {
+              const targetId = staffDeactivateConfirm.id;
+              setStaffDeactivateConfirm(null);
+              await handleToggleStaffStatus(targetId, true);
+            }
+          }}
+          title="Deactivate Staff Account?"
+          description={
+            staffDeactivateConfirm
+              ? `Are you sure you want to suspend portal access for ${staffDeactivateConfirm.name}? They will lose access to vault inventory and donor intakes until re-activated.`
+              : ''
+          }
+          confirmText="Deactivate Staff"
+          variant="warning"
+          icon={AlertTriangle}
+        />
       </div>
     </RoleGuard>
   );

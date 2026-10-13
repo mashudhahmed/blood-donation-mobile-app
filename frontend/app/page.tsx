@@ -7,9 +7,11 @@ import { useAuth } from '@/lib/auth-context';
 
 export default function RootPage() {
   const router = useRouter();
-  const { role, isAuthenticated } = useAuth();
+  const { role, isAuthenticated, isLoading } = useAuth();
 
   useEffect(() => {
+    if (isLoading) return;
+
     if (!isAuthenticated) {
       router.replace('/login');
     } else if (role === 'ADMIN') {
@@ -19,7 +21,7 @@ export default function RootPage() {
     } else {
       router.replace('/bloodbank');
     }
-  }, [isAuthenticated, role, router]);
+  }, [isLoading, isAuthenticated, role, router]);
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center bg-[#F8FAFC] p-4">

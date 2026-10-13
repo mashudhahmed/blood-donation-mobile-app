@@ -6,6 +6,7 @@ import DashboardSidebar from '@/components/DashboardSidebar';
 import TopHeader from '@/components/TopHeader';
 import BloodGroupBadge from '@/components/BloodGroupBadge';
 import StatusPill from '@/components/StatusPill';
+import ConfirmModal from '@/components/ConfirmModal';
 import { useAuth } from '@/lib/auth-context';
 import {
   PlusCircle,
@@ -106,6 +107,10 @@ export default function HospitalPortal() {
   // Requisitions Search Query
   const [reqSearchQuery, setReqSearchQuery] = useState('');
   const [urgencyFilter, setUrgencyFilter] = useState('all');
+
+  // Confirm Modal States
+  const [fulfillConfirm, setFulfillConfirm] = useState<{ id: string; patientName: string; bloodGroup: string } | null>(null);
+  const [staffDeactivateConfirm, setStaffDeactivateConfirm] = useState<{ id: string; name: string } | null>(null);
 
   const bloodGroups = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
   const districts = ['Dhaka', 'Chittagong', 'Sylhet', 'Rajshahi', 'Khulna', 'Barisal', 'Rangpur', 'Mymensingh'];
@@ -779,7 +784,17 @@ export default function HospitalPortal() {
 
                           {req.status !== 'fulfilled' ? (
                             <button
-                              onClick={() => advanceStatus(req.id, req.status)}
+                              onClick={() => {
+                                if (req.status === 'dispatched') {
+                                  setFulfillConfirm({
+                                    id: req.id,
+                                    patientName: req.patientName || 'Medical Case',
+                                    bloodGroup: req.bloodGroup,
+                                  });
+                                } else {
+                                  advanceStatus(req.id, req.status);
+                                }
+                              }}
                               className="flex-1 py-2 px-3 rounded-xl bg-[#C62828] hover:bg-[#B71C1C] text-white font-bold text-xs flex items-center justify-center space-x-1.5 transition-colors shadow-xs cursor-pointer"
                             >
                               <span>
@@ -846,7 +861,17 @@ export default function HospitalPortal() {
                               <td className="px-6 py-3.5 text-right">
                                 {req.status !== 'fulfilled' ? (
                                   <button
-                                    onClick={() => advanceStatus(req.id, req.status)}
+                                    onClick={() => {
+                                      if (req.status === 'dispatched') {
+                                        setFulfillConfirm({
+                                          id: req.id,
+                                          patientName: req.patientName || 'Medical Case',
+                                          bloodGroup: req.bloodGroup,
+                                        });
+                                      } else {
+                                        advanceStatus(req.id, req.status);
+                                      }
+                                    }}
                                     className="px-3 py-1.5 rounded-xl bg-[#C62828] hover:bg-[#B71C1C] text-white font-bold text-xs shadow-2xs transition-colors cursor-pointer"
                                   >
                                     {req.status === 'pending' && 'Advance: Matched'}
@@ -1064,7 +1089,13 @@ export default function HospitalPortal() {
                           {member.isActive ? 'Active & Authorized' : 'Account Suspended'}
                         </span>
                         <button
-                          onClick={() => handleToggleStaffStatus(member.id, member.isActive)}
+                          onClick={() => {
+                            if (member.isActive) {
+                              setStaffDeactivateConfirm({ id: member.id, name: member.name });
+                            } else {
+                              handleToggleStaffStatus(member.id, member.isActive);
+                            }
+                          }}
                           className={`text-xs font-bold px-3 py-1.5 rounded-lg border transition-all cursor-pointer ${
                             member.isActive
                               ? 'text-rose-600 border-rose-200 hover:bg-rose-50'
@@ -1834,6 +1865,49 @@ export default function HospitalPortal() {
           </div>
         )}
 
+        {/* Requisition Fulfillment Confirm Modal */}
+        <ConfirmModal
+          isOpen={fulfillConfirm !== null}
+          onClose={() => setFulfillConfirm(null)}
+          onConfirm={async () => {
+            if (fulfillConfirm) {
+              const targetId = fulfillConfirm.id;
+              setFulfillConfirm(null);
+              await advanceStatus(targetId, 'dispatched');
+            }
+          }}
+          title="Mark Requisition as Fulfilled?"
+          description={
+            fulfillConfirm
+              ? `Confirm that required ${fulfillConfirm.bloodGroup} units for ${fulfillConfirm.patientName} have arrived and been administered. This closes this requisition in the active emergency pipeline.`
+              : ''
+          }
+          confirmText="Mark Fulfilled"
+          variant="primary"
+          icon={CheckCircle2}
+        />
+
+        {/* Staff Deactivation Confirm Modal */}
+        <ConfirmModal
+          isOpen={staffDeactivateConfirm !== null}
+          onClose={() => setStaffDeactivateConfirm(null)}
+          onConfirm={async () => {
+            if (staffDeactivateConfirm) {
+              const targetId = staffDeactivateConfirm.id;
+              setStaffDeactivateConfirm(null);
+              await handleToggleStaffStatus(targetId, true);
+            }
+          }}
+          title="Deactivate Staff Account?"
+          description={
+            staffDeactivateConfirm
+              ? `Are you sure you want to suspend portal access for ${staffDeactivateConfirm.name}? They will not be able to sign in or handle emergency requisitions until re-activated.`
+              : ''
+          }
+          confirmText="Deactivate Staff"
+          variant="warning"
+          icon={AlertTriangle}
+        />
       </div>
     </RoleGuard>
   );

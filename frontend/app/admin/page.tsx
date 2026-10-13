@@ -6,6 +6,7 @@ import DashboardSidebar from '@/components/DashboardSidebar';
 import TopHeader from '@/components/TopHeader';
 import BloodGroupBadge from '@/components/BloodGroupBadge';
 import StatusPill from '@/components/StatusPill';
+import ConfirmModal from '@/components/ConfirmModal';
 import { useAuth } from '@/lib/auth-context';
 import {
   ShieldCheck,
@@ -98,6 +99,7 @@ export default function AdminPortal() {
   // Modals & Inspect
   const [selectedAuditLog, setSelectedAuditLog] = useState<SystemAuditLog | null>(null);
   const [selectedUserDetail, setSelectedUserDetail] = useState<Donor | null>(null);
+  const [verifyConfirm, setVerifyConfirm] = useState<{ id: string; name: string; currentVerified: boolean } | null>(null);
 
   // Search & Filter States
   const [searchQuery, setSearchQuery] = useState('');
@@ -600,7 +602,13 @@ export default function AdminPortal() {
                             </td>
                             <td className="px-6 py-4 text-right">
                               <button
-                                onClick={() => handleVerify(h.id, h.verified)}
+                                onClick={() =>
+                                  setVerifyConfirm({
+                                    id: h.id,
+                                    name: h.name,
+                                    currentVerified: h.verified,
+                                  })
+                                }
                                 className={`px-4 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
                                   h.verified
                                     ? 'text-rose-600 border-rose-200 hover:bg-rose-50'
@@ -1607,6 +1615,27 @@ export default function AdminPortal() {
             </div>
           </div>
         )}
+
+        {/* Verification Status Confirm Modal */}
+        <ConfirmModal
+          isOpen={verifyConfirm !== null}
+          onClose={() => setVerifyConfirm(null)}
+          onConfirm={async () => {
+            if (verifyConfirm) {
+              const target = verifyConfirm;
+              setVerifyConfirm(null);
+              await handleVerify(target.id, target.currentVerified);
+            }
+          }}
+          title={verifyConfirm?.currentVerified ? 'Revoke Facility Clearance?' : 'Approve Facility License?'}
+          description={
+            verifyConfirm?.currentVerified
+              ? `Are you sure you want to revoke official authorization for "${verifyConfirm?.name}"? Clinical broadcasts and requisition matching will be suspended.`
+              : `Grant verified DGHS healthcare authorization to "${verifyConfirm?.name}"? This allows nationwide blood requisition broadcasting.`
+          }
+          confirmText={verifyConfirm?.currentVerified ? 'Revoke Access' : 'Approve Facility'}
+          variant={verifyConfirm?.currentVerified ? 'danger' : 'success'}
+        />
       </div>
     </RoleGuard>
   );

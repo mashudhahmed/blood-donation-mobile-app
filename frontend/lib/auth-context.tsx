@@ -40,6 +40,7 @@ interface AuthContextType {
   user: AuthUser;
   token: string | null;
   isAuthenticated: boolean;
+  isLoading: boolean;
   login: (selectedRole: UserRole, email?: string) => void;
   loginWithJwt: (email: string, password: string, role?: UserRole) => Promise<{ success: boolean; role?: UserRole; error?: string }>;
   registerWithJwt: (data: RegisterPayload) => Promise<{ success: boolean; role?: UserRole; error?: string }>;
@@ -90,6 +91,7 @@ const AuthContext = createContext<AuthContextType>({
   user: ROLE_PROFILES.ADMIN,
   token: null,
   isAuthenticated: false,
+  isLoading: true,
   login: () => {},
   loginWithJwt: async () => ({ success: false }),
   registerWithJwt: async () => ({ success: false }),
@@ -103,6 +105,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AuthUser>(ROLE_PROFILES.ADMIN);
   const [token, setToken] = useState<string | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
 
   useEffect(() => {
     async function restoreSession() {
@@ -129,6 +132,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } catch (e) {
         console.warn('Could not restore auth session', e);
         setIsAuthenticated(false);
+      } finally {
+        setIsLoading(false);
       }
     }
     restoreSession();
@@ -259,6 +264,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         user,
         token,
         isAuthenticated,
+        isLoading,
         login,
         loginWithJwt,
         registerWithJwt,
